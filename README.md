@@ -11,9 +11,9 @@ simulations or high-quality chemical reaction rate constant calculations.
 
 ## License
 
-EVB-QMDFF is distributed unter the terms of the MIT license:
+EVB-QMDFF is distributed unter the terms of the [MIT license](https://opensource.org/licenses/mit-license):
 
-
+```
    EVB-QMDFF - RPMD molecular dynamics and rate constant calculations on
                black-box generated potential energy surfaces
 
@@ -37,7 +37,7 @@ EVB-QMDFF is distributed unter the terms of the MIT license:
    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
    DEALINGS IN THE SOFTWARE.
-
+``` 
 
 ## Obtaining EVB-QMDFF
 
