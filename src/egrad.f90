@@ -57,7 +57,10 @@ character(len=20)::keyword
 character(len=120)::record
 integer::i,j,k
 real(kind=8)::s_var,z_var   ! variables for RP-EVB
-logical::has_next,path_struc
+!  for Wilson matrix printout
+real(kind=8),allocatable::internal(:),B_mat(:,:),dB_mat(:,:,:)
+logical::has_next,path_struc,print_wilson
+integer::wilson_mode
 logical::exist
 integer::next
 character(len=40)::commarg ! string for command line argument
@@ -140,6 +143,31 @@ do i = 1, nkey
    end if
 end do
 !
+!     If, for coordinate analysis etc., the Wilson matrix for each structure shall
+!     be written to file 
+!
+print_wilson=.false.
+do i = 1, nkey
+   next = 1
+   record = keyline(i)
+   call gettext (record,keyword,next)
+   call upcase (keyword)
+   string = record(next:120)
+   if (keyword(1:16) .eq. 'PRINT_WILSON ') then
+      read(record,*,iostat=readstat) names,wilson_mode
+      if (readstat .ne. 0) then
+         write(*,*) "The keyword PRINT_WILSON is incomplete!"
+         call fatal
+      end if
+      print_wilson=.true.
+      if ((wilson_mode .ne. 1) .and. (wilson_mode .ne. 2)) then
+         write(*,*) "ERROR! No valid number for PRINT_WILSON given!"
+         call fatal
+      end if
+   end if
+end do
+
+!
 !     Print debug information message
 !     Also allocate debug arrays
 !
@@ -163,6 +191,25 @@ if (do_debug) then
    parts_labels=" "
 end if
 
+!
+!     Read in the internal coordinates from file if the Wilson matrix 
+!     shall be calculated for each structure
+!
+if (print_wilson) then
+   call init_int("dummy",0,0,1)
+   allocate(internal(nat6),B_mat(nat6,3*natoms))
+   open(unit=215,file="wilson_mat.dat",status="replace")
+   write(215,*) "# No. int. coord.(i)   No. cart. coord(j)        B(i,j)"
+   if (wilson_mode .eq. 2) then
+      allocate(dB_mat(nat6,3*natoms,3*natoms))
+      open(unit=216,file="wilson_deriv.dat",status="replace")
+      write(216,*) "# No. int. coord.(i)   No. cart. coord(j)    No.cart.coord(k)     B'(i,j,k)"
+   end if
+   write(*,*) "The Wilson matrices of the structures are written to 'wilson_mat.dat'"
+   if (wilson_mode .eq. 2) then
+      write(*,*) "The Wilson matrix derivatives are written to 'wilson_derivs.dat'"
+   end if
+end if
 !
 !     produce the EVB-QMDFF-energies for all points
 !
@@ -192,6 +239,33 @@ do
    coord=coord/bohr
    call gradient(coord,e_evb,g_evb,1)  ! else calculate the usual gradient
 !
+!     If desired, calculate the Wilson matrix the structure and print it to file
+!
+   if (print_wilson) then
+      write(215,*) "Structure",ref_count,":"
+      call xyz_2int(coord,internal,natoms)
+      call calc_wilson(coord,internal,B_mat)
+      do i=1,nat6
+         do j=1,3*n_one
+            write(215,*) i,"      ",j,"      ",B_mat(i,j)
+         end do
+      end do
+!
+!     If ordered, calculate and print also the Wilson matrix derivative!
+!
+      if (wilson_mode .eq. 2) then
+         call calc_dwilson(coord,internal,dB_mat)
+         do i=1,nat6
+            do j=1,3*n_one
+               do k=1,3*n_one
+                  write(216,*) i,"      ",j,"      ",k,"      ",dB_mat(i,j,k)
+               end do
+            end do
+         end do
+      end if
+
+   end if
+!
 !     Calculate and write the energies of the single qmdffs!
 !
    if ((.not. rp_evb) .and. (.not. pot_ana) .and. (nqmdff .gt. 1) ) then
@@ -214,6 +288,11 @@ do
    end if
  !  stop "test run, gradient loop" 
 end do
+if (print_wilson) then
+   close(215)
+   if (wilson_mode .eq. 2) close(216)
+end if
+
 if (rp_evb) close(48)
 close(172)
 !

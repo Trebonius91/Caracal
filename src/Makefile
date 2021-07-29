@@ -111,10 +111,13 @@ $(LIBRARY): $(OBJS)
 
 
 #Make finally the exetuables and copy them into the bin directory
+#Generate the directory on the fly
 # $@ is the actual element on the list
 %.x: %.o libqmdff.a  
 	${FC} ${LINKFLAGS} -o  $@ $^ $(LINKLIBS) ; strip $@
+	$(shell mkdir -p ../bin)
 	mv $@ $(BINDIR) 
+
 
 #remove all object and executable data
 clean:

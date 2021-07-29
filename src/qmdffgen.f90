@@ -573,6 +573,24 @@ end do
 close(45)
 write(*,*) "Internal coordinate details written to 'coord_analysis.dat'"
 !
+!     Write the internal coordinates to the coord_def.inp file for further usage
+!
+open(unit=46,file="coord_def.inp",status="replace")
+
+do i=1,nbond
+   write(46,*) coord_def(i,2),coord_def(i,3)
+end do
+do i=1,nangl
+   write(46,*) coord_def(i+nbond,2),coord_def(i+nbond,3),coord_def(i+nbond,4)
+end do
+do i=1,ntors
+   write(46,*) coord_def(i+nbond+nangl,2),coord_def(i+nbond+nangl,3), &
+             & coord_def(i+nbond+nangl,4),coord_def(i+nbond+nangl,5),0
+end do
+
+close(46)
+write(*,*) "Internal coordinates input file 'coord_def.dat' written."
+!
 !     QMDFF2
 !
 
