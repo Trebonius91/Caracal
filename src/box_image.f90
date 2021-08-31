@@ -41,22 +41,22 @@ real(kind=8)::diff_vec(3)
 !
 !     Correct the x component
 !
-do while (abs(diff_vec(1)) .gt. box_len2) 
-   diff_vec(1)=diff_vec(1)-sign(box_len,diff_vec(1))
+do while (abs(diff_vec(1)) .gt. boxlen_x2) 
+   diff_vec(1)=diff_vec(1)-sign(boxlen_x,diff_vec(1))
 end do
 
 !
 !     Correct the y component
 !
-do while (abs(diff_vec(2)) .gt. box_len2)
-   diff_vec(2)=diff_vec(2)-sign(box_len,diff_vec(2))
+do while (abs(diff_vec(2)) .gt. boxlen_y2)
+   diff_vec(2)=diff_vec(2)-sign(boxlen_y,diff_vec(2))
 end do
 
 !
 !     Correct the z component
 !
-do while (abs(diff_vec(3)) .gt. box_len2)
-   diff_vec(3)=diff_vec(3)-sign(box_len,diff_vec(3))
+do while (abs(diff_vec(3)) .gt. boxlen_z2)
+   diff_vec(3)=diff_vec(3)-sign(boxlen_z,diff_vec(3))
 end do
 
 

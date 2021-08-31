@@ -59,7 +59,7 @@ parameter(k_B=0.316679D-5) ! the boltzmann constant in au/kelvin
 !     Calculate new box dimensions, if the NPT ensemble is used
 !
 if (periodic) then
-   volbox=box_len**3
+   volbox=boxlen_x*boxlen_y*boxlen_z
 end if
 
 !
@@ -107,17 +107,37 @@ end if
 !
 if (thermostat .eq. 2) then
    call andersen
-!   p_i=0.d0
+ !  p_i=0.d0
    nfree=3.d0*natoms
    ekt = k_B * kelvin
    qterm = ekt * nose_q * nose_q
-   
    do j = 1, maxnose
       qnh(j) = qterm
       vnh(j)=0.d0
       gnh(j)=0.d0
    end do
    qnh(1) = dble(nfree) * qnh(1)
+!
+!    If the Nose-Hoover-Chain barostat it used, set its initial values as well
+!
+   qterm = ekt * nose_tau * nose_tau
+   qbar = dble(nfree+1) * qterm
+
+end if
+
+!
+!     If the Berendsen barostat is used
+!
+if (barostat .eq. 1) then
+   taupres=2.d0
+   compress=0.000046d0*prescon/1000.d0
+   write(*,*) "compress",compress
+!
+!     If the Nose-Hoover chain barostat is used
+!
+else if (barostat .eq. 2) then
+   qterm = ekt * nose_tau * nose_tau
+   qbar = dble(nfree+1) * qterm
 end if
 
 return

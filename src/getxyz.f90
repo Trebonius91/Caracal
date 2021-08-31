@@ -72,6 +72,7 @@ read(ixyz,*,err=60,end=60)
 do i=1,n
    read(ixyz,*,err=60,end=60) name(i),x(i),y(i),z(i)
    call atommass(i)
+   call upcase(name(i))
 end do
 
 close (unit=ixyz)

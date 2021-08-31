@@ -603,6 +603,7 @@ write(278,*) natoms_box
 write(278,*)
 do i=1,natoms_box
    call atomname(atnum_all(i),atname)
+   call upcase(atname)
    write(278,*) atname,xyz_all(:,i)*bohr
 end do
 close(278)

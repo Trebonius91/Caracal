@@ -9,7 +9,7 @@ SRCDIR = src
 # Fortran compiler
 #FC = gfortran # serial version
 FC = mpif90  # for MPI support
-FFLAGS =  -fno-align-commons -fallow-argument-mismatch -O1  #-ffree-form #-Wall # normal version
+FFLAGS =  -fno-align-commons -Wno-argument-mismatch -O1  #-ffree-form #-Wall # normal version
 #FFLAGS =  -fno-align-commons -g -ffpe-trap=zero,invalid,overflow,underflow  #-ffree-form #-Wall # debug version!
 LINKFLAGS = -static-libgcc -fopenmp -llapack -lblas -lfftw3 -fno-align-commons # normal version 
 #LINKFLAGS = -static-libgcc -fopenmp -llapack -lblas -lfftw3 -fno-align-commons -g -ffpe-trap=zero,invalid,overflow,underflow # debug version!

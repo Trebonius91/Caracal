@@ -92,15 +92,15 @@ bohr=0.52917721092d0
 !
 !     compute and store reciprocal lattice vectors as column
 !
-ar1=box_len
+ar1=boxlen_x
 ar2=0.d0
 ar3=0.d0
 br1=0.d0
-br2=box_len
+br2=boxlen_y
 br3=0.d0
 cr1=0.d0
 cr2=0.d0
-cr3=box_len
+cr3=boxlen_z
 
 recip(1,1) = (br2*cr3 - cr2*br3) / volbox
 recip(2,1) = (br3*cr1 - cr3*br1) / volbox

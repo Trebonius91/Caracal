@@ -185,7 +185,6 @@ logical::isothermal
 logical::isobaric
 logical::anisotrop
 character(len=9)::volscale
-character(len=11)::barostat
 
 !
 !     from tinker module "units"
@@ -230,7 +229,7 @@ character(len=11)::barostat
 !     efreq       conversion from Hartree to cm-1
 !     coulomb     conversion from electron**2/Ang to kcal/mole
 !     debye       conversion from electron-Ang to Debyes
-!     prescon     conversion from kcal/mole/Ang**3 to Atm
+!     prescon     conversion from Hartree/bohr**3 to Atm
 !
 real(kind=8)::avogadro
 real(kind=8)::lightspd
@@ -257,7 +256,8 @@ parameter (evolt=27.21138503d0)
 parameter (efreq=2.194746313708d+5)
 parameter (coulomb=332.063714d0)
 parameter (debye=4.80321d0)
-parameter (prescon=6.85684112d+4)
+! parameter (prescon=737.395359668)
+parameter (prescon=290371576.61)
 parameter (newton2au=12137804.11081)
 !
 !     THERMOSTATS: Andersen or Nose-Hoover?
@@ -267,6 +267,10 @@ real(kind=8)::nose_zeta  ! the Nose-Hoover friction variable zeta
 real(kind=8)::nose_q  ! the Nose-Hoover damping factor
 real(kind=8),allocatable::nhc_zeta(:,:)  ! for NHC: array with thermostat DOFs
 integer::nhc_length  ! length of the NHC thermostat chain
+!
+!     BAROSTAT
+!
+real(kind=8)::nose_tau  ! the Nose-Hoover barostat damping factor
 !
 !     from tinker module "atomid"
 !     --> elements and masses of atoms in system

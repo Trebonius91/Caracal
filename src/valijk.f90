@@ -50,10 +50,8 @@ end do
 !     apply periodic boundaries, if needed
 !
 if (periodic) then
-   do i=1,3
-      if (ra(i) .gt. box_len2) ra(i)=box_len-ra(i)
-      if (rb(i) .gt. box_len2) rb(i)=box_len-rb(i)
-   end do
+   call box_image(ra)
+   call box_image(rb)
 end if
 
 

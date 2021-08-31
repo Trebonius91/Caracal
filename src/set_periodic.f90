@@ -31,14 +31,14 @@
 !          calculations in the qmdff module
 !
 
-subroutine set_periodic(switch_per,length,switch_ew,brute_force, &
-   & cut_coul,cut_vdw)
+subroutine set_periodic(switch_per,length_x,length_y,length_z,switch_ew, & 
+    & switch_zahn,brute_force, cut_coul,cut_vdw)
 use qmdff
 implicit none
 integer::i,k
-logical::switch_per,switch_ew,brute_force
+logical::switch_per,switch_ew,brute_force,switch_zahn
 integer::ifft
-real(kind=8)::length
+real(kind=8)::length_x,length_y,length_z
 real(kind=8)::ewald_accuracy
 real(kind=8),allocatable::array(:),bsarray(:)
 real(kind=8)::ratio,xhi,xlo,y_par,x_par,eps
@@ -50,6 +50,8 @@ parameter (maxpower=63)
 integer::multi(maxpower)
 integer::ifront,iback,error,iguess  !for FFTW routines
 integer::nthread
+real(kind=8)::bohr
+parameter(bohr=0.52917721092d0)
 !
 !    The possible PME grid sizes
 !
@@ -64,24 +66,40 @@ data multi  /   2,   4,   6,   8,  10,  12,  16,  18,  20, &
 
 periodic=switch_per
 ewald=switch_ew
+zahn=switch_zahn
 coul_cut=cut_coul
-vdw_cut=cut_vdw/0.52917721092d0
+vdw_cut=cut_vdw/bohr
 ewald_brute=brute_force
-box_len=length
-box_len2=length*0.5d0!
+boxlen_x=length_x
+boxlen_y=length_y
+boxlen_z=length_z
+boxlen_x2=length_x*0.5d0
+boxlen_y2=length_y*0.5d0
+boxlen_z2=length_z*0.5d0
+
 !
 !     set the Coulomb cutoff to half the box length if its value 
 !     is too small (set it directly to bohr)
 !
 if (coul_cut .lt. 5d0) then
-   coul_cut=box_len2-0.1d0
+   coul_cut=min(boxlen_x2,boxlen_y2,boxlen_z2)-0.1d0
+end if
+
+!
+!     Set the parameters for the Zahn method 
+!
+if (zahn) then
+   zahn_a=0.2d0*bohr
+   coul_cut=10.d0/bohr
+   zahn_acut=zahn_a*coul_cut
+   zahn_par=erfc(zahn_acut)/coul_cut**2+2*zahn_a/spi*exp(-zahn_acut**2)/coul_cut
 end if
 !
 !     If the Coulomb cutoff is larger than half the box length,
 !     set it to half the box length
 !
-if (coul_cut .gt. box_len2) then
-   coul_cut=box_len2-0.1d0
+if (coul_cut .gt. min(boxlen_x2,boxlen_y2,boxlen_z2)) then
+   coul_cut=min(boxlen_x2,boxlen_y2,boxlen_z2)-0.1d0
    write(*,*) "Warning: The Coulomb cutoff was chosen too large and will"
    write(*,*) " be set to half the periodic box length."
 end if
@@ -105,7 +123,7 @@ if (ewald) then
    maxfft=864
    dens=1.2d0
    delta=1D-8
-   ifft=int(box_len*0.52917721092d0*dens-delta)+1
+   ifft=int(boxlen_x*0.52917721092d0*dens-delta)+1
    write(*,*) "Ifft",ifft,ewald
 
    nfft = maxfft

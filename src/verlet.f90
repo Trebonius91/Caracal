@@ -39,7 +39,7 @@ use evb_mod
 use qmdff
 !  ambigious reference of z-coord to qmdff z(94) array!!
 implicit none
-integer::i,j,k,istep   ! loop indices and actual step number
+integer::i,j,k,l,istep   ! loop indices and actual step number
 real(kind=8)::dt,dt_2
 real(kind=8)::etot,epot,ekin,epot1
 real(kind=8)::eksum
@@ -81,24 +81,40 @@ real(kind=8)::ndoft ! number degrees of freedom
 real(kind=8)::nose_zeta2
 integer::tries  ! number of periodic corrections before throwing an error
 integer::j_lower,j_upper
+!   for Nose-Hoover barostat
+real(kind=8)::e2,e4,e6,e8
+real(kind=8)::eterm2,term,term2,resize,expterm
+real(kind=8)::stress_ten(3,3),ekin_ten(3,3),factor
+real(kind=8)::act_vol,act_dens
+!   for Berendsen barostat 
+real(kind=8)::beren_scale
+real(kind=8)::press_avg  ! the average pressure for printout
 !parameter(pi=3.1415926535897932384626433832795029d0)
-infinity = HUGE(dbl_prec_var)   ! set the larges possible real value
 
+
+
+infinity = HUGE(dbl_prec_var)   ! set the larges possible real value
 
 !
 !     Calculate new box dimensions, if the NPT ensemble is used
 !
 if (periodic) then
-   volbox=box_len**3
+   volbox=boxlen_x*boxlen_y*boxlen_z
 end if
+!
+!     Reset the virial tensor if a pressure is applied
+!
+if (npt) then
+   calc_vir=.true.
+   vir_ten=0.d0
+end if
+!
+!     For the first timestep: set the pressure to the desired value
+!
+if (istep .eq. 1) press_act=pressure
 
 call get_centroid(centroid)
-!
-!     For usual Nose-Hoover: number degrees of freedom times kinetic energy
-!
-if (thermostat .eq. 1) then
-   ndoft=3d0*natoms*nbeads*nbeads*1.380649E-23/4.3597447E-18*kelvin
-end if
+
 do k=1,nbeads
    do i=1,natoms
       do j=1,3
@@ -107,26 +123,24 @@ do k=1,nbeads
    end do
 end do
 !
-!     Nose-Hoover step A:: calculate first quarter-step value of zeta!
-!
-if (thermostat .eq. 1) then
-   nose_zeta=nose_zeta+0.25d0*dt*(sum(p_i*p_i/massvec)-ndoft)/nose_q
-!
-!     Nose-Hoover step B: first part of half time momentum update
-!
-   p_i=p_i-0.5d0*dt*p_i*nose_zeta/massvec
-!
-!     Nose-Hoover step C:: calculate second quarter-step value of zeta!
-!
-   nose_zeta=nose_zeta+0.25d0*dt*(sum(p_i*p_i/massvec)-ndoft)/nose_q
-end if
-
-!
 !     For the Nose-Hoover chain thermostat: apply the full chain on the momenta
 !     on the half-time step
 !
 if (thermostat .eq. 2) then
-   call nhc(dt,centroid)
+!
+!     The NPT ensemble: correct momenta and pressure 
+!
+   if (npt) then
+      if (barostat .eq. 2) then
+         call nhc_npt(dt,centroid,volbox)
+      end if
+!      call berendsen(dt,centroid,volbox)
+!
+!     The NVT ensemble: correct only momenta
+!
+   else 
+      call nhc(dt,centroid)
+   end if
 end if
 !
 !     update the momentum (half time step)
@@ -137,6 +151,7 @@ end if
 p_i=p_i-0.5d0*dt*derivs
 !end if
 !
+
 
 
 !
@@ -164,10 +179,6 @@ if (calc_ekin) then
    do i=1,ekin_num
       k=ekin_atoms(i)
       do j=1,nbeads
-    !     j_lower=j-1
-    !     if (j_lower .lt. 1) j_lower=nbeads
-    !     j_upper=j+1
-    !     if (j_upper .gt. nbeads) j_upper=1
          
          ekin2=ekin2+dot_product(q_i(:,k,j)-centroid(:,k),derivs(:,k,j))!+&
                     !  & mass(i)/beta_n**2/nbeads*((2*q_i(:,i,j)-q_i(:,i,j_upper)-q_i(:,i,j_lower))))
@@ -186,6 +197,23 @@ if (afm_run) then
    p_i(:,afm_fix_at,:)=0.d0
 end if 
 !
+!     If a barostat is used: prepare the volume update
+!
+if (npt) then
+   if (barostat .eq. 2) then
+      term = vbar*0.5d0*dt
+      term2 = term*term
+      expterm=exp(term)
+      eterm2 = expterm * expterm
+      e2 = 1.0d0 / 6.0d0
+      e4 = e2 / 20.0d0
+      e6 = e4 / 42.0d0
+      e8 = e6 / 72.0d0
+      resize = 1.0d0 + term2*(e2+term2*(e4+term2*(e6+term2*e8)))
+      resize = expterm * resize * dt
+   end if
+end if
+!
 !     update the positions: for one bead, do the usual verlet procedure
 !
 !     ---> Nose-Hoover step E
@@ -198,17 +226,32 @@ if (nbeads .eq. 1) then
    if (box_walls) then
       do i=1,natoms
          do j=1,3
-            if (q_i(j,i,1)+p_i(j,i,1)*dt/massvec(j,i,1) .ge. wall_dim) then
-               p_i(j,i,1)=-p_i(j,i,1)
+            if (q_i(1,i,1)+p_i(1,i,1)*dt/massvec(1,i,1) .ge. walldim_x) then
+               p_i(1,i,1)=-p_i(1,i,1)
+            else if (q_i(2,i,1)+p_i(2,i,1)*dt/massvec(2,i,1) .ge. walldim_y) then
+               p_i(2,i,1)=-p_i(2,i,1)
+            else if (q_i(3,i,1)+p_i(3,i,1)*dt/massvec(3,i,1) .ge. walldim_z) then
+               p_i(3,i,1)=-p_i(3,i,1)
             else if (q_i(j,i,1)+p_i(j,i,1)*dt/massvec(j,i,1) .le. 0.d0) then 
                p_i(j,i,1)=-p_i(j,i,1)
             end if
          end do
       end do
    end if
-   q_i=q_i+p_i*dt/massvec
+!
+!    For NPT (Nose-Hoover) or NVT/NVE ensembles
+!
+ 
+   if (npt) then
+      if (barostat .eq. 2) then
+         q_i=q_i*eterm2+p_i/massvec*resize
+      else 
+         q_i=q_i+p_i*dt/massvec
+      end if
+   else 
+      q_i=q_i+p_i*dt/massvec
+   end if
 else 
-   
 !
 !     For the ring polymer: calculate the harmonic free ring polymer 
 !     interactions between the beats: do it in normal mode space
@@ -285,7 +328,19 @@ else
       do k = 1, Nbeads
          do i = 1, 3
             p_new = p_i(i,j,k) * poly(1,k) + q_i(i,j,k) * poly(2,k)
-            q_i(i,j,k) = p_i(i,j,k) * poly(3,k) + q_i(i,j,k) * poly(4,k)
+!
+!    For NPT ensemble: resize the box dimensions!
+!
+            if (npt) then
+               if (barostat .eq. 2) then
+                  q_i(i,j,k) = p_i(i,j,k) * poly(3,k)*resize + q_i(i,j,k) *  &
+                           & poly(4,k) * eterm2
+               else 
+                  q_i(i,j,k) = p_i(i,j,k) * poly(3,k) + q_i(i,j,k) * poly(4,k)
+               end if
+            else 
+               q_i(i,j,k) = p_i(i,j,k) * poly(3,k) + q_i(i,j,k) * poly(4,k)
+            end if
             p_i(i,j,k) = p_new
          end do
       end do 
@@ -308,9 +363,15 @@ else
       do k=1,nbeads
          do i=1,natoms
             do j=1,3
-               if (q_i(j,i,k) .ge. wall_dim) then
-                  q_i(j,i,k)=2.d0*q_old(j,i,k)-q_i(j,i,k)
-                  p_i(j,i,k)=-p_i(j,i,k)
+               if (q_i(1,i,1) .ge. walldim_x) then
+                  q_i(1,i,k)=2.d0*q_old(1,i,k)-q_i(1,i,k)
+                  p_i(1,i,k)=-p_i(1,i,k)
+               else if (q_i(2,i,1) .ge. walldim_y) then
+                  q_i(2,i,k)=2.d0*q_old(2,i,k)-q_i(2,i,k)
+                  p_i(2,i,k)=-p_i(2,i,k)
+               else if (q_i(3,i,1) .ge. walldim_z) then
+                  q_i(3,i,k)=2.d0*q_old(3,i,k)-q_i(3,i,k)
+                  p_i(3,i,k)=-p_i(3,i,k)
                else if (q_i(j,i,1)  .le. 0.d0) then
                   q_i(j,i,k)=q_old(j,i,k)-2.d0*q_i(j,i,k)
                   p_i(j,i,k)=-p_i(j,i,k)
@@ -323,6 +384,21 @@ else
 
 end if
 !
+!     For Nose-Hoover barostat in NPT ensemble, align the dimensions of the box
+!
+if (npt) then
+   if (barostat .eq. 2) then
+      boxlen_x=boxlen_x*eterm2
+      boxlen_y=boxlen_y*eterm2
+      boxlen_z=boxlen_z*eterm2
+      boxlen_x2=boxlen_x*0.5d0
+      boxlen_y2=boxlen_y*0.5d0
+      boxlen_z2=boxlen_z*0.5d0
+      volbox=boxlen_x*boxlen_y*boxlen_z
+   end if
+end if
+
+!
 !     For periodic systems: shift all atoms that were moved outside the 
 !     box on the other side!  If several RPMD beads are involved, change the 
 !     coordinates of all of them in the same way
@@ -333,23 +409,51 @@ if (periodic) then
          do k=1,3
             tries=0
             do while (q_i(k,j,i) .lt. 0) 
-               q_i(k,j,:)=q_i(k,j,:)+box_len
+               if (k .eq. 1) then
+                  q_i(k,j,:)=q_i(k,j,:)+boxlen_x
+               else if (k .eq. 2) then
+                  q_i(k,j,:)=q_i(k,j,:)+boxlen_y
+               else if (k .eq. 3) then
+                  q_i(k,j,:)=q_i(k,j,:)+boxlen_z
+               end if
                tries=tries+1
                if (tries .gt. 20) then
-                  write(*,*) "Too many correction steps needed for periodic dynamics!"
+                  write(*,*) "Too many correction steps needed for periodic dynamics! (lower)"
                   write(*,*) "The system seems to be exploded! Check your settings!"
                   call fatal
                end if
             end do
-            do while (q_i(k,j,i) .gt. box_len)
-               q_i(k,j,:)=q_i(k,j,:)-box_len
-               tries=tries+1
-               if (tries .gt. 20) then
-                  write(*,*) "Too many correction steps needed for periodic dynamics!"
-                  write(*,*) "The system seems to be exploded! Check your settings!"
-                  call fatal
-               end if
-            end do
+            if (k .eq. 1) then
+               do while (q_i(1,j,i) .gt. boxlen_x)
+                  q_i(1,j,:)=q_i(1,j,:)-boxlen_x
+                  tries=tries+1
+                  if (tries .gt. 20) then
+                     write(*,*) "Too many correction steps needed for periodic dynamics! (x, upper)"
+                     write(*,*) "The system seems to be exploded! Check your settings!"
+                     call fatal
+                  end if
+               end do
+            else if (k .eq. 2) then
+               do while (q_i(2,j,i) .gt. boxlen_y)
+                  q_i(2,j,:)=q_i(2,j,:)-boxlen_y
+                  tries=tries+1
+                  if (tries .gt. 20) then
+                     write(*,*) "Too many correction steps needed for periodic dynamics! (y,upper)"
+                     write(*,*) "The system seems to be exploded! Check your settings!"
+                     call fatal
+                  end if
+               end do
+            else if (k .eq. 3) then
+               do while (q_i(3,j,i) .gt. boxlen_z)
+                  q_i(3,j,:)=q_i(3,j,:)-boxlen_z
+                  tries=tries+1
+                  if (tries .gt. 20) then
+                     write(*,*) "Too many correction steps needed for periodic dynamics! (z,upper)"
+                     write(*,*) "The system seems to be exploded! Check your settings!"
+                     call fatal
+                  end if
+               end do
+            end if
          end do
       end do
    end do
@@ -439,37 +543,77 @@ end if
 p_i=p_i-0.5d0*dt*derivs
 
 !
-!     Nose-Hoover step G: calculate third quarter-step value of zeta!
-!
-if (thermostat .eq. 1) then
-   nose_zeta=nose_zeta+0.25d0*dt*(sum(p_i*p_i/massvec)-ndoft)/nose_q
-!
-!     Nose-Hoover step H: second part of full time momentum update
-!
-   p_i=p_i-0.5d0*dt*p_i*nose_zeta/massvec
-!
-!     Nose-Hoover step I: calculate fourth quarter-step value of zeta!
-!
-   nose_zeta=nose_zeta+0.25d0*dt*(sum(p_i*p_i/massvec)-ndoft)/nose_q
-!   write(*,*) "zeta",nose_zeta
-end if
-
-!
 !     For the Nose-Hoover chain thermostat: apply the full chain on the momenta
 !     on the full-time step
 !
 call get_centroid(centroid)
+
 if (thermostat .eq. 2) then
-   call nhc(dt,centroid)
+!
+!     The NPT ensemble: correct momenta and pressure 
+!
+   if (npt) then
+      if (barostat .eq. 2) then
+         call nhc_npt(dt,centroid,volbox)
+      end if
+!
+!     The NVT ensemble: correct only momenta
+!
+   else
+      call nhc(dt,centroid)
+   end if
 end if
-
-
+!
+!     Calculate the kinetic energy part of the stress tensor
+!
+if (npt) then
+   ekin_ten=0.d0
+   do i=1,nbeads
+      do j=1,natoms
+         do k=1,3
+            do l=1,3
+               ekin_ten(k,l)=ekin_ten(k,l)*p_i(k,j,i)*p_i(l,j,i)/mass(j)
+            end do
+         end do
+      end do
+   end do
+!
+!     Now calculate the actual pressure from the virial tensor / stress tensor
+!
+   factor = 1.d0 / volbox
+   do i=1,3
+      do j=1,3
+         stress_ten(j,i)=factor*(2d0*ekin_ten(j,i)-vir_ten(j,i))
+      end do
+   end do
+   press_act=(stress_ten(1,1)+stress_ten(2,2)+stress_ten(3,3)) / 3.d0
+end if
+!
+!     If the Berendsen barostat is chosen, rescale the box and the coordinates
+!
+if (npt) then
+  if (barostat .eq. 1) then
+     beren_scale=(1.d0+(dt*compress/taupres)*(press_act-pressure))**(1.d0/3.d0)
+  !   write(*,*) "scale",beren_scale,(dt*compress/taupres),(press_act-pressure)
+     boxlen_x=boxlen_x*beren_scale
+     boxlen_y=boxlen_y*beren_scale
+     boxlen_z=boxlen_z*beren_scale
+     boxlen_x2=boxlen_x*0.5d0
+     boxlen_y2=boxlen_y*0.5d0
+     boxlen_z2=boxlen_z*0.5d0
+     volbox=boxlen_x*boxlen_y*boxlen_z
+     q_i=q_i*beren_scale
+ 
+  end if
+end if
 !
 !     Apply andersen thermostat to apply an random hit and 
 !     change the momentum (only every andersen_step steps!)
 !     --> Replace momenta with a fresh sampling from a Gaussian
 !     distribution at the temperature of interest
 !
+
+
 if (thermostat .eq. 0) then
    if (mod(istep,andersen_step) .eq. 0) then
       call andersen
@@ -478,6 +622,7 @@ end if
 !
 !     calculate temperature and other dynamical parameters for each dump step
 !
+press_avg=press_avg+press_act
 if (analyze) then
    ekin1=0.d0
    ekin=0.d0
@@ -489,11 +634,22 @@ if (analyze) then
    end do
    ekin=ekin1
    act_temp=2d0*ekin1/3d0/0.316679D-5/natoms/nbeads/nbeads
-   write(*,'(a,i8,a,f12.5,a,f10.4,a)') " Step: ",istep,"  --  pot. energy: ", &
+   if (npt) then
+      act_vol=volbox*bohr**3
+      act_dens=(mass_tot*1.6605402E-24*emass)/(act_vol*1E-24)
+      
+
+      write(*,'(i8,f12.5,a,f10.4,a,f12.4,f14.5,a,f12.6)') istep,epot,"     ",act_temp,"  ",act_vol, & 
+               & press_avg*prescon/iwrite,"    ",act_dens
+   else 
+      write(*,'(a,i8,a,f12.5,a,f10.4,a)') " Step: ",istep,"  --  pot. energy: ", &
                 & epot," Hartree  --  temperature: ",act_temp," K"
+   end if
    write(236,*) istep,act_temp
    temp_test=temp_test+act_temp
+   press_avg=0.d0
 end if
+
 
 !
 !     If an error occured in the trajectory and one of the entries is either NaN

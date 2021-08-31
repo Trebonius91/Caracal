@@ -9,7 +9,7 @@ SRCDIR = src
 # Fortran compiler
 #FC = gfortran # serial version
 FC = mpif90  # for MPI support
-FFLAGS =  -fno-align-commons -fallow-argument-mismatch -O1  #-ffree-form #-Wall # normal version
+FFLAGS =  -fno-align-commons -Wno-argument-mismatch -O1  #-ffree-form #-Wall # normal version
 #FFLAGS =  -fno-align-commons -g -ffpe-trap=zero,invalid,overflow,underflow  #-ffree-form #-Wall # debug version!
 LINKFLAGS = -static-libgcc -fopenmp -llapack -lblas -lfftw3 -fno-align-commons # normal version 
 #LINKFLAGS = -static-libgcc -fopenmp -llapack -lblas -lfftw3 -fno-align-commons -g -ffpe-trap=zero,invalid,overflow,underflow # debug version!
@@ -80,7 +80,7 @@ OBJS = general.o evb_mod.o qmdff.o lm_module.o debug.o \
        rpmd_info.o egrad_dg_evb.o egrad_treq.o calc_d2vec.o \
        transrot.o nhc.o orca_grad.o set_periodic.o box_image.o \
        ewald_recip.o bsplgen.o setchunk.o ewald_adjust.o ewald_fft.o \
-       bspline.o dftmod.o exp_switch.o \
+       bspline.o dftmod.o exp_switch.o nhc_npt.o \
        \
        egrad_ch4oh.o util_ch4oh.o egrad_h3.o \
        numeral.o getnumb.o getstring.o torphase.o egrad_ch4h.o \
@@ -116,6 +116,7 @@ $(LIBRARY): $(OBJS)
 %.x: %.o libqmdff.a  
 	${FC} ${LINKFLAGS} -o  $@ $^ $(LINKLIBS) ; strip $@
 	$(shell mkdir -p ../bin)
+	cp $@ ~/bin/
 	mv $@ $(BINDIR) 
 
 

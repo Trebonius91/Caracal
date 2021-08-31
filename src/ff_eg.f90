@@ -30,6 +30,10 @@
 !     subroutine ff_eg: energies and gradients of the bonded 
 !            potential terms    
 !
+!       Virial tensor components are calculated as explained in:
+!       J. Comput. Chem. 23; 667-672, 2002 (Computation of Pressure Components
+!       due to Class II Force Fields)
+!
 !     part of QMDFF
 !
 
@@ -52,6 +56,8 @@ real(kind=8)::rkl,rjl,dampkl,damp2kl,damp2jl,term1(3),term2(3),term3(3)
 integer::ib,id
 real(kind=8)::dda(3),ddb(3),ddc(3),ddd(3)
 real(kind=8)::rbond(3)
+!   The newly added gradient components
+real(kind=8)::g_local_a(3),g_local_b(3),g_local_c(3),g_local_d(3) 
 
 real(kind=8)::r,thab,thbc,ra(3),fac,eb,or,kij,rij,alpha,dij
 real(kind=8)::dei(3),dej(3),dek(3),kijk,rb(3),ea,dedtheta,ban
@@ -88,16 +94,6 @@ do m=1,nbond
    r2=rbond(1)**2+rbond(2)**2+rbond(3)**2
    r =sqrt(r2)
 
-   do ic=1,3
-      ra(ic)=xyz(ic,i)-xyz(ic,j)
-   end do
-!
-!     apply periodic boundaries, if needed
-!
-   if (periodic) then
-      call box_image(ra)
-   end if
-
    rij=vbond(1,m)
    kij=vbond(2,m)
    aai=vbond(3,m)
@@ -111,9 +107,25 @@ do m=1,nbond
 !
    fac=aai*kij*(-(rij/r)**aai+(rij/r)**aai2)/r2
    do ic=1,3
-      g(ic,i)=g(ic,i)+fac*ra(ic)
-      g(ic,j)=g(ic,j)-fac*ra(ic)
+      g_local_a(ic)=fac*rbond(ic)
    end do
+
+   g(:,i)=g(:,i)+g_local_a
+   g(:,j)=g(:,j)-g_local_a
+!
+!     the components of the virial tensor, if needed
+!
+   if (calc_vir) then
+      vir_ten(1,1)=vir_ten(1,1)+rbond(1)*g_local_a(1)
+      vir_ten(2,1)=vir_ten(2,1)+rbond(2)*g_local_a(1)
+      vir_ten(3,1)=vir_ten(3,1)+rbond(3)*g_local_a(1)
+      vir_ten(1,2)=vir_ten(1,2)+rbond(1)*g_local_a(2)
+      vir_ten(2,2)=vir_ten(2,2)+rbond(2)*g_local_a(2)
+      vir_ten(3,2)=vir_ten(3,2)+rbond(3)*g_local_a(2)
+      vir_ten(1,3)=vir_ten(1,3)+rbond(1)*g_local_a(3)
+      vir_ten(2,3)=vir_ten(2,3)+rbond(2)*g_local_a(3)
+      vir_ten(3,3)=vir_ten(3,3)+rbond(3)*g_local_a(3)
+   end if
 !
 !     If debugging is activated, store the component in the array
 !
@@ -140,17 +152,18 @@ do m=1,nangl
    va(1:3)=xyz(1:3,i)
    vb(1:3)=xyz(1:3,j)
    vc(1:3)=xyz(1:3,k)
+   
+   vab=va-vb
+   vcb=vc-vb
 !
 !     apply periodic boundaries, if needed
 !
    if (periodic) then
-      call box_image(va)
-      call box_image(vb)
-      call box_image(vc)
+      call box_image(vab)
+      call box_image(vcb)
    end if
 
-   vab=va-vb
-   vcb=vc-vb
+
 ! 
 !     vectors of both included bonds
 !
@@ -180,7 +193,8 @@ do m=1,nangl
    else
       ea=kijk*(cosa-cos(c0))**2 
       deddt=2.*kijk*sin(theta)*(cos(c0)-cosa)               
-   end if
+  
+    end if
 !
 !     add the calculated energy
 !
@@ -192,11 +206,7 @@ do m=1,nangl
 !      qmdff_parts(1,struc_no,comp_no)=act_part
 !      write(parts_labels(1,comp_no),'(a,i4,i4,i4)') "angle",i,j,k
 !   end if
-! TEST TEST 24.10.2017 TEST TEST
- !  if ((i.eq.1) .and. (j.eq.2) .and. (k.eq.3)) then
- !  else 
-      e=e+ea*damp
- !  end if
+   e=e+ea*damp
 !
 !     calculate the gradient
 !
@@ -206,17 +216,32 @@ do m=1,nangl
    call crprod(vcb,vp,dedc)
    rmul2 =  deddt / (rcb2*rp)
    dedc=dedc*rmul2
-   dedb=deda+dedc
+   dedb=deda+dedc   ! sum of a and c!
    term1(1:3)=ea*damp2ij*dampjk*vab(1:3)
    term2(1:3)=ea*damp2jk*dampij*vcb(1:3)
-   ! TEST TEST 24.10.2017 TEST TEST
-  ! if ((i.eq.1) .and. (j.eq.2) .and. (k.eq.3)) then  
-  ! else
-   g(1:3,i) = g(1:3,i) + deda(1:3)*damp+term1(1:3)
-   g(1:3,j) = g(1:3,j) - dedb(1:3)*damp-term1(1:3)-term2(1:3)
-   g(1:3,k) = g(1:3,k) + dedc(1:3)*damp+term2(1:3)
- !  end if
-  !
+   
+   g_local_a = deda(1:3)*damp+term1(1:3)
+   g_local_b = -dedb(1:3)*damp-term1(1:3)-term2(1:3)
+   g_local_c = dedc(1:3)*damp+term2(1:3)
+
+   g(1:3,i)=g(1:3,i)+g_local_a
+   g(1:3,j)=g(1:3,j)+g_local_b
+   g(1:3,k)=g(1:3,k)+g_local_c
+!
+!     Calculate the virial tensor components, if needed!   
+!
+   if (calc_vir) then
+      vir_ten(1,1)=vir_ten(1,1)+vab(1)*g_local_a(1)+vcb(1)*g_local_c(1)
+      vir_ten(2,1)=vir_ten(2,1)+vab(2)*g_local_a(1)+vcb(2)*g_local_c(1)
+      vir_ten(3,1)=vir_ten(3,1)+vab(3)*g_local_a(1)+vcb(3)*g_local_c(1)
+      vir_ten(1,2)=vir_ten(1,2)+vab(1)*g_local_a(2)+vcb(1)*g_local_c(2)
+      vir_ten(2,2)=vir_ten(2,2)+vab(2)*g_local_a(2)+vcb(2)*g_local_c(2)
+      vir_ten(3,2)=vir_ten(3,2)+vab(3)*g_local_a(2)+vcb(3)*g_local_c(2)
+      vir_ten(1,3)=vir_ten(1,3)+vab(1)*g_local_a(3)+vcb(1)*g_local_c(3)
+      vir_ten(2,3)=vir_ten(2,3)+vab(2)*g_local_a(3)+vcb(2)*g_local_c(3)
+      vir_ten(3,3)=vir_ten(3,3)+vab(3)*g_local_a(3)+vcb(3)*g_local_c(3)
+   end if
+!
 !     If debugging is activated, store the component in the array
 !
 
@@ -342,24 +367,54 @@ do m=1,ntors
       term2(1:3)=et*damp2jk*dampij*dampkl*vcb(1:3)
       term3(1:3)=et*damp2kl*dampij*dampjk*vdc(1:3)
 
-      g(1:3,i)=g(1:3,i)+dij*dda(1:3)+term1
-      g(1:3,j)=g(1:3,j)+dij*ddb(1:3)-term1+term2     
-      g(1:3,k)=g(1:3,k)+dij*ddc(1:3)+term3-term2    
-      g(1:3,l)=g(1:3,l)+dij*ddd(1:3)-term3
+      g_local_a = dij*dda(1:3)+term1
+      g_local_b = dij*ddb(1:3)-term1+term2
+      g_local_c = dij*ddc(1:3)+term3-term2
+      g_local_d = dij*ddd(1:3)-term3
+  
+      g(1:3,i)=g(1:3,i)+g_local_a
+      g(1:3,j)=g(1:3,j)+g_local_b
+      g(1:3,k)=g(1:3,k)+g_local_c
+      g(1:3,l)=g(1:3,l)+g_local_d
+
+!
+!     Calculate the virial tensor components, if needed!   
+!
+
+      if (calc_vir) then
+         vir_ten(1,1)=vir_ten(1,1)+vab(1)*g_local_a(1)+vcb(1)*(g_local_c(1)+ &
+                     & g_local_d(1))+vdc(1)*g_local_d(1)
+         vir_ten(2,1)=vir_ten(2,1)+vab(2)*g_local_a(1)+vcb(2)*(g_local_c(1)+ &
+                     & g_local_d(1))+vdc(2)*g_local_d(1)
+         vir_ten(3,1)=vir_ten(3,1)+vab(3)*g_local_a(1)+vcb(3)*(g_local_c(1)+ &
+                     & g_local_d(1))+vdc(3)*g_local_d(1)
+         vir_ten(1,2)=vir_ten(1,2)+vab(1)*g_local_a(2)+vcb(1)*(g_local_c(2)+ &
+                     & g_local_d(2))+vdc(1)*g_local_d(2)
+         vir_ten(2,2)=vir_ten(2,2)+vab(2)*g_local_a(2)+vcb(2)*(g_local_c(2)+ &
+                     & g_local_d(2))+vdc(2)*g_local_d(2)
+         vir_ten(3,2)=vir_ten(3,2)+vab(3)*g_local_a(2)+vcb(3)*(g_local_c(2)+ &
+                     & g_local_d(2))+vdc(3)*g_local_d(2)
+         vir_ten(1,3)=vir_ten(1,3)+vab(1)*g_local_a(3)+vcb(1)*(g_local_c(3)+ &
+                     & g_local_d(3))+vdc(1)*g_local_d(3)
+         vir_ten(2,3)=vir_ten(2,3)+vab(2)*g_local_a(3)+vcb(2)*(g_local_c(3)+ &
+                     & g_local_d(3))+vdc(2)*g_local_d(3)
+         vir_ten(3,3)=vir_ten(3,3)+vab(3)*g_local_a(3)+vcb(3)*(g_local_c(3)+ &
+                     & g_local_d(3))+vdc(3)*g_local_d(3)
+      end if
 
 !
 !     If debugging is activated, store the component in the array
 !
 
-   if (do_debug) then
-      comp_no=m
-      write(290,*) &
-       &       "total energy",et, &
-       & " dt/dxi:", g(1,i)," dt/dyi:", g(2,i)," dt/dzi:", g(3,i)," dt/dxj:", &
-       &   g(1,j)," dt/dyj:", g(2,j)," dt/dzj:",g(3,j),"dt/dxk:", &
-       &   g(1,k)," dt/dyk:", g(2,k)," dt/dzk:",g(3,k),"dt/dxl:", &
-       &   g(1,l)," dt/dyl:", g(2,l)," dt/dzl:",g(3,l)
-   end if
+      if (do_debug) then
+         comp_no=m
+         write(290,*) &
+          &       "total energy",et, &
+          & " dt/dxi:", g(1,i)," dt/dyi:", g(2,i)," dt/dzi:", g(3,i)," dt/dxj:", &
+          &   g(1,j)," dt/dyj:", g(2,j)," dt/dzj:",g(3,j),"dt/dxk:", &
+          &   g(1,k)," dt/dyk:", g(2,k)," dt/dzk:",g(3,k),"dt/dxl:", &
+          &   g(1,l)," dt/dyl:", g(2,l)," dt/dzl:",g(3,l)
+      end if
 
 
 
@@ -421,11 +476,46 @@ do m=1,ntors
       term2(1:3)=et*damp2jk*dampij*dampjl*vcb(1:3)
       term3(1:3)=et*damp2jl*dampij*dampjk*vdc(1:3)
 
-      g(1:3,i)=g(1:3,i)+dij*dda(1:3)-term1
-      g(1:3,j)=g(1:3,j)+dij*ddb(1:3)+term1+term2+term3
-      g(1:3,k)=g(1:3,k)+dij*ddc(1:3)-term2
-      g(1:3,l)=g(1:3,l)+dij*ddd(1:3)-term3
+      g_local_a = dij*dda(1:3)-term1
+      g_local_b = dij*ddb(1:3)+term1+term2+term3
+      g_local_c = dij*ddc(1:3)-term2
+      g_local_d = dij*ddd(1:3)-term3
+
+
+      g(1:3,i)=g(1:3,i)+g_local_a
+      g(1:3,j)=g(1:3,j)+g_local_b
+      g(1:3,k)=g(1:3,k)+g_local_c
+      g(1:3,l)=g(1:3,l)+g_local_d
       e=e+et*damp
+
+!
+!     Calculate the virial tensor components, if needed!   
+!     a=i   b=j   c=k  d=l
+!     --> Maybe the out of plane variant needed with b as central atom??
+!
+      if (calc_vir) then
+         vir_ten(1,1)=vir_ten(1,1)+vab(1)*g_local_a(1)+vcb(1)*(g_local_c(1)+ &
+                     & g_local_d(1))+vdc(1)*g_local_d(1)
+         vir_ten(2,1)=vir_ten(2,1)+vab(2)*g_local_a(1)+vcb(2)*(g_local_c(1)+ &
+                    & g_local_d(1))+vdc(2)*g_local_d(1)
+         vir_ten(3,1)=vir_ten(3,1)+vab(3)*g_local_a(1)+vcb(3)*(g_local_c(1)+ &
+                     & g_local_d(1))+vdc(3)*g_local_d(1)
+         vir_ten(1,2)=vir_ten(1,2)+vab(1)*g_local_a(2)+vcb(1)*(g_local_c(2)+ &
+                     & g_local_d(2))+vdc(1)*g_local_d(2)
+         vir_ten(2,2)=vir_ten(2,2)+vab(2)*g_local_a(2)+vcb(2)*(g_local_c(2)+ &
+                     & g_local_d(2))+vdc(2)*g_local_d(2)
+         vir_ten(3,2)=vir_ten(3,2)+vab(3)*g_local_a(2)+vcb(3)*(g_local_c(2)+ &
+                     & g_local_d(2))+vdc(3)*g_local_d(2)
+         vir_ten(1,3)=vir_ten(1,3)+vab(1)*g_local_a(3)+vcb(1)*(g_local_c(3)+ &
+                     & g_local_d(3))+vdc(1)*g_local_d(3)
+         vir_ten(2,3)=vir_ten(2,3)+vab(2)*g_local_a(3)+vcb(2)*(g_local_c(3)+ &
+                     & g_local_d(3))+vdc(2)*g_local_d(3)
+         vir_ten(3,3)=vir_ten(3,3)+vab(3)*g_local_a(3)+vcb(3)*(g_local_c(3)+ &
+                     & g_local_d(3))+vdc(3)*g_local_d(3)
+      end if
+
+
+
 !
 !     --> for debugging
 !

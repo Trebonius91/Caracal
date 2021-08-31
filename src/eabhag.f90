@@ -181,5 +181,21 @@ gdr(1:3,A) = gdr(1:3,A) + ga(1:3)
 gdr(1:3,B) = gdr(1:3,B) + gb(1:3)
 gdr(1:3,H) = gdr(1:3,H) + gh(1:3)
 
+!
+!     Calculate the virial tensor components, if needed!   
+!
+
+if (calc_vir) then
+   vir_ten(1,1)=vir_ten(1,1)+drah(1)*ga(1)+drbh(1)*gb(1)
+   vir_ten(2,1)=vir_ten(2,1)+drah(2)*ga(1)+drbh(2)*gb(1)
+   vir_ten(3,1)=vir_ten(3,1)+drah(3)*ga(1)+drbh(3)*gb(1)
+   vir_ten(1,2)=vir_ten(1,2)+drah(1)*ga(2)+drbh(1)*gb(2)
+   vir_ten(2,2)=vir_ten(2,2)+drah(2)*ga(2)+drbh(2)*gb(2)
+   vir_ten(3,2)=vir_ten(3,2)+drah(3)*ga(2)+drbh(3)*gb(2)
+   vir_ten(1,3)=vir_ten(1,3)+drah(1)*ga(3)+drbh(1)*gb(3)
+   vir_ten(2,3)=vir_ten(2,3)+drah(2)*ga(3)+drbh(2)*gb(3)
+   vir_ten(3,3)=vir_ten(3,3)+drah(3)*ga(3)+drbh(3)*gb(3)
+end if
+
 return
 end subroutine eabhag

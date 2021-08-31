@@ -267,13 +267,15 @@ real(kind=8),allocatable::gle_np(:,:,:,:) !  GLE thermostat arrays
 logical::gen_test  ! perform only initial start structure generations
 integer::gen_pr_frac,gen_pr_act   ! only each N'th structure, energy etc shall be written out
 real(kind=8)::gen_energies  ! total sum of energies during structure generation
-
 ! For box simulations without periodic boundary conditions 
 logical::box_nonp
 real(kind=8)::box_center(3)
 real(kind=8)::box_size
 integer::box_fixed(1000)
 integer::num_fixed
+! For constant pressure npt simulations with a barostat
+logical::npt
+real(kind=8)::pressure
 
 !   If the starting velocity shall be read in
 logical::read_vel
@@ -295,8 +297,13 @@ logical::orca
 character(len=100)::orca_com
 !  for boxes with hard walls
 logical::box_walls
-real(kind=8)::wall_dim
+real(kind=8)::walldim_x,walldim_y,walldim_z
+!   For the Nose-Hoover/Berendsen barostat
+integer::barostat   ! switch: 1: Nose-Hoover, 2: Berendsen
+real(kind=8)::vel_baro
 real(kind=8)::temp_test  ! for andersen testing..
+real(kind=8)::press_act   ! the actual pressure to be calculated
+real(kind=8)::mass_tot   ! for density calculations (mass of the system)
 ! for acceleration of calculations: store previous infos
 real(kind=8),allocatable::inter_old(:,:),change_tol
 integer,allocatable::i_best_old(:)

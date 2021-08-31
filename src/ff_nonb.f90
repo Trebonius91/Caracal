@@ -63,6 +63,9 @@ integer::nbox,xbox,ybox,zbox  ! for brute force Ewald
 integer::nbox_sq,rbox,rbox_sq
 real(kind=8),allocatable::pot_shell(:)  ! energy for shells
 real(kind=8)::rbox_vec(3)
+!   The newly added gradient components
+real(kind=8)::g_local_a(3),g_local_b(3)
+real(kind=8)::vab(3)  ! for periodic image calculation
 
 bohr=0.52917721092d0
 e=0.d0
@@ -83,23 +86,24 @@ do k=1,nnci
    i1=nci(1,k)
    i2=nci(2,k)
    nk=nci(3,k)
-   dx=xyz(1,i1)-xyz(1,i2)
-   dy=xyz(2,i1)-xyz(2,i2)
-   dz=xyz(3,i1)-xyz(3,i2)
+   vab=xyz(1:3,i1)-xyz(1:3,i2)
 !
 !     apply periodic boundaries, if needed
 !
    if (periodic) then 
-      call box_image(dx,dy,dz)
+      call box_image(vab)
    end if
+ 
+   r2=dot_product(vab,vab)
 
-   r2=dx*dx+dy*dy+dz*dz
    r =sqrt(r2)
 
 !
 !     only proceed if the distance is below the cutoff
 !
-   if (periodic .and. r .gt. vdw_cut) cycle
+   if (periodic .and. r .gt. vdw_cut) then 
+      cycle
+   end if 
    oner =1.0d0/r
  
    iz1=at(i1)
@@ -107,7 +111,7 @@ do k=1,nnci
    R0=r0094(iz1,iz2)
    c6=c66ab(i2,i1)
 
-    r4=r2*r2
+   r4=r2*r2
    r6=r4*r2
    r06=R0**6
    t6=r6+r06
@@ -124,26 +128,39 @@ do k=1,nnci
 !
 !     determine gradient vector entries
 !
-   g(1,i1)=g(1,i1)+dx*drij
-   g(2,i1)=g(2,i1)+dy*drij
-   g(3,i1)=g(3,i1)+dz*drij
-   g(1,i2)=g(1,i2)-dx*drij
-   g(2,i2)=g(2,i2)-dy*drij
-   g(3,i2)=g(3,i2)-dz*drij
+   g_local_a(1:3)=vab(1:3)*drij
+
+   if (r .lt. 25) then
+      x    =zab(iz1,iz2)
+      alpha=r0ab(iz1,iz2)
+      t27  =x*dexp(-alpha*r)
+      e0   =t27*oner
+      e    =e + e0*eps2(nk)
+      drij=eps2(nk)*t27*(alpha*r+1.0d0)*oner/r2
+      g_local_a(1:3)=g_local_a(1:3)-vab(1:3)*drij
+   end if
+   
+   g(1:3,i1)=g(1:3,i1)+g_local_a(1:3)
+   g(1:3,i2)=g(1:3,i2)-g_local_a(1:3)
 
 
-   x    =zab(iz1,iz2)
-   alpha=r0ab(iz1,iz2)
-   t27  =x*dexp(-alpha*r)
-   e0   =t27*oner
-   e    =e + e0*eps2(nk)
-   drij=eps2(nk)*t27*(alpha*r+1.0d0)*oner/r2
-   g(1,i1)=g(1,i1)-dx*drij
-   g(2,i1)=g(2,i1)-dy*drij
-   g(3,i1)=g(3,i1)-dz*drij
-   g(1,i2)=g(1,i2)+dx*drij
-   g(2,i2)=g(2,i2)+dy*drij
-   g(3,i2)=g(3,i2)+dz*drij
+!
+!     the components of the virial tensor, if needed
+!
+   if (calc_vir) then
+      vir_ten(1,1)=vir_ten(1,1)+vab(1)*g_local_a(1)
+      vir_ten(2,1)=vir_ten(2,1)+vab(2)*g_local_a(1)
+      vir_ten(3,1)=vir_ten(3,1)+vab(3)*g_local_a(1)
+      vir_ten(1,2)=vir_ten(1,2)+vab(1)*g_local_a(2)
+      vir_ten(2,2)=vir_ten(2,2)+vab(2)*g_local_a(2)
+      vir_ten(3,2)=vir_ten(3,2)+vab(3)*g_local_a(2)
+      vir_ten(1,3)=vir_ten(1,3)+vab(1)*g_local_a(3)
+      vir_ten(2,3)=vir_ten(2,3)+vab(2)*g_local_a(3)
+      vir_ten(3,3)=vir_ten(3,3)+vab(3)*g_local_a(3)
+   end if
+
+
+
 end do
 
 
@@ -156,22 +173,22 @@ if (nmols .gt. 1) then
 !    Loop over all atoms and calculate all Van der Waals and Coulomb terms to all atoms 
 !    of other molecules
 !
-   do i=1,n
+   do i=1,n-1   ! Loop to n or n-1?
       do j=i+1,n
          if (molnum(i) .ne. molnum(j)) then
             i1=i
             i2=j
-            dx=xyz(1,i1)-xyz(1,i2)
-            dy=xyz(2,i1)-xyz(2,i2)
-            dz=xyz(3,i1)-xyz(3,i2)
+
+            vab=xyz(1:3,i1)-xyz(1:3,i2)
 !
 !     apply periodic boundaries, if needed
 !
             if (periodic) then
-               call box_image(dx,dy,dz)
+               call box_image(vab)
             end if
 
-            r2=dx*dx+dy*dy+dz*dz
+            r2=dot_product(vab,vab)
+
             r =sqrt(r2)
 !
 !     only proceed if the distance is below cutoff
@@ -201,29 +218,40 @@ if (nmols .gt. 1) then
 !
 !     determine gradient vector entries
 !
-            g(1,i1)=g(1,i1)+dx*drij
-            g(2,i1)=g(2,i1)+dy*drij
-            g(3,i1)=g(3,i1)+dz*drij
-            g(1,i2)=g(1,i2)-dx*drij
-            g(2,i2)=g(2,i2)-dy*drij
-            g(3,i2)=g(3,i2)-dz*drij
+            g_local_a(1:3)=vab(1:3)*drij
 
 !
 !    Van der Waals energy: only, if distance is below the 25 bohr cutoff!
 !
-            x    =zab(iz1,iz2)
-            alpha=r0ab(iz1,iz2)
-            t27  =x*dexp(-alpha*r)
-            e0   =t27*oner
-            e    =e + e0
-            drij=t27*(alpha*r+1.0d0)*oner/r2
-            g(1,i1)=g(1,i1)-dx*drij
-            g(2,i1)=g(2,i1)-dy*drij
-            g(3,i1)=g(3,i1)-dz*drij
-            g(1,i2)=g(1,i2)+dx*drij
-            g(2,i2)=g(2,i2)+dy*drij
-            g(3,i2)=g(3,i2)+dz*drij
+            if (r .lt. 25) then
+               x    =zab(iz1,iz2)
+               alpha=r0ab(iz1,iz2)
+               t27  =x*dexp(-alpha*r)
+               e0   =t27*oner
+               e    =e + e0
+               drij=t27*(alpha*r+1.0d0)*oner/r2
+               g_local_a(1:3)=g_local_a(1:3)-vab(1:3)*drij
+            end if
 !            write(*,*) "eges",e
+
+            g(1:3,i1)=g(1:3,i1)+g_local_a(1:3)
+            g(1:3,i2)=g(1:3,i2)-g_local_a(1:3)
+
+
+!
+!     the components of the virial tensor, if needed
+!
+            if (calc_vir) then
+               vir_ten(1,1)=vir_ten(1,1)+vab(1)*g_local_a(1)
+               vir_ten(2,1)=vir_ten(2,1)+vab(2)*g_local_a(1)
+               vir_ten(3,1)=vir_ten(3,1)+vab(3)*g_local_a(1)
+               vir_ten(1,2)=vir_ten(1,2)+vab(1)*g_local_a(2)
+               vir_ten(2,2)=vir_ten(2,2)+vab(2)*g_local_a(2)
+               vir_ten(3,2)=vir_ten(3,2)+vab(3)*g_local_a(2)
+               vir_ten(1,3)=vir_ten(1,3)+vab(1)*g_local_a(3)
+               vir_ten(2,3)=vir_ten(2,3)+vab(2)*g_local_a(3)
+               vir_ten(3,3)=vir_ten(3,3)+vab(3)*g_local_a(3)
+            end if
          end if
       end do
    end do
@@ -232,24 +260,24 @@ end if
 !     The Coulomb energy: Do usual summation for nonperiodic system over 
 !      QMDFF and (if existent) multi-molecule parts
 !
-!ewald=.false.
+ewald=.false.
 if (.not. ewald) then
    do k=1,nnci
       i1=nci(1,k)
       i2=nci(2,k)
       nk=nci(3,k)
-      dx=xyz(1,i1)-xyz(1,i2)
-      dy=xyz(2,i1)-xyz(2,i2)
-      dz=xyz(3,i1)-xyz(3,i2)
 
+      vab=xyz(1:3,i1)-xyz(1:3,i2)
 !
 !     apply periodic boundaries, if needed
 !
       if (periodic) then
-         call box_image(dx,dy,dz)
+         call box_image(vab)
       end if
 
-      r2=dx*dx+dy*dy+dz*dz
+      r2=dot_product(vab,vab)
+
+
       r =sqrt(r2)
 !
 !     For periodic systems: proceed only for distances below cutoff
@@ -259,24 +287,49 @@ if (.not. ewald) then
       switch=1.d0
       if (periodic) then
          if (r .gt. coul_cut) cycle
-         if (r .gt. cut_low) then 
-            switch=exp_switch(cut_low,coul_cut,r)           
+         if (.not. zahn) then
+            if (r .gt. cut_low) then 
+               switch=exp_switch(cut_low,coul_cut,r)           
+            end if
          end if
       end if      
   
 
       oner =1.0d0/r
-
-      e0=q(i1)*q(i2)*oner*eps1(nk)*switch
-
+!
+!     Use the Zahn smooth cutoff method, if ordered
+!
+      if (zahn) then
+         e0=q(i1)*q(i2)*((erfc(zahn_a*r)*oner)-zahn_par*(r-coul_cut))
+      else 
+         e0=q(i1)*q(i2)*oner*eps1(nk)*switch
+      end if
       e=e+e0
       drij=e0/r2
-      g(1,i1)=g(1,i1)-dx*drij
-      g(2,i1)=g(2,i1)-dy*drij
-      g(3,i1)=g(3,i1)-dz*drij
-      g(1,i2)=g(1,i2)+dx*drij
-      g(2,i2)=g(2,i2)+dy*drij
-      g(3,i2)=g(3,i2)+dz*drij
+
+      g_local_a(1:3)=-vab(1:3)*drij
+
+      g(1:3,i1)=g(1:3,i1)+g_local_a(1:3)
+      g(1:3,i2)=g(1:3,i2)-g_local_a(1:3)
+
+!
+!     the components of the virial tensor, if needed
+!
+!
+!     the components of the virial tensor, if needed
+!
+      if (calc_vir) then
+         vir_ten(1,1)=vir_ten(1,1)+vab(1)*g_local_a(1)
+         vir_ten(2,1)=vir_ten(2,1)+vab(2)*g_local_a(1)
+         vir_ten(3,1)=vir_ten(3,1)+vab(3)*g_local_a(1)
+         vir_ten(1,2)=vir_ten(1,2)+vab(1)*g_local_a(2)
+         vir_ten(2,2)=vir_ten(2,2)+vab(2)*g_local_a(2)
+         vir_ten(3,2)=vir_ten(3,2)+vab(3)*g_local_a(2)
+         vir_ten(1,3)=vir_ten(1,3)+vab(1)*g_local_a(3)
+         vir_ten(2,3)=vir_ten(2,3)+vab(2)*g_local_a(3)
+         vir_ten(3,3)=vir_ten(3,3)+vab(3)*g_local_a(3)
+      end if
+
    end do
 
 !
@@ -285,22 +338,23 @@ if (.not. ewald) then
 !   e=0
    if (nmols .gt. 1) then
 
-      do i=1,n
+      do i=1,n-1
          do j=i+1,n
             if (molnum(i) .ne. molnum(j)) then
                i1=i
                i2=j
-               dx=xyz(1,i1)-xyz(1,i2)
-               dy=xyz(2,i1)-xyz(2,i2)
-               dz=xyz(3,i1)-xyz(3,i2)
+
+
+               vab=xyz(1:3,i1)-xyz(1:3,i2)
 !
 !     apply periodic boundaries, if needed
 !
                if (periodic) then
-                  call box_image(dx,dy,dz)
+                  call box_image(vab)
                end if
 
-               r2=dx*dx+dy*dy+dz*dz
+               r2=dot_product(vab,vab)
+
                r =sqrt(r2)
 !
 !     For periodic systems: proceed only for distances below cutoff
@@ -308,14 +362,24 @@ if (.not. ewald) then
                switch=1.d0
                if (periodic) then
                   if (r .gt. coul_cut) cycle
-                  if (r .gt. cut_low) then
-                     switch=exp_switch(cut_low,coul_cut,r)
+                  if (.not. zahn) then
+                     if (r .gt. cut_low) then
+                        switch=exp_switch(cut_low,coul_cut,r)
+                     end if
                   end if
                end if
 
 
                oner =1.0d0/r
        
+!
+!     Use the Zahn smooth cutoff method, if ordered
+!
+               if (zahn) then
+                  e0=q(i1)*q(i2)*((erfc(zahn_a*r)*oner)-zahn_par*(r-coul_cut))
+               else
+                  e0=q(i1)*q(i2)*oner*eps1(nk)*switch
+               end if
 
 
                e0=q(i1)*q(i2)*oner*switch
@@ -323,12 +387,29 @@ if (.not. ewald) then
                e=e+e0
                
                drij=e0/r2
-               g(1,i1)=g(1,i1)-dx*drij
-               g(2,i1)=g(2,i1)-dy*drij
-               g(3,i1)=g(3,i1)-dz*drij
-               g(1,i2)=g(1,i2)+dx*drij
-               g(2,i2)=g(2,i2)+dy*drij
-               g(3,i2)=g(3,i2)+dz*drij
+
+               g_local_a(1:3)=-vab(1:3)*drij
+
+               g(1:3,i1)=g(1:3,i1)+g_local_a(1:3)
+               g(1:3,i2)=g(1:3,i2)-g_local_a(1:3)
+
+!
+!     the components of the virial tensor, if needed
+!
+!
+!     the components of the virial tensor, if needed
+!
+               if (calc_vir) then
+                  vir_ten(1,1)=vir_ten(1,1)+vab(1)*g_local_a(1)
+                  vir_ten(2,1)=vir_ten(2,1)+vab(2)*g_local_a(1)
+                  vir_ten(3,1)=vir_ten(3,1)+vab(3)*g_local_a(1)
+                  vir_ten(1,2)=vir_ten(1,2)+vab(1)*g_local_a(2)
+                  vir_ten(2,2)=vir_ten(2,2)+vab(2)*g_local_a(2)
+                  vir_ten(3,2)=vir_ten(3,2)+vab(3)*g_local_a(2)
+                  vir_ten(1,3)=vir_ten(1,3)+vab(1)*g_local_a(3)
+                  vir_ten(2,3)=vir_ten(2,3)+vab(2)*g_local_a(3)
+                  vir_ten(3,3)=vir_ten(3,3)+vab(3)*g_local_a(3)
+               end if
             end if
          end do
       end do
@@ -356,11 +437,11 @@ else if (ewald) then
 !   k_ew_cut=2d0*sqrt_p*a_ewald
    coul_cut=r_ew_cut**2   
  
-   if (r_ew_cut .gt. box_len2) then
+   if (r_ew_cut .gt. min(boxlen_x2,boxlen_y2,boxlen_z2)) then
       
       write(*,*) "The Ewald cutoff distance is larger than the half of the " 
       write(*,*) "periodic box! This would cause problems!"
-      write(*,'(a,f14.7,a,f14.7)') " Half of periodic box: ",box_len2*0.52917721092d0, &
+      write(*,'(a,f14.7,a,f14.7)') " Half of periodic box: ",boxlen_x2*0.52917721092d0, &
               & " Ewald cutoff: ",r_ew_cut*0.52917721092d0
       write(*,*) "Increase the system size or decrease the Ewald accuracy!"
       call fatal
@@ -569,6 +650,7 @@ end if
 !    Benchmark for Smooth particle mesh Ewald method: calculate the 
 !    brute force direct Ewald sum!
 !
+ewald_brute=.false.
 if (ewald_brute) then
    e_brute=0.d0
    write(*,*)
@@ -634,7 +716,7 @@ if (ewald_brute) then
          do zbox = -nbox, nbox
             rbox_sq = xbox**2 + ybox**2 + zbox**2
             if ( rbox_sq > nbox_sq ) cycle ! Skip if outside maximum sphere of boxes
-            rbox_vec = REAL ( [xbox,ybox,zbox] )*box_len
+            rbox_vec = REAL ( [xbox,ybox,zbox] )*boxlen_x
             do i = 1, n
                do j = 1, n
                   if (rbox_sq .eq. 0 ) cycle ! Skip only for central box
@@ -674,7 +756,6 @@ if (ewald_brute) then
    write(*,*) "The calculation will be stopped here."
    stop
 end if
-
 
 
 !do i=1,n

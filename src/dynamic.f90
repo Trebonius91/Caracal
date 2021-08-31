@@ -71,7 +71,7 @@ real(kind=8)::dt_info ! time in ps for information
 real(kind=8)::num_measure  ! how many times the temperature is measured..
 integer::nbeads_store   ! the stored number of beads (RPMD)
 character(len=20) keyword
-character(len=60)::names
+character(len=60)::names,a80
 character(len=120) record
 character(len=50)::fix_file ! file with numbers of fixed atoms
 character(len=120) string
@@ -80,11 +80,12 @@ character(len=40)::commarg ! string for command line argument
 integer::istat,readstat
 ! For box simulations with periodic boundary conditions
 real(kind=8)::coul_cut,vdw_cut
-logical::periodic,ewald,ewald_brute
+logical::periodic,ewald,ewald_brute,zahn
 real(kind=8)::ewald_accuracy
-real(kind=8)::box_len
+real(kind=8)::boxlen_x,boxlen_y,boxlen_z
 real(kind=8)::e_pot_avg,e_kin_avg,e_tot_avg  ! averages for energies
 real(kind=8)::e_cov_avg,e_noncov_avg 
+character(len=50)::baro_name ! which barostat shall be used
 !     periodic box size
 real(kind=8)::xmin,ymin,zmin,xmax,ymax,zmax
 !     for read in of local RPMD activation
@@ -328,7 +329,9 @@ end if
 !     If the system shall be calculated periodic in a box with length L
 !
 periodic=.false.
-box_len=0.d0
+boxlen_x=0.d0
+boxlen_y=0.d0
+boxlen_z=0.d0
 do i = 1, nkey
     next = 1
     record = keyline(i)
@@ -336,13 +339,101 @@ do i = 1, nkey
     call upcase (keyword)
     string = record(next:120)
     if (keyword(1:11) .eq. 'PERIODIC ') then
-       read(record,*) names,box_len 
+       read(record,*,iostat=readstat) names,boxlen_x,boxlen_y,boxlen_z 
        periodic=.true.
        write(*,*) "The keyword PERIODIC was found, therfore, the system will be simulated"
-       write(*,'(a,f16.8,a)') " in a cubic box with box lengths of ",box_len," Angstroms."
+       write(*,'(a,f16.8,a,f16.8,a,f16.8,a)') " in a box of dimensions",boxlen_x,"x", &
+               & boxlen_y,"x",boxlen_z," Angstroms."
        exit
     end if
 end do
+!
+!    Abort if the box lengths in x,y or z are too small or not set at all
+!
+if (periodic) then
+   if (boxlen_x .lt. 3d0) then
+      write(*,*) "The box dimension in x is too small! Please check the PERIODIC keyword!"
+      call fatal
+   end if
+   if (boxlen_y .lt. 3d0) then
+      write(*,*) "The box dimension in y is too small! Please check the PERIODIC keyword!"
+      call fatal
+   end if
+   if (boxlen_z .lt. 3d0) then
+      write(*,*) "The box dimension in z is too small! Please check the PERIODIC keyword!"
+      call fatal
+   end if
+end if
+!
+!     If an npt-ensemble/ barostat imposing the desired pressure value shall be used
+!
+npt=.false.
+pressure=0.d0
+do i = 1, nkey
+    next = 1
+    record = keyline(i)
+    call gettext (record,keyword,next)
+    call upcase (keyword)
+    string = record(next:120)
+    if (keyword(1:11) .eq. 'NPT ') then
+       read(record,*) names,pressure
+       npt=.true.
+       write(*,*) "The NPT ensemble with constant pressure will be simulated."
+       write(*,'(a,f14.6,a)') "The pressure will be",pressure," atmospheres"
+       exit
+    end if
+end do
+!
+!    If the NPT ensemble was chosen, read in the barostat choice! (default: Berendsen)
+!
+barostat=0
+if (npt) then
+   barostat=1
+   do i = 1, nkey
+       next = 1
+       record = keyline(i)
+       call gettext (record,keyword,next)
+       call upcase (keyword)
+       string = record(next:120)
+       if (keyword(1:11) .eq. 'BAROSTAT ') then
+          read(record,*) names,baro_name
+          call upcase(baro_name)
+          if (baro_name .eq. "BERENDSEN") then
+             barostat=1
+          else if (baro_name .eq. "NOSE-HOOVER") then
+             barostat=2
+          else 
+             write(*,*) "No valid barostat chosen! BERENDSEN and  & 
+                            & NOSE-HOOVER are available!"
+          end if
+          exit
+       end if
+   end do
+   if (barostat .eq. 1) then
+      write(*,*) "The Berendsen barostat will be used!"
+   else if (barostat .eq. 2) then
+      write(*,*) "The Nose-Hoover chain barostat will be used!"
+   end if
+end if
+
+!
+!     For the Nose-Hoover barostat: read in its damping factor
+!
+if (npt) then
+   nose_tau=100.d0  ! default value for Nose damp factor
+   do i = 1, nkey
+      next = 1
+      record = keyline(i)
+      call gettext (record,keyword,next)
+      call upcase (keyword)
+      string = record(next:120)
+      if (keyword(1:11) .eq. 'BARO_DAMP ') then
+         read(record,*) names,nose_tau
+      end if
+   end do
+   write(*,'(a,f14.7,a)') " The barostat damping tau will ",nose_tau," times the MD timestep."
+   nose_q=nose_q*dt/2.41888428E-2    ! set Nose-Hoover friction decay rate as mulitple of timestep
+end if
 
 !
 !     If the system shall be calculated within a box with hard walls (nonperiodic)
@@ -355,20 +446,38 @@ do i = 1, nkey
     call upcase (keyword)
     string = record(next:120)
     if (keyword(1:11) .eq. 'BOX_WALLS ') then
-       read(record,*) names,box_len
+       read(record,*) names,boxlen_x,boxlen_y,boxlen_z
        box_walls=.true.
        write(*,*) "The keyword BOX_WALLS was found, therfore, the system will be simulated"
-       write(*,'(a,f16.8,a)') " in a cubic box with box lengths of ",box_len," Angstroms."
+       write(*,'(a,f16.8,a,f16.8,a,f16.8,a)') " in a box of dimensions ",boxlen_x,"x",boxlen_y,"x", & 
+                 & boxlen_z," Angstroms."
        write(*,*) "No periodicity will be applied, instead, the atoms will be reflected" 
        write(*,*) "at the box borders."
        exit
     end if
 end do
+!
+!    Abort if the box lengths in x,y or z are too small or not set at all
+!
+if (box_walls) then
+   if (boxlen_x .lt. 3d0) then
+      write(*,*) "The box dimension in x is too small! Please check the PERIODIC keyword!"
+      call fatal
+   end if
+   if (boxlen_y .lt. 3d0) then
+      write(*,*) "The box dimension in y is too small! Please check the PERIODIC keyword!"
+      call fatal
+   end if
+   if (boxlen_z .lt. 3d0) then
+      write(*,*) "The box dimension in z is too small! Please check the PERIODIC keyword!"
+      call fatal
+   end if
+end if
 
 
 !
-!    If a periodic calculation is ordered, look if the smooth particle mesh Ewald 
-!    method shall be used
+!     If a periodic calculation is done, look, which type of handling of Coulomb
+!     interations shall be used
 !
 ewald=.false.
 if (periodic) then
@@ -379,13 +488,21 @@ if (periodic) then
       call gettext (record,keyword,next)
       call upcase (keyword)
       string = record(next:120)
-      if (keyword(1:11) .eq. 'EWALD ') then
-         ewald=.true.
-         write(*,*) "The smoorth particle mesh Ewald method is still under development!"
-         write(*,*) "Please remove the 'EWALD' keyword until further notice."
-         call fatal
-         write(*,*) "The smoorth particle mesh Ewald method will be used for"
-         write(*,*) "  calculation of Coulomb interactions."
+      if (keyword(1:11) .eq. 'COULOMB ') then
+         read(record,*) names,a80
+         call upcase(a80)
+         if (a80 .eq. "PPPME") then
+            ewald=.true.
+            write(*,*) "The Particle Particle Particle Mesh Ewald (PPPME) method"
+            write(*,*) " will be used for the handling of Coulomb interactions."
+            write(*,*) "Please choose another method, the implementation is not complete!"
+            call fatal
+         end if
+         if (a80 .eq. 'ZAHN ') then
+            zahn=.true.
+            write(*,*) "The modified cutoff method for liquids as introduced by Zahn"
+            write(*,*) " will be used for the handling of Coulomb interactions."
+         end if
          exit
       end if
    end do
@@ -839,15 +956,15 @@ if (periodic .or. box_walls) then
    xmax=maxval(x(:))
    ymax=maxval(y(:))
    zmax=maxval(z(:))
-   if (xmax .gt. box_len) then
+   if (xmax .gt. boxlen_x) then
       write(*,*) "ERROR! You have chosen a periodic/hard box, but the elongation"
       write(*,*) " of the given structure in x-direction is too large!"
       call fatal
-   else if (ymax .gt. box_len) then
+   else if (ymax .gt. boxlen_y) then
       write(*,*) "ERROR! You have chosen a periodic/hard box, but the elongation"
       write(*,*) " of the given structure in y-direction is too large!"
       call fatal
-   else if (zmax .gt. box_len) then
+   else if (zmax .gt. boxlen_z) then
       write(*,*) "ERROR! You have chosen a periodic/hard box, but the elongation"
       write(*,*) " of the given structure in z-direction is too large!"
       call fatal
@@ -855,11 +972,18 @@ if (periodic .or. box_walls) then
 !
 !     Place the initial structure(s) in the center of the box!
 !   
-   x(:)=x(:)+0.5d0*(box_len-xmax)
-   y(:)=y(:)+0.5d0*(box_len-ymax)
-   z(:)=z(:)+0.5d0*(box_len-zmax)
+   x(:)=x(:)+0.5d0*(boxlen_x-xmax)
+   y(:)=y(:)+0.5d0*(boxlen_y-ymax)
+   z(:)=z(:)+0.5d0*(boxlen_z-zmax)
+!
+!     If a barostat shall be applied, set the initial values 
+!
+   vel_baro=0.d0
 end if
-
+if (npt .and. .not. periodic) then
+   write(*,*) "The NPT ensemble can only be used for periodic systems!"
+   call fatal
+end if
 !
 !     initialize and setup dynamics
 !     --> allocate arrays for positions (q_i) and momenta (p_i) and 
@@ -874,17 +998,29 @@ do k=1,nbeads
    end do
 end do
 !
-!     For periodic systems: convert the box length to bohr as well!
+!     For NPT ensemble: convert the pressure unit
+!
+if (npt) then
+   pressure=pressure/prescon
+   write(*,*) "pressure after conversion", pressure
+end if
+!
+!     For periodic systems: convert the box lengths to bohr as well!
 !
 if (periodic) then
-   box_len=box_len/bohr
-   call set_periodic(periodic,box_len,ewald,ewald_brute,coul_cut,vdw_cut)  
+   boxlen_x=boxlen_x/bohr
+   boxlen_y=boxlen_y/bohr
+   boxlen_z=boxlen_z/bohr
+
+   call set_periodic(periodic,boxlen_x,boxlen_y,boxlen_z,ewald,zahn,ewald_brute,coul_cut,vdw_cut)  
      ! set global variables in qmdff module..
 end if
 !
 !     For systems with hard box walls: convert the box length to bohr
 if (box_walls) then
-   wall_dim=box_len/bohr
+   walldim_x=boxlen_x/bohr
+   walldim_y=boxlen_y/bohr
+   walldim_z=boxlen_z/bohr
 end if
 ! 
 allocate(derivs(3,natoms,nbeads))
@@ -990,6 +1126,13 @@ open(unit=236,file="temperature.dat",status="unknown")
 !write(*,*) "INFO: Here are bond lengths written to bonds.log!"
 !write(*,*) " delete this if no longer needed!"
 write(*,*) "Performing MD ...."
+if (npt) then
+   write(*,*) "  Step    Epot(Hartree)    T(K)      Volume(A^3)     Press.(atm)   density(g/cm^3)"   
+!
+!    Calculate the mass of the system for density calculations
+!
+   mass_tot=sum(mass)
+end if
 temp_test=0.d0
 num_measure=real(nstep)/real(iwrite)
 do istep = 1, nstep
