@@ -43,9 +43,10 @@ write(i,10)
 10 format (/,4x,45('#'), &
    &       /,2x,'###',43x,'###', &
    &       /,1x,'##',19x,'EVB-QMDFF',19x,'##', &
-   &       /,1x,'##',12x,'Version 2.2   July 2017',12x,'##', &
+   &       /,1x,'##',12x,'Version 3.2   May 2021',13x,'##', &
    &       /,2x,'###',43x,'###', &
    &       /,4x,45('#'),/)
+
 
 return
 end subroutine promo_log

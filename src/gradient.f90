@@ -226,10 +226,8 @@ if (.not. rp_evb) then
    if (energysplit) then
       e_cov_local=e
       e_cov_split=e_cov_split+e
-   end if   
- !  write(*,*) "e1",e
+   end if  
    call ff_nonb(n_one,at,xyz2,q,r0ab,zab,r094_mod,sr42,c6xy,e,g_one)
-!   write(*,*) "e2",e
    call ff_hb(n_one,at,xyz2,e,g_one)
    if (energysplit) then
       e_noncov_split=e_noncov_split+e-e_cov_local

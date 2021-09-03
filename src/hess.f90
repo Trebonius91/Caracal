@@ -371,6 +371,13 @@ if(echo)then
        &  627.51*0.5*zpve/au2cm,627.51*0.5*zpve2/au2cm 
    write(10,'('' MAD of frequencies (cm-1)       :'',F12.3)') &
        &  vmad/k                 
+   write(*,*) "Results of the optimization:"
+   write(*,'('' Zero point vibr. energy comparison (FF/true, kcal)  :'',2F12.3)') &
+       &  627.51*0.5*zpve/au2cm,627.51*0.5*zpve2/au2cm
+   write(*,'('' Mean absolute deviation (MAD) of frequencies (cm-1) :'',F12.3)') &
+       &  vmad/k
+   write(*,*) 
+   
    write(10,*) "###############################################################"
 end if
 if (kk.gt.0) then

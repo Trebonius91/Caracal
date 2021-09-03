@@ -1,14 +1,20 @@
 # Makefile for compiling the EVB-QMDFF program
 # Edited by Julien Steffen, 2021
 
+#  Fortran compiler for serial version:
+#FC = gfortran  # GNU Fortran
+# FC = ifort   # Intel Fortran compiler 
+#  Fortran compiler for MPI version
+ FC = mpif90  # GNU Fortran
+# FC = mpifort # Intel Fortran compiler
+
+#  Location of the compiled and linked executables
+BINDIR = ~/bin
+
 LIBRARY = libqmdff.a
 CURRENT = $(shell pwd)
-# location of compiled and linked executables
-BINDIR = ../bin
+
 SRCDIR = src
-# Fortran compiler
-#FC = gfortran # serial version
-FC = mpif90  # for MPI support
 FFLAGS =  -fno-align-commons -Wno-argument-mismatch -O1  #-ffree-form #-Wall # normal version
 #FFLAGS =  -fno-align-commons -g -ffpe-trap=zero,invalid,overflow,underflow  #-ffree-form #-Wall # debug version!
 LINKFLAGS = -static-libgcc -fopenmp -llapack -lblas -lfftw3 -fno-align-commons # normal version 
@@ -59,7 +65,7 @@ OBJS = general.o evb_mod.o qmdff.o lm_module.o debug.o \
        lm_dq_func.o deltaq.o dg_evb_init_ser.o solving_lgs.o \
        lm_function.o mdstat.o mdrest.o invert.o verlet.o maxwell.o \
        ranvec.o erfinv.o erf.o erfcore.o temper.o  \
-       kinetic.o normal.o calendar.o egqmdff.o eqmdff3.o eqmdff.o \
+       normal.o calendar.o egqmdff.o eqmdff3.o eqmdff.o \
        fatal.o getxyz.o gmres.o gradient.o gradnum.o hessevb.o \
        hessqmdff.o initial.o init_int.o xyz_2int.o grad2int.o \
        int2grad.o hess2int.o diagonalize.o dist.o ang.o oop.o \
@@ -80,7 +86,8 @@ OBJS = general.o evb_mod.o qmdff.o lm_module.o debug.o \
        rpmd_info.o egrad_dg_evb.o egrad_treq.o calc_d2vec.o \
        transrot.o nhc.o orca_grad.o set_periodic.o box_image.o \
        ewald_recip.o bsplgen.o setchunk.o ewald_adjust.o ewald_fft.o \
-       bspline.o dftmod.o exp_switch.o nhc_npt.o \
+       bspline.o dftmod.o exp_switch.o nhc_npt.o opt_qmdff_ser.o \
+       lm_qmdff.o \
        \
        egrad_ch4oh.o util_ch4oh.o egrad_h3.o \
        numeral.o getnumb.o getstring.o torphase.o egrad_ch4h.o \
@@ -90,10 +97,10 @@ OBJS = general.o evb_mod.o qmdff.o lm_module.o debug.o \
        egrad_nh3oh.o util_nh3oh.o \
        \
        qmdffgen.o evbopt.o egrad.o dynamic.o evb_qmdff.o rpmd.o \
-       irc.o evb_kt_driver.o mult_qmdff.o
+       irc.o evb_kt_driver.o mult_qmdff.o qmdffopt.o
  
 EXES = qmdffgen.x dynamic.x egrad.x evbopt.x evb_qmdff.x rpmd.x \
-       irc.x evb_kt_driver.x mult_qmdff.x
+       irc.x evb_kt_driver.x mult_qmdff.x qmdffopt.x
 
 all: $(OBJS)  $(EXES)
 
@@ -116,7 +123,7 @@ $(LIBRARY): $(OBJS)
 %.x: %.o libqmdff.a  
 	${FC} ${LINKFLAGS} -o  $@ $^ $(LINKLIBS) ; strip $@
 	$(shell mkdir -p ../bin)
-	cp $@ ~/bin/
+	cp $@ ../bin/
 	mv $@ $(BINDIR) 
 
 

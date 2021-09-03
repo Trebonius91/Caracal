@@ -281,6 +281,9 @@ real(kind=8)::pressure
 logical::read_vel
 real(kind=8),allocatable::vel_start(:,:)
 
+!   For QMDFF parameter optimization
+real(kind=8),allocatable::xyz_ref_lm(:,:,:)
+
 !   the averaged kinetic energy 
 real(kind=8)::ekin_avg 
 real(kind=8)::ekin2_avg

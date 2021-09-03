@@ -70,6 +70,8 @@ integer,allocatable::hbnd_lines(:),ncov_lines(:)  ! number of full lines with h-
 integer::box_size   ! size of the box (number of molecules in x,y,z)
 real(kind=8)::box_shift  !size of shift between two molecules in the box
 real(kind=8),allocatable::xyz_all(:,:)   ! Coordinates of all atoms in the box/final QMDFF 
+real(kind=8),allocatable::mn_par_all(:)  ! noncovalent correction parameters for all molecules
+real(kind=8),allocatable::mn_par(:,:)
 integer,allocatable::atnum_all(:)  ! atomic numbers of box atoms
 real(kind=8),allocatable::charge_all(:)  ! charges of box atoms
 integer,allocatable::bond_atms_all(:,:),ang_atms_all(:,:),tors_atms_all(:,:) ! atoms of bonded...
@@ -91,6 +93,9 @@ real(kind=8)::add_x,add_y,add_z  ! local shifts for xyz of box
 character(len=3)::atname  ! atomic symbols for xyz test printout
 real(kind=8)::duration,time1,time2  ! time measurement for the builtup
 character(len=2)::adum
+logical::ff_mod_noncov
+character(len=80)::corr_name
+character(len=1)::decision
 integer,allocatable::linenum(:)
 integer::numnci,remain
 
@@ -413,6 +418,25 @@ else
    abundance(1)=1.d0
 end if
 !
+!    Ask if noncovalent correction terms shall be included into the multiplication
+!
+exist=.false.
+do while (.not. exist)
+   write(iout,'(a,a,a)',advance="no") " Shall correction parameters be read in from &
+                     &'[name]_mod.dat'? (y/n): "
+   read (*,*,iostat=readstat) decision
+   if (decision .eq. "y") then
+      ff_mod_noncov=.true. 
+      exist=.true.
+   end if
+   if (decision .eq. "n") then
+      ff_mod_noncov=.false.
+      exist=.true.
+   end if
+end do
+
+
+!
 !    Measure the needed time for production
 !
 call cpu_time(time1)
@@ -499,6 +523,7 @@ do i=1,box_size
       end do
    end do
 end do
+
 !
 !     Allocate global arrays for final QMDFF output 
 !
@@ -515,7 +540,28 @@ allocate(ncov_atms_all(3,nncov_box))
 allocate(bond_pars_all(3,nbonds_box))
 allocate(ang_pars_all(2,nangs_box))
 allocate(tors_pars_all(5,ndiheds_box))
-
+!
+!     If the noncovalent corrections shall be applied
+!
+if (ff_mod_noncov) then
+   allocate(mn_par_all(1+7*natoms_box))
+   allocate(mn_par(nqmdffs,1+7*maxval(ff_atoms)))
+   do i=1,nqmdffs
+      corr_name=ff_names(i)(1:len(trim(ff_names(i)))-6) // "_mod.dat"
+      open(unit=67,file=corr_name,status="old")
+      read(67,*)
+      read(67,*) mn_par(i,1)   ! the global charge scaling
+      do j=1,ff_atoms(i)
+         read(67,*) mn_par(i,2+(j-1)*7:1+j*7)
+      end do
+      close(67)
+   end do
+!
+!     Currently: Take the global charge scaling of the first QMDFF
+!      also as global charge scaling for the whole box 
+!
+   mn_par_all(1)=mn_par(1,1)
+end if
 !
 !     Fill all global arrays of the box!
 !
@@ -550,6 +596,14 @@ do i=1,box_size
             xyz_all(1,atom_count)=xyz_ref(1,l,act_index)+add_x
             xyz_all(2,atom_count)=xyz_ref(2,l,act_index)+add_y
             xyz_all(3,atom_count)=xyz_ref(3,l,act_index)+add_z
+!
+!     If ordered, fill the global array for noncovalent interaction corrections
+!
+            if (ff_mod_noncov) then
+               mn_par_all(2+(atom_count-1)*7:1+atom_count*7)= &
+                               & mn_par(act_index,2+(l-1)*7:1+l*7)
+            end if
+
          end do
 !
 !     Second, fill the bonds parameters section
@@ -643,6 +697,19 @@ write(*,'(a,f12.4,a)') " The size of the box (for periodic calculations) is ", &
    &maxval(xyz_all)*bohr+2.d0, " Angstroms."
 write(*,*)
 write(*,*) "The new QMDFF was generated successfully! It is named 'box.qmdff'"
+
+!
+!    If noncovalent corrections were available, write out the resulting file for them
+!
+if (ff_mod_noncov) then
+   open(unit=238,file="box_mod.dat",status="replace")
+   write(238,*) "** This file contains correction parameters for QMDFF nonbonded interactions **"
+   write(238,'(f14.8)') mn_par_all(1)
+   do i=1,natoms_box
+      write(238,'(7f14.8)') mn_par_all(2+(i-1)*7:1+i*7)
+   end do
+   close(238)
+end if
 !
 !    calculate the needed time for optimization
 !

@@ -256,6 +256,13 @@ if (nmols .gt. 1) then
                      c2=dum1*scalehb_glob(at(at_A))
                      call hbpara(10.0d0,5.0d0,q_glob(j),dum1)
                      c1=dum1*scalehb_glob(at(j))
+!
+!     If noncovalent interactions were optimized separately
+!
+                     if (ff_mod_noncov) then
+                        c2=c2*mn_par((at_A-1)*7+7)
+                        c1=c1*mn_par((j-1)*7+8)
+                     end if
                      call eabhag(n,j,at_A,at_H,xyz,c1,c2,eh,g)
                   end if
                end if

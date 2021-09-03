@@ -138,7 +138,6 @@ do m=1,nbond
        & " f.c.",kij," exp.a.",aai," dr/dxi:", g(1,i)," dr/dyi:", g(2,i)," dr/dzi:", g(3,i)," dr/dxj:", &
        &   g(1,j)," dr/dyj:", g(2,j)," dr/dzj:",g(3,j)
    end if
-
 end do
 !
 !     bend terms (1-2-3 angles)   

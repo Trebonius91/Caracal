@@ -114,6 +114,38 @@ real(kind=8)::eps3(6)
 !     from common atomradii
 !     --> atomic radii of all elements!!
 real(kind=8)::rad(94)
+!
+!     COVALENT RADII of all elements
+!     based on "Atomic Radii of the Elements," M. Mantina, R. Valero, C. J. Cramer, and D. G. Truhlar,
+!     in CRC Handbook of Chemistry and Physics, 91st Edition (2010-2011),
+!     edited by W. M. Haynes (CRC Press, Boca Raton, FL, 2010), pages 9-49-9-50;
+!     corrected Nov. 17, 2010 for the 92nd edition.
+!
+!data  rad / &
+! & 0.32D0,0.37D0,1.30D0,0.99D0,0.84D0,0.75D0,0.71D0,0.64D0,0.60D0, &
+! & 0.62D0,1.60D0,1.40D0,1.24D0,1.14D0,1.09D0,1.04D0,1.00D0,1.01D0, &
+! & 2.00D0,1.74D0,1.59D0,1.48D0,1.44D0,1.30D0,1.29D0,1.24D0,1.18D0, &
+! & 1.17D0,1.22D0,1.20D0,1.23D0,1.20D0,1.20D0,1.18D0,1.17D0,1.16D0, &
+! & 2.15D0,1.90D0,1.76D0,1.64D0,1.56D0,1.46D0,1.38D0,1.36D0,1.34D0, &
+! & 1.30D0,1.36D0,1.40D0,1.42D0,1.40D0,1.40D0,1.37D0,1.36D0,1.36D0, &
+! & 2.38D0,2.06D0,1.94D0,1.84D0,1.90D0,1.88D0,1.86D0,1.85D0,1.83D0, &
+! & 1.82D0,1.81D0,1.80D0,1.79D0,1.77D0,1.77D0,1.78D0,1.74D0,1.64D0, &
+! & 1.58D0,1.50D0,1.41D0,1.36D0,1.32D0,1.30D0,1.30D0,1.32D0,1.44D0, &
+! & 1.45D0,1.50D0,1.42D0,1.48D0,1.46D0,2.42D0,2.11D0,2.01D0,1.90D0, &
+! & 1.84D0,1.83D0,1.80D0,1.80D0 /
+
+data rad/0.699,0.605,2.532,1.701,1.549,1.455,1.417,1.379,1.342, &
+     &       1.304,2.910,2.457,2.230,2.098,2.003,1.928,1.871, &
+     &       1.833,3.704,3.288,2.721,2.570,2.362,2.499,2.627, &
+     &       2.362,2.381,2.286,2.607,2.475,2.381,2.305,2.248, &
+     &       2.192,2.154,2.079,3.987,3.628,3.061,2.797,2.589, &
+     &       2.740,2.948,2.381,2.551,2.476,2.891,2.797,2.721, &
+     &       2.665,2.608,2.551,2.513,2.456,4.251,3.742,3.194, &
+     &       0.000,0.000,0.000,0.000,0.000,0.000,0.000,0.000, &
+     &       0.000,0.000,0.000,0.000,0.000,3.024,2.835,2.608, &
+     &       2.759,3.005,2.419,2.590,2.419,2.721,2.815,2.797, & 
+     &       2.778,2.759,0.000,0.000,2.740,0.000,0.000,0.000, &
+     &       0.000,0,000,0.000,0.000/ 
 !     from common valelec
 !     --> number of valence electrons for all elements
 integer::z(94)
@@ -196,6 +228,8 @@ integer(kind=8)::planb,planf  ! for FFTW: pointer to backward/forward transform
 real(kind=8),allocatable::qgrid(:,:,:,:)  ! charge grid for reciprocal
 logical::ewald_brute  ! the brute force Ewald sum method for benchmark
 
+logical::ff_mod_noncov   ! If the noncovalent QMDFF parameter were optimized separately
+real(kind=8),allocatable::mn_par(:)  ! the parameters for the noncovalent optimization
 
 real(kind=8)::vir_ten(3,3)  ! the virial tensor for barostat 
 logical::calc_vir   ! if the virial shall be calculated at all

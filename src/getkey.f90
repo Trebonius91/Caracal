@@ -83,6 +83,7 @@ end do
 !     special case: use no command line arguments if RPMDRate 
 !     is used
 !
+narg=1
 if (use_rpmdrate .ne. 1) then
    exist = .false.
 else 
@@ -91,6 +92,7 @@ end if
 do i = 1, narg
    string = arg(i)
    keyfile = string 
+   if (whichprog .eq. 1) exit
    if (keyfile .eq. "-details") exit
    inquire (file=keyfile,exist=exist)
    if (.not. exist) then
@@ -101,8 +103,8 @@ do i = 1, narg
 end do
 if (.not. exist) then
    if (rank .eq. 0) then
-      write(iout,*) "No keyfile was specified on command line!"
       if (whichprog .ne. 1) then
+         write(iout,*) "No keyfile was specified on command line!"
          call fatal
       end if
    end if

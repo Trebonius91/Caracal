@@ -789,6 +789,7 @@ do i = 1, nkey
    end if
 end do
 
+
 if (calc_ekin) then
    write(*,*) "The averaged kinetic energy for a subgroup of the system shall"
    write(*,*) " be calculated! The list of atoms will be read in from file 'list_ekin.dat'."
@@ -938,7 +939,6 @@ do i = 1, nkey
        exit 
     end if
 end do
-
 !
 !     If the system shall be described periodic of with hard box walls : 
 !     Shift the system to the first octand
@@ -1074,7 +1074,6 @@ do i = 1, nkey
        energysplit=.true.
     end if
 end do
-
 !
 !     if you want to control if the total energy is conserved
 !

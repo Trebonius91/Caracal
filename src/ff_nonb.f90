@@ -160,9 +160,7 @@ do k=1,nnci
    end if
 
 
-
 end do
-
 
 
 !
@@ -193,25 +191,40 @@ if (nmols .gt. 1) then
 !
 !     only proceed if the distance is below cutoff
 !
-            if (r .gt. vdw_cut) cycle
+            if (periodic .and. r .gt. vdw_cut) cycle
 
             oner =1.0d0/r
 
             iz1=at(i1)
             iz2=at(i2)
-            R0=r0094(iz1,iz2)
-            c6=c66ab(i2,i1)
-            r4=r2*r2
-            r6=r4*r2
-            r06=R0**6
-            t6=r6+r06
-            t8=r6*r2+r06*R0*R0
-            c6t6=c6/t6
-            c6t8=c6/t8
-            t27=sr42(iz1,iz2)*c6t8
+!
+!     If noncovalent parameters were optimized separately, apply the factors
+!
+            if (ff_mod_noncov) then
+               R0=r0094(iz1,iz2)*mn_par((i-1)*7+2)*mn_par((j-1)*7+2)
+               c6=c66ab(i2,i1)*mn_par((i-1)*7+3)*mn_par((j-1)*7+3)
+               r4=r2*r2
+               r6=r4*r2
+               r06=R0**6
+               t6=r6+r06
+               t8=r6*r2+r06*R0*R0
+               c6t6=c6/t6
+               c6t8=c6/t8
+               t27=sr42(iz1,iz2)*c6t8*mn_par((i-1)*7+4)*mn_par((j-1)*7+4)
+            else 
+               R0=r0094(iz1,iz2)
+               c6=c66ab(i2,i1)
+               r4=r2*r2
+               r6=r4*r2
+               r06=R0**6
+               t6=r6+r06
+               t8=r6*r2+r06*R0*R0
+               c6t6=c6/t6
+               c6t8=c6/t8
+               t27=sr42(iz1,iz2)*c6t8
+            end if
             e0=c6t6+t27
             e=e-e0
-
             drij=(c6t6*6.0d0*r4/t6+8.0d0*t27*r6/t8)
 
              
@@ -224,8 +237,13 @@ if (nmols .gt. 1) then
 !    Van der Waals energy: only, if distance is below the 25 bohr cutoff!
 !
             if (r .lt. 25) then
-               x    =zab(iz1,iz2)
-               alpha=r0ab(iz1,iz2)
+               if (ff_mod_noncov) then
+                  x    =zab(iz1,iz2)*mn_par((i-1)*7+5)*mn_par((j-1)*7+5)
+                  alpha=r0ab(iz1,iz2)*mn_par((i-1)*7+6)*mn_par((j-1)*7+6)
+               else 
+                  x    =zab(iz1,iz2)
+                  alpha=r0ab(iz1,iz2)
+               end if
                t27  =x*dexp(-alpha*r)
                e0   =t27*oner
                e    =e + e0
@@ -378,12 +396,16 @@ if (.not. ewald) then
                if (zahn) then
                   e0=q(i1)*q(i2)*((erfc(zahn_a*r)*oner)-zahn_par*(r-coul_cut))
                else
-                  e0=q(i1)*q(i2)*oner*eps1(nk)*switch
+                  e0=q(i1)*q(i2)*oner*switch
+                  write(*,*) "e01",e0
                end if
 
-
-               e0=q(i1)*q(i2)*oner*switch
-
+!
+!     If local optimization of parameters was done 
+! 
+               if (ff_mod_noncov) then
+                  e0=e0*mn_par(1)*mn_par(1)
+               end if
                e=e+e0
                
                drij=e0/r2
@@ -414,8 +436,6 @@ if (.not. ewald) then
          end do
       end do
    end if
-!   write(*,*) "e",e
-!   stop "HiupGH"
 !
 !     The Coulomb energy: for a periodic system, apply the particle mesh
 !      Ewald summation technique!

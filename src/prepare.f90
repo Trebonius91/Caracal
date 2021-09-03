@@ -158,6 +158,13 @@ end if
 !        "QMDFF zero will be corrected"
 ! 
 corr_nonb=0
+!
+!     If the noncovalent QMDFF parameters were optimized separately
+!
+ff_mod_noncov=.false.
+if (fffilen2 .eq. "dummy" .and. fffilen3 .eq. "dummy") then
+   ff_mod_noncov=.true.
+end if
 
 return
 end subroutine prepare

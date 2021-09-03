@@ -18,6 +18,7 @@ real(kind=8)::x_var(n_ind),xdat(m_ind),ydat(m_ind)
 !
 call build_dmat(dg_evb_mode_lm,mat_size_lm,x_var)
 call mat_diag(mat_size_lm)
+
 do i=1,m_ind
    V12=0
    E1=ff_e1_lm(i)

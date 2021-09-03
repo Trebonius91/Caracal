@@ -34,6 +34,7 @@
 !
 subroutine setnonb(scalehb,scalexb,vz,sr42,zab,r0ab)
 use qmdff
+use general
 implicit none
 real(kind=8)::vz(94),zab(94,94),r0ab(94,94)
 real(kind=8)::sr42(94,94),scalehb(94),scalexb(94)
@@ -113,6 +114,7 @@ rad = (/ &
  & 1.58D0,1.50D0,1.41D0,1.36D0,1.32D0,1.30D0,1.30D0,1.32D0,1.44D0, & 
  & 1.45D0,1.50D0,1.42D0,1.48D0,1.46D0,2.42D0,2.11D0,2.01D0,1.90D0, &
  & 1.84D0,1.83D0,1.80D0,1.80D0 /)
+rad=rad/bohr
 !
 !     as in qmsolv (D3 is in block.f):
 !     scaling parameters for hydrogen bonds (HB)

@@ -127,9 +127,9 @@ corr=dum1+zpve_h298m
 write(10,'('' HOF->De (kcal) =  '',f10.3)')corr
 write(10,'('' HOF@298 (kcal) =  '',f10.3)')hof
 
-open(unit=137,file='.EAT')
-write(137,*) de_mol
-close(137)
+!open(unit=137,file='.EAT')
+!write(137,*) de_mol
+!close(137)
 
 return
 end subroutine heat 

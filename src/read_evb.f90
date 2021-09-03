@@ -36,6 +36,7 @@
 subroutine read_evb(rank)
 use general
 use evb_mod
+use qmdff
 
 implicit none
 integer::num_arg,input_unit,i,qmdff_energies_unit,asciinum
@@ -66,9 +67,8 @@ logical::path_struc,path_energy,coupl,params
 logical::evb1,evb2,evb3,ffname1,ffname2,ffname3,defqmdff
 logical::exist,exists,has_next,coupl1
 integer::rank ! the current MPI rank
-real(kind=8)::pi
+character(len=80)::corr_name
 
-pi=3.141592653589793238462643d0
 
 evb1=.false.
 evb2=.false.
@@ -520,6 +520,48 @@ if (num_grad) then
          end if
       end if
    end do
+end if
+!
+!      If the QMDFF nonbonded parameters shall be corrected by optimized factors 
+!      (as calculated with qmdffopt.x)
+!      --> only for one QMDFF!
+!
+if (qmdffnumber .eq. 1) then
+   ff_mod_noncov=.false.
+   do i = 1, nkey
+      next = 1
+      record = keyline(i)
+      call gettext (record,keyword,next)
+      call upcase (keyword)
+      string = record(next:120)
+      if (keyword(1:20) .eq. 'MOD_NONCOVALENT ') then
+         ff_mod_noncov=.true.
+         exit
+      end if
+   end do
+!
+!      Read in the correction parameters to global array
+!
+   if (ff_mod_noncov) then
+      corr_name=fffile1(1:len(trim(fffile1))-6) // "_mod.dat"
+      write(*,*) "The QMDFF noncovalent interations will be corrected by "
+      write(*,*) " parameters in the file ",corr_name
+
+      allocate(mn_par(1+7*n_one))
+      open(unit=236,file=corr_name,status="old",iostat=readstat)
+      if (readstat .ne. 0) then
+         write(*,*) "You have ordered a noncovalent correction but the file "
+         write(*,*) " ",corr_name," is not there!"
+         call fatal
+      end if
+      read(236,*)
+      read(236,*) mn_par(1)
+      do i=1,n_one
+         read(236,*) mn_par(2+(i-1)*7:1+i*7)
+      end do
+      mn_par=1.d0
+      mn_par(1)=0.d0 !139042922443
+   end if
 end if
 !
 !-------2 QMDFFs-----------------------------------------------------------------
