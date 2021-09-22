@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.18 (TeX Live 2017/TeX Live for SUSE Linux) (preloaded format=pdflatex 2021.4.21)  3 SEP 2021 15:05
+This is pdfTeX, Version 3.14159265-2.6-1.40.18 (TeX Live 2017/TeX Live for SUSE Linux) (preloaded format=pdflatex 2021.4.21)  6 SEP 2021 17:13
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -958,7 +958,7 @@ LaTeX Info: Redefining \nameref on input line 60.
 * \@reversemarginfalse
 * (1in=72.27pt=25.4mm, 1cm=28.453pt)
 
-<figures/titlepic.png, id=47, 800.0289pt x 828.2142pt>
+<figures/titlepic.png, id=59, 800.0289pt x 828.2142pt>
 File: figures/titlepic.png Graphic file (type png)
 
 <use figures/titlepic.png>
@@ -1007,64 +1007,69 @@ Package microtype Info: Loading generic settings for font family
 (microtype)             `cmtt' (encoding: OT1).
 (microtype)             For optimal results, create family-specific settings.
 (microtype)             See the microtype manual for details.
- [5] [6]
-Underfull \hbox (badness 10000) in paragraph at lines 269--270
+ [5] [6] [7]
+Underfull \hbox (badness 10000) in paragraph at lines 271--272
 
  []
 
-[7]
-Overfull \hbox (1.54234pt too wide) in paragraph at lines 311--313
+[8]
+Overfull \hbox (1.54234pt too wide) in paragraph at lines 313--315
 []\OT1/cmr/m/n/12 (-20) and give the re-spec-tive com-mands dur-ing the in-ter-
 ac-tive in-put. Then, the QMDFF \OT1/cmtt/m/n/12 octane.qmdff
  []
 
-[8]
 
-LaTeX Warning: Citation `qmdff' on page 9 undefined on input line 335.
+LaTeX Warning: Citation `qmdff' on page 9 undefined on input line 337.
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 350--351
+Underfull \hbox (badness 10000) in paragraph at lines 352--353
 
  []
 
 [9]
-Overfull \hbox (4.12837pt too wide) in paragraph at lines 370--370
+Overfull \hbox (4.12837pt too wide) in paragraph at lines 372--372
 []  \OT1/cmtt/m/n/12 Zero point vibr. energy comparison (FF/true, kcal)  :     
  85.684      86.016[] 
  []
 
-[10]
-Package atveryend Info: Empty hook `BeforeClearDocument' on input line 378.
-Package atveryend Info: Empty hook `AfterLastShipout' on input line 378.
+
+Underfull \hbox (badness 10000) in paragraph at lines 394--395
+
+ []
+
+[10] [11]
+Package atveryend Info: Empty hook `BeforeClearDocument' on input line 419.
+Package atveryend Info: Empty hook `AfterLastShipout' on input line 419.
  (./manual.aux)
-Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 378.
-Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 378.
+Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 419.
+Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 419.
 Package rerunfilecheck Info: File `manual.out' has not changed.
-(rerunfilecheck)             Checksum: 0EB6C3F0A02920E877D00CFA632D0F60;637.
+(rerunfilecheck)             Checksum: 407523E62CB631502C23B3017FC2481A;831.
 
 
 LaTeX Warning: There were undefined references.
 
-Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 378.
+Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 419.
  ) 
 Here is how much of TeX's memory you used:
- 23482 strings out of 494031
- 429645 string characters out of 6158374
+ 23493 strings out of 494031
+ 429792 string characters out of 6158374
  645944 words of memory out of 5000000
- 26362 multiletter control sequences out of 15000+600000
- 13147 words of font info for 72 fonts, out of 8000000 for 9000
+ 26365 multiletter control sequences out of 15000+600000
+ 13245 words of font info for 74 fonts, out of 8000000 for 9000
  475 hyphenation exceptions out of 8191
- 64i,12n,80p,8845b,473s stack positions out of 5000i,500n,10000p,200000b,80000s
+ 64i,11n,80p,8845b,473s stack positions out of 5000i,500n,10000p,200000b,80000s
 </usr/share/texmf/fonts/type1/public/amsfonts/cm/cmbx12.pfb></usr/share/texmf
 /fonts/type1/public/amsfonts/cm/cmcsc10.pfb></usr/share/texmf/fonts/type1/publi
-c/amsfonts/cm/cmr12.pfb></usr/share/texmf/fonts/type1/public/amsfonts/cm/cmssbx
-10.pfb></usr/share/texmf/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/share/
-texmf/fonts/type1/public/amsfonts/cm/cmti12.pfb></usr/share/texmf/fonts/type1/p
-ublic/amsfonts/cm/cmtt12.pfb>
-Output written on manual.pdf (10 pages, 817430 bytes).
+c/amsfonts/cm/cmmi12.pfb></usr/share/texmf/fonts/type1/public/amsfonts/cm/cmr12
+.pfb></usr/share/texmf/fonts/type1/public/amsfonts/cm/cmr8.pfb></usr/share/texm
+f/fonts/type1/public/amsfonts/cm/cmssbx10.pfb></usr/share/texmf/fonts/type1/pub
+lic/amsfonts/cm/cmsy10.pfb></usr/share/texmf/fonts/type1/public/amsfonts/cm/cmt
+i12.pfb></usr/share/texmf/fonts/type1/public/amsfonts/cm/cmtt12.pfb>
+Output written on manual.pdf (11 pages, 836941 bytes).
 PDF statistics:
- 142 PDF objects out of 1000 (max. 8388607)
- 119 compressed objects within 2 object streams
- 22 named destinations out of 1000 (max. 500000)
- 13410 words of extra memory for PDF output out of 14400 (max. 10000000)
+ 170 PDF objects out of 1000 (max. 8388607)
+ 144 compressed objects within 2 object streams
+ 26 named destinations out of 1000 (max. 500000)
+ 13434 words of extra memory for PDF output out of 14400 (max. 10000000)
 

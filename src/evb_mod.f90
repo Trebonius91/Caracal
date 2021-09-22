@@ -85,6 +85,8 @@ real(kind=8),dimension(14) :: evb3_params
 character(len=40)::mode1,off_basis,calc
 character(len=40)::orca_inp
 character(len=:),allocatable::orca_egrad
+! the simple dE coupling term
+logical::evb_de
 ! decides, if evb_qmdff or orca_calculation
 logical::orca_calculation
 ! shall plumed be used or not!
@@ -155,7 +157,8 @@ real(kind=8)::irc_steplen
 real(kind=8)::irc_eulerlen
 integer::irc_maxstep
 ! test case: mueller brown surface
-logical::mueller_brown
+! name of the DG-EVB reference file 
+character(len=80)::dg_ref_file
 ! if the DG-EVB coefficient matrix D shall be calculated numerically
 logical::dg_mat_num
 ! minimum value below that distant Gaussians are neglected
@@ -298,6 +301,11 @@ character(len=2)::elem_mass
 ! for orca calculations (ab initio MD)
 logical::orca
 character(len=100)::orca_com
+! for the water SPC model
+logical::water_spc
+real(kind=8),allocatable::water_pars(:) ! all needed parameters
+integer::nwater  ! number of water molecules 
+integer,allocatable::water_act(:)  ! to which water molecule the atoms belong
 !  for boxes with hard walls
 logical::box_walls
 real(kind=8)::walldim_x,walldim_y,walldim_z

@@ -127,23 +127,6 @@ end if
 !
 call getkey(rank)
 !
-!     If a Mueller-Brown surface shall be calculated, activate global flag!
-!
-mueller_brown=.false.
-do i = 1, nkey
-    next = 1
-    record = keyline(i)
-    call gettext (record,keyword,next)
-    call upcase (keyword)
-    string = record(next:120)
-    if (keyword(1:11) .eq. 'POT_ANA ') then
-       read(record,*) names,test
-       if (test .eq. "mueller_brown") then
-          mueller_brown=.true.
-       end if
-    end if
-end do
-!
 !     Read in the (start) structure for calculations
 !
 call getxyz

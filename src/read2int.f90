@@ -37,6 +37,7 @@
 !
 subroutine read2int(dg_evb_mode) 
 use evb_mod
+implicit none
 integer::atom_num
 integer::state_open  ! if a file was opened successfully
 character(len=20)::buffer
@@ -54,9 +55,10 @@ redun=.false.
 if (rp_evb) dg_evb_points=rp_evb_points
 
 ref_input_unit=10
-open(unit=ref_input_unit,file="ref.input",status="old",iostat=state_open)
+open(unit=ref_input_unit,file=dg_ref_file,status="old",iostat=state_open)
 if (state_open .ne. 0) then
-   stop "The file ref.input can´t be found! Exiting.."
+   write(*,*) "The file ",trim(dg_ref_file)," can´t be found! Exiting.."
+   call fatal
 end if
 do i=1,dg_evb_points
 !

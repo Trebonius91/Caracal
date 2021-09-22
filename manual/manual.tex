@@ -234,6 +234,8 @@ or
  [program.x] -help
 \end{verbatim}
 
+For almost all programs, the main input file is a \texttt{[name].key} file, where all needed 
+commands to execute your calculation are listed.
 
 \subsection{qmdffgen}
 
@@ -373,6 +375,45 @@ The MAD value of 26 suggests a good description of the low-energy part of the
 potential energy surface of Guaicol with the generated QMDFF (which was written 
 to \texttt{guaicol\_freq.qmdff}. 
 The other output files are the same as explained in the first example. 
+
+\subsection{evbopt}
+
+\subsubsection{Introduction}
+
+This program generates and optimizes the parameters of EVB coupling terms.
+The coupling smoothly connects two QMDFFs, therefore these need to be present (generated with
+\textbf{qmdffgen}) when an EVB coupling term is optimized.
+In addition, some reference data describing the reaction must be present, serving as the 
+training set for the optimization routine. The xyz-coordinates of the structures and the 
+respective reference energies in a linewise format must be present.
+Usually, a reaction path, generated from a NEB or IRC calculation, would be used for this.
+For the RP-EVB and the related TREQ method, a reaction path is mandatory.
+
+\subsubsection{dE-EVB}
+
+\textit{Folder}: \texttt{evbopt/dE-EVB/} \newline
+
+The simplest EVB coupling version is the energy-gap (dE)-EVB coupling.
+Here, the off-diagonal coupling term depends only on the energetic distances of both
+QMDFFs at the current coordinates ($C(\Delta E$).
+A bunch of different functions depending on $\Delta E$ can be used, the easiest are
+the constant coupling $C=a$ with no $\Delta E$-dependence at all and the \texttt{1g} 
+coupling $C(\Delta E)=a \exp\left(-b (\Delta E)^2\right)$ with a Gaussian shape.
+
+The main input file is the \texttt{evbopt\_de\_1g.key} file, where all essentially all
+control parameters are listed:
+
+\begin{verbatim}
+
+FFNAME  min1.qmdff  min2.qmdff
+ 2EVB       -272.22659664700754     -272.16798367875066
+ path_energies ref.dat
+ path_structure struc.xyz
+ coupling  sd2
+ shift_manual
+\end{verbatim}
+
+
 
 
 \end{document}

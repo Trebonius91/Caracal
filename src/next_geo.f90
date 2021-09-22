@@ -47,21 +47,6 @@ real(kind=8),parameter::ang2bohr=0.52917720859d0
 logical::has_next
 has_next=.true.
 !
-!      special case for simple Mueller-Brown surface: one 2D particle
-!      z-coordinate always zero!
-!
-if (mueller_brown) then
-   read(input_unit,*,iostat=status) xr,yr
-   if (status/=0) then
-      has_next=.false.
-      return
-   end if
-   coord(1,1)=xr
-   coord(2,1)=yr
-   coord(3,1)=0.d0
-   return
-end if
-!
 !      usual molecular structures
 ! 
 read(input_unit,*,iostat=status) atom_number

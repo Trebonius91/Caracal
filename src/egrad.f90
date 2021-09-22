@@ -272,20 +272,11 @@ do
       call eqmdff(coord,e_qmdff1,e_qmdff2)
       write(99,*) e_qmdff1,e_qmdff2
    end if
-   if (mueller_brown) then
-      write(44,*) coord(1,1),coord(2,1),e_evb
-      if ((abs(g_evb(1,1)/100000.d0) .le. 0.5) .and. (abs(g_evb(2,1)/100000.d0).le.0.5)) then
-         write(45,*) coord(1,1),coord(2,1),g_evb(1,1)/100000.d0,g_evb(2,1)/100000.d0
-      else 
-         write(45,*) coord(1,1),coord(2,1),0.d0,0.d0
-      end if
-   else 
-      write(44,*) e_evb
-      write(45,*) "Structure",ref_count,":"
-      do k=1,natoms
-         write(45,*) g_evb(:,k)
-      end do
-   end if
+   write(44,*) e_evb
+   write(45,*) "Structure",ref_count,":"
+   do k=1,natoms
+      write(45,*) g_evb(:,k)
+   end do
  !  stop "test run, gradient loop" 
 end do
 if (print_wilson) then

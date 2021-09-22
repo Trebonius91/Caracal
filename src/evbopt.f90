@@ -66,6 +66,7 @@ real(kind=8)::diff1,diff2,e_one,e_two
 real(kind=8),dimension(:),allocatable::energies_result
 character(len=70)::fffile1,fffile2,fffile3,fileinfo,filegeo,fileenergy,filets,filets2
 character(len=60)::test,names
+character(len=50)::method  ! the EVB coupling method
 character(len=100)::syscall
 real(kind=8),dimension(:,:),allocatable::ts_coordinates_a,ts_coordinates2_a
 character(len=1)::qmdffnum
@@ -83,6 +84,7 @@ logical::path_struc,path_energy,coupl,ts_xyz
 !     for MPI parallelization
 integer::ierr,ID,psize
 integer::rank
+integer::readstat
 !
 !     Start MPI parallel computation:
 !     Since the whole program is executed by all processes, all "serial"
@@ -111,6 +113,7 @@ if (rank .eq. 0) then
    else 
       write(*,*) "To show some basic infos about the program and a list of all"
       write(*,*) "used keywords in it, type 'evbopt.x -help' or 'evbopt.x -h'."
+      write(*,*)
    end if
 end if
 !
@@ -118,7 +121,7 @@ end if
 !
 call getkey(rank)
 evb2=.false.
-evb2=.false.
+evb3=.false.
 ffname2=.false.
 ffname3=.false.
 path_struc=.false.
@@ -137,43 +140,117 @@ end if
 !
 !     Try to read the needed parameters for the Optimization
 !
-
-
+!     The general Method keyword
+!
+method=""
 do i = 1, nkey
    next = 1
    record = keyline(i)
    call gettext (record,keyword,next)
    call upcase (keyword)
    string = record(next:120)
-   if (keyword(1:11) .eq. '2EVB ') then
-      read(record,*) names,E_zero1,E_zero2
-      evb2=.true.
-   else if (keyword(1:11) .eq. '3EVB ') then
-      read(record,*) names,E_zero1,E_zero2,E_zero3
-      evb3=.true.
+   if (keyword(1:11) .eq. 'PES ') then
+      read(record,*) names,method
+      call upcase(method)
+      exit
    end if
 end do
-qmdffnumber=0
+
+!
+!      Choose the EVB coupling term to be optimized
+!
+evb_dq=.false.
+evb_de=.false.
+dg_evb=.false.
+rp_evb=.false.
+if (method .eq. "DE_EVB")  then
+   write(*,*) "The dE-EVB (energy-gap) coupling term will be used!"
+   write(*,*) 
+   evb_de=.true.
+else if (method .eq. "DQ_EVB")  then
+   evb_dq=.true.
+   write(*,*) "The dQ-EVB (coordinate) coupling term will be used!"
+   write(*,*)
+else if (method .eq. "DG_EVB") then
+   dg_evb=.true.
+   write(*,*) "The DG-EVB (distributed Gaussian) coupling term will be used!"
+   write(*,*)
+else if (method .eq. "RP_EVB") then
+   rp_evb=.true.
+   write(*,*) "The RP-EVB (reaction path) coupling term will be used!"
+   write(*,*)
+else 
+   write(*,*) "No valid EVB coupling term was given!"
+   write(*,*) "Add the PES keyword with either 'de_evb', 'dq_evb', 'dg_evb'"
+   write(*,*) "  or 'rp_evb' as parameter!"
+   call fatal
+end if
+
+
+
+!
+!     Read in the names of the QMDFFs
+! 
+
 do i = 1, nkey
    next = 1
    record = keyline(i)
    call gettext (record,keyword,next)
    call upcase (keyword)
    string = record(next:120)
-   if (keyword(1:11) .eq. 'FFNAME ') then
-      if (evb2) then
-         read(record,*) names,fffile1,fffile2
-         ffname2=.true.
-         defqmdff=.true.
-         qmdffnumber=2
-      else if (evb3) then
-         read(record,*) names,fffile1,fffile2,fffile3
+   if (keyword(1:15) .eq. 'QMDFFNAMES ') then
+      read(record,*,iostat=readstat) names,fffile1,fffile2,fffile3
+      ffname2=.true.
+      defqmdff=.true.
+      qmdffnumber=3
+      if (readstat .ne. 0) then
+         read(record,*,iostat=readstat) names,fffile1,fffile2
          ffname3=.true.
          defqmdff=.true.
-         qmdffnumber=3
+         qmdffnumber=2
+         if (readstat .ne. 0) then
+            write(*,*) "Please give two or three QMDFFs as diabatic surfaces in "
+            write(*,*) "  the command QMDFFNAMES!"
+            call fatal
+         else if (readstat .eq. 0) then
+            evb2=.true.
+         end if
+      else if (readstat .eq. 0) then
+         evb3=.true.
       end if
    end if
 end do
+do i = 1, nkey
+   next = 1
+   record = keyline(i)
+   call gettext (record,keyword,next)
+   call upcase (keyword)
+   string = record(next:120)
+   if (keyword(1:11) .eq. 'ESHIFT ') then
+      if (evb2) then
+         read(record,*,iostat=readstat) names,E_zero1,E_zero2
+         exist=.true.
+         if (readstat .ne. 0) then
+            write(*,*) "The ESHIFT keyword seems to be corrupted!"
+            call fatal
+         end if
+      end if
+      if (evb3) then
+         read(record,*,iostat=readstat) names,E_zero1,E_zero2,E_zero3
+         exist=.true.
+         if (readstat .ne. 0) then
+            write(*,*) "The ESHIFT keyword seems to be corrupted!"
+            call fatal
+         end if
+      end if
+   end if
+end do
+if (.not. exist) then
+   write(*,*) "No ESHIFT keyword given! Please give the QMDFF shift energies "
+   write(*,*) "in order to ensure a useful optimization!"
+   call fatal
+end if
+
 
 ! 
 !     In the case that no QMDFF´s are defined in key file
@@ -222,7 +299,7 @@ if (.not.defqmdff) then
       exist=.false.
       do while (.not. exist)
          write(iout,21)
- 21      format (/,' Name of the first ffield:  ',$)
+ 21      format (/,' Filename of the first QMDFF:  ',$)
          read (*,31)  fffile1
  31      format (a120)
          inquire(file=fffile1,exist=exist)
@@ -231,7 +308,7 @@ if (.not.defqmdff) then
       exist=.false.
       do while (.not. exist)
          write(iout,22)
- 22      format (/,' Name of the second ffield:  ',$)
+ 22      format (/,' Filename of the second QMDFF:  ',$)
          read (*,32)  fffile2
  32      format (a120)
          inquire(file=fffile2,exist=exist)
@@ -241,7 +318,7 @@ if (.not.defqmdff) then
       exist=.false.
       do while (.not. exist)
          write(iout,23)
- 23      format (/,' Name of the third ffield:  ',$)
+ 23      format (/,' Filename of the third QMDFF:  ',$)
          read (*,33)  fffile1
  33      format (a120)
          inquire(file=fffile1,exist=exist)
@@ -262,15 +339,15 @@ if ((.not. evb2) .and. (.not. evb3)) then
 
    if (qmdffnumber.eq.2 .or. qmdffnumber.eq.3) then
       write(iout,27)
- 27   format (/,' QMDFF-Energy of the first QMDFF :  ',$)
+ 27   format (/,' Shift-Energy of the first QMDFF :  ',$)
       read (*,*) E_zero1
       write(iout,28)
- 28   format (/,' QMDFF-Energy of the second QMDFF :  ',$)
+ 28   format (/,' Shift-Energy of the second QMDFF :  ',$)
       read (*,*) E_zero2
    end if
    if (qmdffnumber.eq.3) then
       write(iout,29)
- 29   format (/,' QMDFF-Energy of the third QMDFF :  ',$)
+ 29   format (/,' Sjift-Energy of the third QMDFF :  ',$)
       read (*,*) E_zero3
    end if
 end if
@@ -283,7 +360,7 @@ do i = 1, nkey
    call gettext (record,keyword,next)
    call upcase (keyword)
    string = record(next:120)
-   if (keyword(1:16) .eq. 'PATH_STRUCTURE ') then
+   if (keyword(1:16) .eq. 'COORDS_REF ') then
       read(record,*) names,filegeo
       inquire(file=filegeo,exist=path_struc)
    end if
@@ -316,7 +393,7 @@ do i = 1, nkey
    call gettext (record,keyword,next)
    call upcase (keyword)
    string = record(next:120)
-   if (keyword(1:16) .eq. 'PATH_ENERGIES ') then
+   if (keyword(1:16) .eq. 'ENERGIES_REF ') then
       read(record,*) names,fileenergy
       inquire(file=fileenergy,exist=path_energy)
    end if
@@ -375,36 +452,129 @@ do i = 1, nkey
 end do
 
 !
-!    Measure the needed time for optimization
+!      Measure the needed time for optimization
 !
 call cpu_time(time1) 
 !
-!    In case of a distributed gaussian EVB-calculation, read in the number 
-!    of reference points and check the existence of each needed input file
+!      Read in the detailed settings for the dE-EVB coupling term
+!      Loop over structure with brackets
 !
-do i = 1, nkey
-   next = 1
-   record = keyline(i)
-   call gettext (record,keyword,next)
-   call upcase (keyword)
-   string = record(next:120)
-   if (keyword(1:11) .eq. 'DG_EVB ') then
-      read(record,*) names,dg_evb_points
-      dg_evb=.true.
-      names="ref.input"
-      inquire(file=names,exist=exist)
-      if (.not. exist) then
-         if (rank .eq. 0) then
-            dg_evb=.false.
-            write(*,*) "You have ordered a Distributed Gaussian EVB calculation (DG-EVB),"
-            write(*,*) "but the file ", trim(names)," containing the reference informations"
-            write(*,*) "is not availiable!"
-            write(*,*) "Look into the manual for further informations."
-         call fatal
-         end if
+if (evb_de) then
+!
+!      Set default values 
+!
+   off_basis="1g"
+   do i = 1, nkey
+      next = 1
+      record = keyline(i)
+      call gettext (record,keyword,next)
+      call upcase (keyword)
+      string = record(next:120)
+      if (keyword(1:11) .eq. 'DE_EVB { ' .or. keyword(1:11) .eq. 'DE_EVB{ ') then
+         do j=1,nkey-i+1
+            next=1
+            record = keyline(i+j)
+            call gettext (record,keyword,next)
+            call upcase (keyword)
+            if (keyword(1:11) .eq. 'COUPLING ') then
+               read(record,*) names,off_basis
+
+               if (off_basis .eq. "1g" .or. off_basis.eq."2g" & 
+                   & .or. off_basis.eq."3g" &
+                   & .or.off_basis.eq."sp" .or. off_basis.eq."sd" &
+                   & .or. off_basis.eq."sd2" .or. off_basis.eq."sp2d3" &
+                   & .or. off_basis.eq."sp2d"  ) then
+               else
+                  if (rank .eq. 0) then
+                     write(*,*) "No valid coupling function was defined."
+                     write(*,*) "We will use the simple 1g-dE coupling instead."
+                  end if
+                  off_basis="1g"
+               end if
+            end if
+            if (keyword(1:11) .eq. '}') exit
+            if (j .eq. nkey-i) then
+               write(*,*) "The DE-EVB section has no second delimiter! (})"
+               call fatal
+            end if
+         end do
       end if
+   end do
+end if
+
+!
+!      Read in the detailed settings for the DG-EVB coupling term
+!      Loop over structure with brackets
+!
+
+if (dg_evb) then
+!
+!      Set default values 
+!
+   dg_evb_mode=0
+   dg_evb_points=0
+   dg_ref_file="ref.input"
+   g_thres=1E-10
+   do i = 1, nkey
+      next = 1
+      record = keyline(i)
+      call gettext (record,keyword,next)
+      call upcase (keyword)
+      string = record(next:120)
+      if (keyword(1:11) .eq. 'DG_EVB { ' .or. keyword(1:11) .eq. 'DG_EVB{ ') then
+         do j=1,nkey-i
+            record = keyline(i+j)
+            call gettext (record,keyword,next)
+            call upcase (keyword)
+            if (keyword(1:16) .eq. 'MODE ') then
+               read(record,*) names,dg_evb_mode
+            else if (keyword(1:16) .eq. 'POINTS ') then
+               read(record,*) names,dg_evb_points
+            else if (keyword(1:16) .eq. 'DOUBLE_ALPHA ') then
+               double_alpha=.true.
+            else if (keyword(1:16) .eq. 'READ_COORD ') then
+               read_coord=.true.
+            else if (keyword(1:16) .eq. 'POINT_REF ') then
+               read(record,*) names,dg_ref_file
+            else if (keyword(1:16) .eq. 'DG_MAT_NUM ') then
+               dg_mat_num=.true.
+            else if (keyword(1:18) .eq. 'GAUSS_THRESHOLD ') then
+               read(record,*) names,g_thres 
+            end if
+
+            if (keyword(1:11) .eq. '}') exit
+            if (j .eq. nkey-i) then
+               write(*,*) "The DG-EVB section has no second delimiter! (})"
+               call fatal
+            end if   
+         end do
+      end if
+   end do
+   if (double_alpha) then
+      add_alph=dg_evb_points
    end if
-end do
+!
+!     Catch missing information
+!
+    inquire(file=dg_ref_file,exist=exist)
+    if (.not. exist) then
+       if (rank .eq. 0) then
+          dg_evb=.false.
+          write(*,*) "The file ", trim(dg_ref_file)," containing the DG-ref. informations"
+          write(*,*) "is not availiable!"
+          call fatal
+       end if
+    end if
+
+   if (dg_evb_mode .eq. 0) then
+      write(*,*) "Please add the keyword 'MODE' to the DG_EVB section!"
+      call fatal
+   end if
+   if (dg_evb_points .eq. 0) then
+      write(*,*) "Please add the keywod 'POINTS' to the DG-EVB section!"
+      call fatal
+   end if
+end if
 !
 !     In case of a reaction path EVB (RP-EVB), check if the method shall be 
 !     activated
@@ -468,48 +638,6 @@ if (evb_dq .and. .not. ts_xyz) then
    end do
 end if
 
-!
-!     read in the coupling-term: if there is no known term,
-!     use the 1G-coupling as default.
-!
-
-do i = 1, nkey
-   next = 1
-   record = keyline(i)
-   call gettext (record,keyword,next)
-   call upcase (keyword)
-   string = record(next:120)
-   if (keyword(1:11) .eq. 'COUPLING ') then
-      read(record,*) names,off_basis
-      coupl=.true.
-      if (evb_dq) then
-         if (off_basis .eq. "1g" .or. off_basis.eq."3g" .or. &
-             & off_basis.eq."sd2") then
-         else
-            if (rank .eq. 0) then
-               write(*,*) "No valid coupling function was defined."
-               write(*,*) "We will use the simple 1g-dQ coupling instead."
-            end if
-            off_basis="1g"
-         end if
-      else 
-         if (off_basis .eq. "1g" .or. off_basis.eq."2g" .or. off_basis.eq."3g" &
-             &.or.off_basis.eq."sp" .or. off_basis.eq."sd" &
-             &.or. off_basis.eq."sd2" .or. off_basis.eq."sp2d3" &
-             &.or. off_basis.eq."sp2d"  ) then
-         else
-            if (rank .eq. 0) then 
-               write(*,*) "No valid coupling function was defined."
-               write(*,*) "We will use the simple 1g-dE coupling instead."
-            end if
-            off_basis="1g"
-         end if
-      end if     
-   end if
-end do
-if (.not.coupl) then
-   off_basis="1g"
-end if
 !
 !     Determine if the QMDFF energy shifts shall be corrected automatically
 !     to exactly reproduce the first/last energy of the path or not
@@ -733,33 +861,16 @@ if (qmdffnumber.eq.2) then
          if (keyword(1:16) .eq. 'RANDOM_BONDS ') then
             read(record,*) names,lower_bond,upper_bond
          end if
-         if (keyword(1:16) .eq. 'DG_EVB_MODE ') then
-            read(record,*) names,dg_evb_mode
-         end if
          if (keyword(1:16) .eq. 'READ_COORD ') then
             read_coord=.true.
          end if
          if (keyword(1:16) .eq. 'NUM_COORD ') then
             read(record,*) names,num_coord
          end if
-         if (keyword(1:16) .eq. 'DOUBLE_ALPHA ') then
-             double_alpha=.true.
-             add_alph=dg_evb_points
-         end if
-         if (keyword(1:20) .eq. 'GAUSS_THRESHOLD ') then
-             read(record,*) names,g_thres
-         end if
          if (keyword(1:20) .eq. 'MORE_INFO') then
              more_info=.true.
          end if
 
-
-!
-!     if the D coefficient matrix with gaussian derivs shall be calculated numerical
-!
-         if (keyword(1:16) .eq. 'DG_MAT_NUM ') then
-             dg_mat_num=.true.
-         end if
 
       end do
       if ((dg_evb_mode .gt. 3) .or. (dg_evb_mode .lt. 1)) then
@@ -806,9 +917,6 @@ else if (qmdffnumber.eq.3) then
       call gettext (record,keyword,next)
       call upcase (keyword)
       string = record(next:120)
-      if (keyword(1:16) .eq. 'DG_EVB_OPT_MULTI ') then
-         dg_evb_opt_multi=.true.
-      end if
       if (keyword(1:16) .eq. 'START_POINTS ') then
          read(record,*) names,maxstart
       end if

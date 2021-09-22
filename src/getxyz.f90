@@ -50,15 +50,6 @@ do while (.not. exist)
    inquire (file=xyzfile,exist=exist)
 end do
 !
-!     If the Müller-Brown suface is used, read in only one line 
-!
-if (mueller_brown) then
-   open (unit=ixyz,file=xyzfile,status='old')
-   read(ixyz,*,err=60,end=60) x(1),y(1)
-   z(1)=0.d0
-   return
-end if
-!
 !     first open and then read the Cartesian coordinates file
 !
 

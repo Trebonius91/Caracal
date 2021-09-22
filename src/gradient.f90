@@ -168,9 +168,7 @@ pot_geo(:,:,1)=xyz2
 !
 !     Call one of the different potential energy surfaces
 !
-   if (pot_type .eq. "mueller_brown") then
-      call egrad_mueller(pot_geo,e_evb,pot_grad,info)
-   else if (pot_type .eq. "ch4oh") then
+   if (pot_type .eq. "ch4oh") then
       call egrad_ch4oh(pot_geo,natoms,1,e_evb,pot_grad,info)
    else if (pot_type .eq. "ch4h") then
       call egrad_ch4h(pot_geo,natoms,1,e_evb,pot_grad,info)
@@ -200,7 +198,40 @@ pot_geo(:,:,1)=xyz2
 
    return
 end if
+!
+!     Invoke the water_SPC routine for the water model
+!
+if (water_spc) then
+   call egrad_water(xyz2,pot_grad,e_evb)
+   if (num_grad .eqv. .true.) then
+!
+!     Calculate the numerical gradient for test
+!
+      step=num_grad_step
+      do i=1,natoms
+         do j=1,3
+            do k=1,2
+               if (k.eq.1) then
+                  xyz2(j,i)=xyz2(j,i)+step
+               else if (k.eq.2) then
+                  xyz2(j,i)=xyz2(j,i)-2d0*step
+               end if
+               call egrad_water(xyz2,pot_grad,e_evb)
+               if (k.eq.1) then
+                  e_upper=e_evb
+               else if (k.eq.2) then
+                  e_lower=e_evb
+               end if
+            end do
+            xyz2(j,i)=xyz2(j,i)+step
+            g_evb(j,i)=(e_upper-e_lower)/(2d0*step)
+            g_evb(j,i)=g_evb(j,i)
+         end do
+      end do
+   end if
 
+!   g_evb=pot_grad(:,:,1)
+end if
 !
 !     Invoke orca if ab-initio MD is to be used
 !

@@ -67,7 +67,7 @@ logical::path_struc,path_energy,coupl,params
 logical::evb1,evb2,evb3,ffname1,ffname2,ffname3,defqmdff
 logical::exist,exists,has_next,coupl1
 integer::rank ! the current MPI rank
-character(len=80)::corr_name
+character(len=80)::corr_name,method
 
 
 evb1=.false.
@@ -82,407 +82,8 @@ coupl1=.false.
 defqmdff=.false.
 params=.false.
 filegeo="dummy" ! is not used in this context
-mueller_brown=.false.
-
-!
-!     First, check if an analytical potential energy surface is desired
-!
-do i = 1, nkey
-   next = 1
-   record = keyline(i)
-   call gettext (record,keyword,next)
-   call upcase (keyword)
-   string = record(next:120)
-   if (keyword(1:11) .eq. 'POT_ANA ') then
-      read(record,*) names,pot_type
-      pot_ana = .true.
-!
-!    Print general info message about availiable potentials
-!
-      if (rank .eq. 0) then
-         write(*,*) "You have invoked the POT_ANA option for analytical potentials!"
-         write(*,*) "The following surfaces are availiable (ascending atom number)"
-         write(*,*) "0)   Müller-Brown        (1 atom, 2-dimensional)"
-         write(*,*) "1)   H2 + H    (H3)      (3 atoms: H, H, H)"
-         write(*,*) "2)   BrH + H   (BrH2)    (3 atoms: H, Br, H)"
-         write(*,*) "3)   O2 + O    (OH3)     (3 atoms: O, O, O)"
-         write(*,*) "4)   OH2 + H   (OH3)     (4 atoms: O, H, H, H)"
-         write(*,*) "5)   NH2 + HCl (ClNH2)   (5 atoms: H, N, H, H, Cl)"
-         write(*,*) "6)   CH4 + H   (CH4H)    (6 atoms: H, C, H, H, H, H)"
-         write(*,*) "7)   NH3 + OH  (NH3OH)   (6 atoms: H, N, H, H, O, H)"
-         write(*,*) "8)   CH4 + OH  (CH4OH)   (7 atoms: H, C, H, H, H, O, H)"
-         write(*,*) "9)   CH4 + CN  (CH4CN)   (7 atoms: H, C, H, H, H, C, N)"
-         write(*,*) "10)   GeH4 + OH (GeH4OH)  (7 atoms: H, Ge, H, H, H, O, H)"
-         write(*,*) "11)   C2H6 + H  (C2H7)    (9 atoms: C, H, H, H, C, H, H, H, H)"
-        write(*,*)
-      end if
-      exit
-   end if
-end do
-
-!
-!     Check if ab-initio MD with orca shall be activated!
-!
-do i = 1, nkey
-    next = 1
-    record = keyline(i)
-    call gettext (record,keyword,next)
-    call upcase (keyword)
-    string = record(next:120)
-    if (keyword(1:11) .eq. 'ORCA ') then
-       orca=.true.
-       write(*,*) "The keyword orca was found!"
-       write(*,*) "Ab-initio MD will be conducted!"
-       write(*,*) "Input commands will be read in from 'orca_com.dat'"
-       exit
-    end if
-end do
-!
-!     Read in orca command line!
-!
-if (orca) then
-   open(unit=261,file="orca_com.dat",status="old")
-   read(261,'(a)') orca_com
-   close(261)
-   return
-end if
-
-
-!
-!     Initialize the analytical PES if requested, write additional PES infos 
-!     to pot_info.out file
-!
-if (pot_ana) then
-   open(unit=16,file="pot_info.out",status="unknown")
-   write(16,*) "Informational output about the used analytical PES:"
-   if (rank .eq. 0) then 
-      write(*,*) "---------->"
-   end if
-   if (pot_type .eq. "mueller_brown") then
-      if (rank .eq. 0) then
-         write(15,*) "The Müller-Brown model surface for 2D systems will be used!"
-         write(15,*) 
-         write(*,*) "The Müller-Brown model surface for 2D systems will be used!"
-         write(*,*)
-      end if
-      natoms=1
-      nat6=2
-      mueller_brown=.true.
-      return
-   else if (pot_type .eq. "h3") then
-      if (rank .eq. 0) then
-         write(15,*) "The H+H2 potential energy surface is used."
-         write(15,*) "References:  D. G. Truhlar, C. J. Horowitz J. Chem. Phys.,"
-         write(15,*) "             Vol. 68, p. 2466, 1978."
-         write(15,*)
-         write(*,*) "The H+H2 potential energy surface is used."
-         write(*,*) "References:  D. G. Truhlar, C. J. Horowitz J. Chem. Phys.,"
-         write(*,*) "             Vol. 68, p. 2466, 1978."
-         write(*,*)
-      end if
-!     (no initialization needed)
-      natoms=3  ! store number of atoms..
-      return
-   else if (pot_type .eq. "brh2") then
-      if (rank .eq. 0) then
-         write(15,*) "The HBr+H potential energy surface is used"
-         write(15,*) "References:  D. C. Clary, Chem. Phys. 71, 117 (1982)"
-         write(15,*) "             I. Last and M. Baer, in Potential Energy Surfaces "
-         write(15,*) "             and Dynamics, edited by D. G. Truhlar, p. 519 "
-         write(15,*)
-         write(*,*) "The HBr+H potential energy surface is used"
-         write(*,*) "References:  D. C. Clary, Chem. Phys. 71, 117 (1982)"
-         write(*,*) "             I. Last and M. Baer, in Potential Energy Surfaces "
-         write(*,*) "             and Dynamics, edited by D. G. Truhlar, p. 519 "
-         write(*,*)
-      end if
-      call initialize_brh2
-      natoms=3  ! store number of atoms..
-!      stop "hhff"
-      return 
-   else if (pot_type .eq. "o3") then
-      if (rank .eq. 0) then
-         write(15,*) "The O2+O potential energy surface is used"
-         write(15,*) "References:  Z. Varga, Y. Paukku, and D. G. Truhlar"
-         write(15,*) "             J. Chem. Phys. 147, 154312/1-17 (2017) "
-         write(15,*)
-         write(15,*) "The O2+O potential energy surface is used"
-         write(15,*) "References:  Z. Varga, Y. Paukku, and D. G. Truhlar"
-         write(15,*) "             J. Chem. Phys. 147, 154312/1-17 (2017) "
-         write(15,*)
-      end if
-      natoms=3    
-      return 
-   else if (pot_type .eq. "oh3") then
-      if (rank .eq. 0) then
-         write(15,*) "The OH2+H potential energy surface is used"
-         write(15,*) "References:  G. C. Schatz and H. Elgersma"
-         write(15,*) "             Chem. Phys. Lett. 73, 21 (1980) "
-         write(15,*)
-         write(*,*) "The OH2+H potential energy surface is used"
-         write(*,*) "References:  G. C. Schatz and H. Elgersma"
-         write(*,*) "             Chem. Phys. Lett. 73, 21 (1980) "
-         write(*,*)
-      end if
-      call initialize_oh3
-      natoms=4  ! store number of atoms..
-!      stop "hhff" 
-      return
-   else if (pot_type .eq. "clnh3") then
-      if (rank .eq. 0) then
-         write(15,*) "The NH2+HCl potential energy surface is used"
-         write(15,*) "References:  M. Monge-Palacios, C. Rangel, J.C. Corchado and J. Espinosa-Garcia"
-         write(15,*) "             Int.J.Quantum.Chem. 112, 1887 (2012) "
-         write(15,*)
-         write(*,*) "The NH2+HCl potential energy surface is used"
-         write(*,*) "References:   M. Monge-Palacios, C. Rangel, J.C. Corchado and J. Espinosa-Garcia"
-         write(*,*) "              Int.J.Quantum.Chem. 112, 1887 (2012) "
-         write(*,*)
-      end if
-      call initialize_clnh3
-      natoms=5  ! store number of atoms..
-!      stop "hhff" 
-      return     
-   else if (pot_type .eq. "ch4h") then
-      if (rank .eq. 0) then
-         write(15,*) "The CH4H potential energy surface is used."
-         write(15,*) "Reference: J.C. Corchado, J.L. Bravo and J. Espinosa-Garcia "
-         write(15,*) "             J.Chem.Phys.130,184314 (2009)."
-         write(15,*)
-         write(*,*) "The CH4H potential energy surface is used."
-         write(*,*) "Reference: J.C. Corchado, J.L. Bravo and J. Espinosa-Garcia " 
-         write(*,*) "             J.Chem.Phys.130,184314 (2009)."
-         write(*,*)
-      end if
-      call initialize_ch4h  
-      natoms=6   
-      return    ! go back to main program directly
-   else if (pot_type .eq. "nh3oh") then
-      if (rank .eq. 0) then
-         write(15,*) "The NH3OH potential energy surface is used."
-         write(15,*) "References: M. Monge-Palacios, C. Rangel and J. Espinosa-Garcia "
-         write(15,*) "           J.Chem.Phys. 138, 084305 (2013)."
-         write(15,*)
-         write(*,*) "The NH3OH potential energy surface is used."
-         write(*,*) "References: M. Monge-Palacios, C. Rangel and J. Espinosa-Garcia "
-         write(*,*) "           J.Chem.Phys. 138, 084305 (2013)."
-         write(*,*)
-      end if
-      call initialize_nh3oh
-      natoms=6
-      return
-   else if (pot_type .eq. "ch4oh") then
-      if (rank .eq. 0) then
-         write(15,*) "The CH4OH potential energy surface is used."
-         write(15,*) "References:  J. Espinosa-Garcia, J. C. Corchado, J. Chem. Phys.,"
-         write(15,*) "             Vol. 112, p. 5731, 2000."
-         write(15,*)
-         write(*,*) "The CH4OH potential energy surface is used."
-         write(*,*) "References:  J. Espinosa-Garcia, J. C. Corchado, J. Chem. Phys.,"
-         write(*,*) "             Vol. 112, p. 5731, 2000."
-         write(*,*)
-      end if
-      call initialize_ch4oh
-      natoms=7
-      return    ! go back to main program directly
-   else if (pot_type .eq. "ch4cn") then
-      if (rank .eq. 0) then
-         write(15,*) "The CH4CN potential energy surface is used."
-         write(15,*) "References:  J. Espinosa-Garcia, C. Rangel and Y. V. Suleimanov,"
-         write(15,*) "             Phys. Chem. Chem. Phys., 2017, 19, 19341."
-         write(15,*)
-         write(*,*) "The CH4CN potential energy surface is used."
-         write(*,*) "References:  J. Espinosa-Garcia, C. Rangel and Y. V. Suleimanov,"
-         write(*,*) "             Phys. Chem. Chem. Phys., 2017, 19, 19341."
-         write(*,*)
-      end if
-      call initialize_ch4cn
-      natoms=7
-      return    ! go back to main program directly
-   else if (pot_type .eq. "geh4oh") then
-      if (rank .eq. 0) then
-         write(15,*) "The GeH4+OH potential energy surface is used."
-         write(15,*) "References:  J. Espinosa-Garcia, C. Rangel and J.C. Corchado"
-         write(15,*) "             Phys. Chem. Chem. Phys. 18, 16941 (2016)"
-         write(15,*) 
-         write(*,*) "The GeH4+OH potential energy surface is used."
-         write(*,*) "References:  J. Espinosa-Garcia, C. Rangel and J.C. Corchado"
-         write(*,*) "             Phys. Chem. Chem. Phys. 18, 16941 (2016)"
-         write(*,*)
-      end if
-      call initialize_geh4oh
-      natoms=7  ! store number of atoms..
-      return      
-    else if (pot_type .eq. "c2h7") then
-      if (rank .eq. 0) then
-         write(15,*) "The C2H6+H potential energy surface is used."
-         write(15,*) "References:  Arindam Chakraborty, Yan Zhao, Hai Lin, and Donald G. Truhlar"
-         write(15,*) "             J. Chem. Phys., 124, 044315 (2006)."
-         write(15,*)
-         write(*,*) "The C2H6+H potential energy surface is used."
-         write(*,*) "References:  Arindam Chakraborty, Yan Zhao, Hai Lin, and Donald G. Truhlar"
-         write(*,*) "             J. Chem. Phys., 124, 044315 (2006)."
-         write(*,*)
-      end if
-!     (no initialization needed)
-      natoms=9  ! store number of atoms..
-      return
-   else 
-      if (rank .eq. 0) then  
-         write(*,*) "No valid potential energy surface was chosen!"
-         write(*,*) "Choose a valid one (H3,BrH2,O3,OH3,CH4H,NH3OH,CH4OH,GeH4OH) or remove keyword"
-         call fatal
-      end if
-   end if
-   if (rank .eq. 0) then
-      write(15,*) "Infos about potential initialization written to file pot_info.out."
-      write(15,*)
-      write(*,*) "Infos about potential initialization written to file pot_info.out."
-      write(*,*)
-   end if
-   close(16)
-end if
-!
-!     Read in the Force field Parameters
-!
-E_zero1=0d0; E_zero2=0d0; E_zero3=0d0
-do i = 1, nkey
-   next = 1
-   record = keyline(i)
-   call gettext (record,keyword,next)
-   call upcase (keyword)
-   string = record(next:120)
-   if (keyword(1:11) .eq. 'EQMDFF ') then
-      read(record,*) names,E_zero1
-      evb1=.true.
-   else if (keyword(1:11) .eq. '2EVB ') then
-      read(record,*) names,E_zero1,E_zero2
-      evb2=.true.
-   else if (keyword(1:11) .eq. '3EVB ') then
-      read(record,*) names,E_zero1,E_zero2,E_zero3
-      evb3=.true.
-   end if
-end do
-qmdffnumber=0
-fffile1=""; fffile2=""; fffile3=""
-do i = 1, nkey
-   next = 1
-   record = keyline(i)
-   call gettext (record,keyword,next)
-   call upcase (keyword)
-   string = record(next:120)
-   if (keyword(1:11) .eq. 'FFNAME ') then
-      if (evb1) then
-         read(record,*) names,fffile1
-         ffname1=.true.
-         defqmdff=.true.
-         qmdffnumber=1
-         nqmdff=1
-      else if (evb2) then
-         read(record,*) names,fffile1,fffile2
-         ffname2=.true.
-         defqmdff=.true.
-         qmdffnumber=2
-         nqmdff=2
-      else if (evb3) then
-         read(record,*) names,fffile1,fffile2,fffile3
-         ffname3=.true.
-         defqmdff=.true.
-         qmdffnumber=3
-         nqmdff=3
-      end if
-   end if
-end do
-
-! 
-!     In the case that no QMDFF´s are defined in tinker.key,
-!     read in dem manually 
-!
-
-if (.not. ffname1 .and. .not.  ffname2 .and. .not. ffname3) then
-   exist=.false.
-   do while (.not. exist)
-      if (use_mpi) then
-         if (rank .eq. 0) then
-            write(*,*) "No valid keyfile with QMDFFs given!"
-            call fatal
-         end if
-      else 
-         write(iout,'(/," Number of QMDFF´s: ",$)')
-      end if
-      read (*,'(a1)')  qmdffnum
-      asciinum = ICHAR(qmdffnum)
-!
-!     Convert vom ASCII to the real number (1=49,2=50,3=51)
-!
-      select case (asciinum)
-      case (49)
-         qmdffnumber=1
-         nqmdff=1
-      case (50)
-         qmdffnumber=2
-         nqmdff=2
-      case (51)
-         qmdffnumber=3
-         nqmdff=3
-      end select
-      if (qmdffnumber.eq.1 .or. qmdffnumber.eq.2 .or. qmdffnumber.eq.3) then
-         exist=.true.
-         defqmdff=.true.
-      end if
-   end do
-end if
-
-if (.not.defqmdff) then
-   exist=.false.
-   do while (.not. exist)
-      write(iout,'(/," Name of the first force field:  ",$)')
-      read (*,'(a120)')  fffile1
-      inquire(file=fffile1,exist=exist)
-   end do
-   if (qmdffnumber.eq.2 .or. qmdffnumber.eq.3) then
-      exist=.false.
-      do while (.not. exist)
-         write(iout,'(/," Name of the second force field:  ",$)')
-         read (*,'(a120)')  fffile2
-         inquire(file=fffile2,exist=exist)
-      end do
-   end if
-   if (qmdffnumber.eq.3) then
-      exist=.false.
-      do while (.not. exist)
-         write(iout,'(/," Name of the third force field:  ",$)')
-         read (*,'(a120)')  fffile1
-         inquire(file=fffile1,exist=exist)
-      end do
-   end if
-end if
-!
-!     Read in the QMDFF-energys if not defined via keyfile
-!
-if ((.not. evb1) .and. (.not. evb2) .and. (.not. evb3)) then
-   if (use_mpi) then
-      if (rank .eq. 0) then
-         write(*,*) "No QMDFF energies given in keyfile!"
-         call fatal
-      end if
-   else 
-      write(iout,'(/," QMDFF-Energy of the first QMDFF :  ",$)')
-      read (*,*) E_zero1
-      if (qmdffnumber.eq.2 .or. qmdffnumber.eq.3) then
-         write(iout,'(/," QMDFF-Energy of the second QMDFF :  ",$)')
-         read (*,*) E_zero2
-      end if
-      if (qmdffnumber.eq.3) then
-         write(iout,'(/," QMDFF-Energy of the third QMDFF :  ",$)')
-         read (*,*) E_zero3
-      end if
-   end if
-end if
-!
-!     initialize the single QMDFF´s
-!
-call prepare (fffile1,fffile2,fffile3,qmdffnumber)
+orca=.false.
+water_spc=.false.
 !
 !     mainly for test reasons: activate numerical gradient
 !
@@ -499,6 +100,7 @@ do i = 1, nkey
       if (rank .eq. 0) then
          write(*,*) "The numerical gradient will be calculated!"
       end if
+      exit
    end if
 end do
 !
@@ -521,6 +123,432 @@ if (num_grad) then
       end if
    end do
 end if
+
+
+!
+!     The general Method keyword
+!
+method=""
+do i = 1, nkey
+   next = 1
+   record = keyline(i)
+   call gettext (record,keyword,next)
+   call upcase (keyword)
+   string = record(next:120)
+   if (keyword(1:11) .eq. 'PES ') then
+      read(record,*) names,method
+      call upcase(method)
+      exit
+   end if
+end do
+
+!
+!      Choose the EVB coupling term to be optimized
+!
+evb_dq=.false.
+dg_evb=.false.
+rp_evb=.false.
+if (method .eq. "QMDFF")  then
+   if (rank .eq. 0) then
+      write(15,*) "A single QMDFF will be used as PES!"
+      write(15,*)
+      write(*,*) "A single QMDFF will be used as PES!"
+      write(*,*)
+      qmdffnumber=1
+   end if
+else if (method .eq. "DE_EVB")  then
+   if (rank .eq. 0) then
+      write(15,*) "The dE-EVB (energy-gap) coupling term will be used!"
+      write(15,*)
+      write(*,*) "The dE-EVB (energy-gap) coupling term will be used!"
+      write(*,*)
+   end if
+else if (method .eq. "DQ_EVB")  then
+   if (rank .eq. 0) then
+      evb_dq=.true.
+      write(15,*) "The dQ-EVB (coordinate) coupling term will be used!"
+      write(15,*)
+      write(*,*) "The dQ-EVB (coordinate) coupling term will be used!"
+      write(*,*)
+   end if
+else if (method .eq. "DG_EVB") then
+   if (rank .eq. 0) then
+      dg_evb=.true.
+      write(15,*) "The DG-EVB (distributed Gaussian) coupling term will be used!"
+      write(15,*)
+      write(*,*) "The DG-EVB (distributed Gaussian) coupling term will be used!"
+      write(*,*)
+   end if
+else if (method .eq. "RP_EVB") then
+   if (rank .eq. 0) then
+      rp_evb=.true.
+      write(15,*) "The RP-EVB (reaction path) coupling term will be used!"
+      write(15,*)
+      write(*,*) "The RP-EVB (reaction path) coupling term will be used!"
+      write(*,*)
+   end if
+!
+!     If the SPC water model shall be used (only for water, of course...)
+!
+else if (method .eq. "WATER_SPC") then
+   if (rank .eq. 0) then
+      water_spc=.true.
+      write(*,*) "A bunch of water molecules will be simulated with the "
+      write(*,*) " flexible simple point charge (SPC) water model."
+   end if
+
+!
+!     If the gradient shall be calculated on the fly with orca
+!
+else if (method .eq. "ORCA") then
+   if (rank .eq. 0) then
+      orca=.true.
+      write(*,*) "The keyword orca was found!"
+      write(*,*) "Ab-initio MD will be conducted!"
+      write(*,*) "Input commands will be read in from 'orca_com.dat'"
+   end if
+
+!
+!     The analytical potential energy surfaces! Mainly for benchmark reasons(?)
+!
+else if (method .eq. "ANA_H3") then
+   if (rank .eq. 0) then
+      open(unit=16,file="pot_info.out",status="unknown")
+      write(16,*) "Informational output about the used analytical PES:"
+      if (rank .eq. 0) then
+         write(*,*) "---------->"
+      end if
+      write(15,*) "The H+H2 potential energy surface is used."
+      write(15,*) "References:  D. G. Truhlar, C. J. Horowitz J. Chem. Phys.,"
+      write(15,*) "             Vol. 68, p. 2466, 1978."
+      write(15,*)
+      write(*,*) "The H+H2 potential energy surface is used."
+      write(*,*) "References:  D. G. Truhlar, C. J. Horowitz J. Chem. Phys.,"
+      write(*,*) "             Vol. 68, p. 2466, 1978."
+      write(*,*)
+!     (no initialization needed)
+      natoms=3  ! store number of atoms..
+   end if
+else if (method .eq. "ANA_BRH2") then
+   if (rank .eq. 0) then
+      open(unit=16,file="pot_info.out",status="unknown")
+      write(16,*) "Informational output about the used analytical PES:"
+      if (rank .eq. 0) then
+         write(*,*) "---------->"
+      end if
+      write(15,*) "The HBr+H potential energy surface is used"
+      write(15,*) "References:  D. C. Clary, Chem. Phys. 71, 117 (1982)"
+      write(15,*) "             I. Last and M. Baer, in Potential Energy Surfaces "
+      write(15,*) "             and Dynamics, edited by D. G. Truhlar, p. 519 "
+      write(15,*)
+      write(*,*) "The HBr+H potential energy surface is used"
+      write(*,*) "References:  D. C. Clary, Chem. Phys. 71, 117 (1982)"
+      write(*,*) "             I. Last and M. Baer, in Potential Energy Surfaces "
+      write(*,*) "             and Dynamics, edited by D. G. Truhlar, p. 519 "
+      write(*,*)
+      call initialize_brh2
+      natoms=3  ! store number of atoms..
+   end if
+else if (pot_type .eq. "ANA_O3") then
+   if (rank .eq. 0) then
+      open(unit=16,file="pot_info.out",status="unknown")
+      write(16,*) "Informational output about the used analytical PES:"
+      if (rank .eq. 0) then
+         write(*,*) "---------->"
+      end if
+      write(15,*) "The O2+O potential energy surface is used"
+      write(15,*) "References:  Z. Varga, Y. Paukku, and D. G. Truhlar"
+      write(15,*) "             J. Chem. Phys. 147, 154312/1-17 (2017) "
+      write(15,*)
+      write(15,*) "The O2+O potential energy surface is used"
+      write(15,*) "References:  Z. Varga, Y. Paukku, and D. G. Truhlar"
+      write(15,*) "             J. Chem. Phys. 147, 154312/1-17 (2017) "
+      write(15,*)
+   end if
+   natoms=3
+   return
+else if (pot_type .eq. "ANA_OH3") then
+   if (rank .eq. 0) then
+      open(unit=16,file="pot_info.out",status="unknown")
+      write(16,*) "Informational output about the used analytical PES:"
+      if (rank .eq. 0) then
+         write(*,*) "---------->"
+      end if
+      write(15,*) "The OH2+H potential energy surface is used"
+      write(15,*) "References:  G. C. Schatz and H. Elgersma"
+      write(15,*) "             Chem. Phys. Lett. 73, 21 (1980) "
+      write(15,*)
+      write(*,*) "The OH2+H potential energy surface is used"
+      write(*,*) "References:  G. C. Schatz and H. Elgersma"
+      write(*,*) "             Chem. Phys. Lett. 73, 21 (1980) "
+      write(*,*)
+   end if
+   call initialize_oh3
+   natoms=4  ! store number of atoms..
+   pot_ana=.true.
+else if (pot_type .eq. "ANA_CLNH3") then
+   if (rank .eq. 0) then
+      open(unit=16,file="pot_info.out",status="unknown")
+      write(16,*) "Informational output about the used analytical PES:"
+      if (rank .eq. 0) then
+         write(*,*) "---------->"
+      end if
+      write(15,*) "The NH2+HCl potential energy surface is used"
+      write(15,*) "References:  M. Monge-Palacios, C. Rangel, J.C. Corchado and J. Espinosa-Garcia"
+      write(15,*) "             Int.J.Quantum.Chem. 112, 1887 (2012) "
+      write(15,*)
+      write(*,*) "The NH2+HCl potential energy surface is used"
+      write(*,*) "References:   M. Monge-Palacios, C. Rangel, J.C. Corchado and J. Espinosa-Garcia"
+      write(*,*) "              Int.J.Quantum.Chem. 112, 1887 (2012) "
+      write(*,*)
+   end if
+   call initialize_clnh3
+   natoms=5  ! store number of atoms..
+   pot_ana=.true.
+else if (pot_type .eq. "ANA_CH4H") then
+   if (rank .eq. 0) then
+      open(unit=16,file="pot_info.out",status="unknown")
+      write(16,*) "Informational output about the used analytical PES:"
+      if (rank .eq. 0) then
+         write(*,*) "---------->"
+      end if
+      write(15,*) "The CH4H potential energy surface is used."
+      write(15,*) "Reference: J.C. Corchado, J.L. Bravo and J. Espinosa-Garcia "
+      write(15,*) "             J.Chem.Phys.130,184314 (2009)."
+      write(15,*)
+      write(*,*) "The CH4H potential energy surface is used."
+      write(*,*) "Reference: J.C. Corchado, J.L. Bravo and J. Espinosa-Garcia "
+      write(*,*) "             J.Chem.Phys.130,184314 (2009)."
+      write(*,*)
+   end if
+   call initialize_ch4h
+   natoms=6
+   pot_ana=.true.
+else if (pot_type .eq. "ANA_NH3OH") then
+   if (rank .eq. 0) then
+      open(unit=16,file="pot_info.out",status="unknown")
+      write(16,*) "Informational output about the used analytical PES:"
+      if (rank .eq. 0) then
+         write(*,*) "---------->"
+      end if
+      write(15,*) "The NH3OH potential energy surface is used."
+      write(15,*) "References: M. Monge-Palacios, C. Rangel and J. Espinosa-Garcia "
+      write(15,*) "           J.Chem.Phys. 138, 084305 (2013)."
+      write(15,*)
+      write(*,*) "The NH3OH potential energy surface is used."
+      write(*,*) "References: M. Monge-Palacios, C. Rangel and J. Espinosa-Garcia "
+      write(*,*) "           J.Chem.Phys. 138, 084305 (2013)."
+      write(*,*)
+   end if
+   call initialize_nh3oh
+   natoms=6
+   pot_ana=.true.
+else if (pot_type .eq. "ANA_CH4OH") then
+   if (rank .eq. 0) then
+      open(unit=16,file="pot_info.out",status="unknown")
+      write(16,*) "Informational output about the used analytical PES:"
+      if (rank .eq. 0) then
+         write(*,*) "---------->"
+      end if
+      write(15,*) "The CH4OH potential energy surface is used."
+      write(15,*) "References:  J. Espinosa-Garcia, J. C. Corchado, J. Chem. Phys.,"
+      write(15,*) "             Vol. 112, p. 5731, 2000."
+      write(15,*)
+      write(*,*) "The CH4OH potential energy surface is used."
+      write(*,*) "References:  J. Espinosa-Garcia, J. C. Corchado, J. Chem. Phys.,"
+      write(*,*) "             Vol. 112, p. 5731, 2000."
+      write(*,*)
+   end if
+   call initialize_ch4oh
+   natoms=7
+   pot_ana=.true.
+else if (pot_type .eq. "ANA_CH4CN") then
+   if (rank .eq. 0) then
+      write(15,*) "The CH4CN potential energy surface is used."
+      write(15,*) "References:  J. Espinosa-Garcia, C. Rangel and Y. V. Suleimanov,"
+      write(15,*) "             Phys. Chem. Chem. Phys., 2017, 19, 19341."
+      write(15,*)
+      write(*,*) "The CH4CN potential energy surface is used."
+      write(*,*) "References:  J. Espinosa-Garcia, C. Rangel and Y. V. Suleimanov,"
+      write(*,*) "             Phys. Chem. Chem. Phys., 2017, 19, 19341."
+      write(*,*)
+   end if
+   call initialize_ch4cn
+   natoms=7
+   pot_ana=.true.
+else if (pot_type .eq. "ANA_GEH4OH") then
+   if (rank .eq. 0) then
+      open(unit=16,file="pot_info.out",status="unknown")
+      write(16,*) "Informational output about the used analytical PES:"
+      if (rank .eq. 0) then
+         write(*,*) "---------->"
+      end if
+      write(15,*) "The GeH4+OH potential energy surface is used."
+      write(15,*) "References:  J. Espinosa-Garcia, C. Rangel and J.C. Corchado"
+      write(15,*) "             Phys. Chem. Chem. Phys. 18, 16941 (2016)"
+      write(15,*)
+      write(*,*) "The GeH4+OH potential energy surface is used."
+      write(*,*) "References:  J. Espinosa-Garcia, C. Rangel and J.C. Corchado"
+      write(*,*) "             Phys. Chem. Chem. Phys. 18, 16941 (2016)"
+      write(*,*)
+   end if
+   call initialize_geh4oh
+   natoms=7  ! store number of atoms..
+   pot_ana=.true. 
+else if (pot_type .eq. "ANA_C2H7") then
+   if (rank .eq. 0) then
+      open(unit=16,file="pot_info.out",status="unknown")
+      write(16,*) "Informational output about the used analytical PES:"
+      if (rank .eq. 0) then
+         write(*,*) "---------->"
+      end if
+      write(15,*) "The C2H6+H potential energy surface is used."
+      write(15,*) "References:  Arindam Chakraborty, Yan Zhao, Hai Lin, and Donald G. Truhlar"
+      write(15,*) "             J. Chem. Phys., 124, 044315 (2006)."
+      write(15,*)
+      write(*,*) "The C2H6+H potential energy surface is used."
+      write(*,*) "References:  Arindam Chakraborty, Yan Zhao, Hai Lin, and Donald G. Truhlar"
+      write(*,*) "             J. Chem. Phys., 124, 044315 (2006)."
+      write(*,*)
+   end if
+!   (no initialization needed)
+   natoms=9  ! store number of atoms..
+   pot_ana=.true.
+else
+   if (rank .eq. 0) then
+      write(*,*) "No valid potential energy surface was chosen!"
+      write(*,*) "Choose a valid one:"
+      write(*,*) "QMDFF, DE_EVB, DQ_EVB, DG_EVB, TREQ, ORCA (QM call), "
+      write(*,*) "analytical PES (H3, BRH2, O3, OH3, CH4H, NH3OH, CH4OH, GeH4OH, C2H7) "
+      call fatal
+   end if
+end if
+
+if (pot_ana) then
+   if (rank .eq. 0) then
+      write(*,*) "You have chosen one of the analytical PES functions."
+      write(*,*) "The following surfaces are availiable as well (ascending atom number)"
+      write(*,*) "1)   H2 + H    (H3)      (3 atoms: H, H, H)"
+      write(*,*) "2)   BrH + H   (BrH2)    (3 atoms: H, Br, H)"
+      write(*,*) "3)   O2 + O    (OH3)     (3 atoms: O, O, O)"
+      write(*,*) "4)   OH2 + H   (OH3)     (4 atoms: O, H, H, H)"
+      write(*,*) "5)   NH2 + HCl (ClNH2)   (5 atoms: H, N, H, H, Cl)"
+      write(*,*) "6)   CH4 + H   (CH4H)    (6 atoms: H, C, H, H, H, H)"
+      write(*,*) "7)   NH3 + OH  (NH3OH)   (6 atoms: H, N, H, H, O, H)"
+      write(*,*) "8)   CH4 + OH  (CH4OH)   (7 atoms: H, C, H, H, H, O, H)"
+      write(*,*) "9)   CH4 + CN  (CH4CN)   (7 atoms: H, C, H, H, H, C, N)"
+      write(*,*) "10)   GeH4 + OH (GeH4OH)  (7 atoms: H, Ge, H, H, H, O, H)"
+      write(*,*) "11)   C2H6 + H  (C2H7)    (9 atoms: C, H, H, H, C, H, H, H, H)"
+      write(*,*)
+      write(15,*) "Infos about potential initialization written to file pot_info.out."
+      write(15,*)
+      write(*,*) "Infos about potential initialization written to file pot_info.out."
+      write(*,*)
+   end if
+   close(16)
+   return
+end if
+
+!
+!     Call the water model initialization routine if needed 
+!
+if (water_spc) then
+   call water_init
+   return
+end if
+
+
+!
+!     Read in orca command line if orca shall be used to calculate the gradients
+!
+if (orca) then
+   open(unit=261,file="orca_com.dat",status="old")
+   read(261,'(a)') orca_com
+   close(261)
+   return
+end if
+
+do i = 1, nkey
+   next = 1
+   record = keyline(i)
+   call gettext (record,keyword,next)
+   call upcase (keyword)
+   string = record(next:120)
+   if (keyword(1:11) .eq. 'QMDFFNAMES ') then
+      if (qmdffnumber .eq. 1) then
+         read(record,*,iostat=readstat) names,fffile1
+         if (readstat .ne. 0) then
+            write(*,*) "Please check the QMDFFNAMES keyword!"
+            call fatal
+         end if 
+      end if 
+      read(record,*,iostat=readstat) names,fffile1,fffile2,fffile3
+      ffname3=.true.
+      defqmdff=.true.
+      qmdffnumber=3
+      if (readstat .eq. 1) then
+         read(record,*,iostat=readstat) names,fffile1,fffile2
+         ffname2=.true.
+         defqmdff=.true.
+         qmdffnumber=2
+         if (readstat .eq. 1) then
+            write(*,*) "Please give two or three QMDFFs as diabatic surfaces in "
+            write(*,*) "  the command QMDFFNAMES!"
+            call fatal
+         else if (readstat .eq. 0) then
+            evb3=.true.
+         end if
+      else if (readstat .eq. 0) then
+         evb2=.true.
+      end if
+   end if
+end do
+!write(*,*) evb2,evb3
+do i = 1, nkey
+   next = 1
+   record = keyline(i)
+   call gettext (record,keyword,next)
+   call upcase (keyword)
+   string = record(next:120)
+   if (keyword(1:11) .eq. 'ESHIFT ') then
+      if (qmdffnumber .eq. 1) then
+         exist=.true.
+         if (readstat .ne. 0) then
+            write(*,*) "The ESHIFT keyword seems to be corrupted!"
+            call fatal
+         end if
+      end if
+      if (evb2) then
+         read(record,*,iostat=readstat) names,E_zero1,E_zero2
+         exist=.true.
+         if (readstat .ne. 0) then
+            write(*,*) "The ESHIFT keyword seems to be corrupted!"
+            call fatal
+         end if
+      end if
+      if (evb3) then
+         read(record,*,iostat=readstat) names,E_zero1,E_zero2,E_zero3
+         exist=.true.
+         if (readstat .ne. 0) then
+            write(*,*) "The ESHIFT keyword seems to be corrupted!"
+            call fatal
+         end if
+      end if
+   end if
+end do
+if (.not. exist) then
+   if (qmdffnumber .gt. 1) then
+      write(*,*) "No ESHIFT keyword given! Please give the QMDFF shift energies "
+      write(*,*) "in order to ensure a useful calculation!"
+      call fatal
+   end if
+end if
+
+
+!
+!     initialize the single QMDFF´s
+!
+call prepare (fffile1,fffile2,fffile3,qmdffnumber)
 !
 !      If the QMDFF nonbonded parameters shall be corrected by optimized factors 
 !      (as calculated with qmdffopt.x)
