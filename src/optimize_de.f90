@@ -319,13 +319,13 @@ do i=1,par_num
    write ( 15, '(2x,i8,2x,g16.8)' ) i, par_vec(i)
 end do
 write(15,*)
-write(15,*) ">>> File evb.info was written"
+write(15,*) ">>> File evb_pars.dat was written"
 write(15,*) ">>> This file is needed for specification of the coupling term!"
 write(15,*)
 !
 !     Write the evb.info file with the optimized coupling parameters
 !
-open(unit=67,file="evb.info",status="unknown")
+open(unit=67,file="evb_pars.dat",status="unknown")
 write(67,*) "** This file contains parameters for a EVB-dE-calculation **"
 do i=1,par_num
    write(67,*) par_vec(i)
@@ -334,7 +334,7 @@ close(67)
 write(*,*)
 write(*,*) "Energies of the reactionpath are written to energies.qmdff."
 write(*,*) 
-write(*,*) "evb.info file written. Use this file for further calculations."
+write(*,*) "evb_pars.dat file written. Use this file for further calculations."
 write(*,*) "Exiting normally..."
 write(*,*)
 !

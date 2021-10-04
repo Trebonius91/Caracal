@@ -775,17 +775,17 @@ if (qmdffnumber.eq.2) then
       call read2int(1)
       point_int=all_int
 !
-!   Read in the evb.info-file and initialize the alpha 
+!   Read in the evb_pars.dat-file and initialize the alpha 
 !   and b_vec values
 !
-      open (unit=443,file="evb.info",status="old")
+      open (unit=443,file="evb_pars.dat",status="old")
       
       read(443,*) names
       do i=1,mat_size
          read(443,*,iostat=readstat) b_vec(i)
          if (readstat .ne. 0) then
             if (rank .eq. 0) then
-               write(*,*) "The evb.info file contains too few lines or has a wrong formate!"
+               write(*,*) "The evb_pars.dat file contains too few lines or has a wrong formate!"
                call fatal
             end if
          end if
@@ -795,7 +795,7 @@ if (qmdffnumber.eq.2) then
          read(443,*,iostat=readstat) alph_opt(i)
          if (readstat .ne. 0) then
             if (rank .eq. 0) then
-               write(*,*) "The evb.info file contains too few lines or has a wrong formate!"
+               write(*,*) "The evb_pars.dat file contains too few lines or has a wrong formate!"
                call fatal
             end if
          end if
@@ -1244,10 +1244,10 @@ end if
      
 !    
 !     Initialize the dE/dQ couplingterms and their parameters
-!     Read them from the evb.info file obtained from EVB optimization
+!     Read them from the evb_pars.dat file obtained from EVB optimization
 !  
 
-      open (unit=443,file="evb.info",status="old")
+      open (unit=443,file="evb_pars.dat",status="old")
       read(443,*,iostat=readstat) names
       read(443,*,iostat=readstat) offa
       read(443,*,iostat=readstat) offb
@@ -1282,7 +1282,7 @@ end if
       end if
       close(443) 
       if (readstat .ne. 0) then
-         write(*,*) "The evb.info file contains too few lines or has a wrong formate!"
+         write(*,*) "The evb_pars.dat file contains too few lines or has a wrong formate!"
          call fatal
       end if
 !  

@@ -393,7 +393,7 @@ do i=1,par_num
    write ( 15, '(2x,i8,2x,g16.8)' ) i, par_opt(i)
 end do
 write(15,*)
-write(15,*) ">>> File evb.info was written"
+write(15,*) ">>> File evb_pars.dat was written"
 write(15,*) ">>> This file is needed for specification of the coupling term!"
 write(15,*)
 !

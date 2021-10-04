@@ -33,7 +33,7 @@
 !     sets up the DG-EVB coupling-function, solves the resulting set of linear 
 !     equations and optimizes the variable alpha parameters with a multi start 
 !     local search algorithm.
-!     The optimized parameters are written into the evb.info-file, energies and gradients 
+!     The optimized parameters are written into the evb_pars.dat-file, energies and gradients 
 !     for the used structures are also plotted out 
 !
 !     All calculations are done using internal coordinates than can be chosen
@@ -215,7 +215,7 @@ do i=1,dg_evb_points
 !
 !   Read in the reference structures for every fixpoint
 !
-   call next_geo(coord,natoms,124,has_next)
+   call next_geo(coord,natoms,127,has_next)
 
    do j=1,natoms
       do k=1,3
@@ -574,7 +574,7 @@ do i=1,dg_evb_points+add_alph
    write ( 15, '(2x,i8,2x,g16.8)' ) i, alph_opt(i)
 end do
 write(15,*)
-write(15,*) ">>> File evb.info was written"
+write(15,*) ">>> File evb_pars.dat was written"
 write(15,*) ">>> This file is needed for specification of the coupling term!"
 write(15,*)
 
@@ -630,7 +630,7 @@ close(31)
 !
 !   write the dg_evb output file for further calculations
 !
-open(unit=67,file="evb.info",status="unknown")
+open(unit=67,file="evb_pars.dat",status="unknown")
 write(67,*) "** This file contains parameters for a DG-EVB-calculation **"
 do i=1,mat_size
    write(67,*) b_vec(i)
@@ -640,7 +640,7 @@ do i=1,dg_evb_points+add_alph
 end do
 close(67)
 write(*,*) 
-write(*,*) "evb.info file written. Use this file for further calculations."
+write(*,*) "evb_pars.dat file written. Use this file for further calculations."
 write(*,*) "Exiting normally..."
 write(*,*)
 

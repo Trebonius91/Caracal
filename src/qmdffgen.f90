@@ -745,18 +745,29 @@ end if
 !    Write the energies in a generic tinker.key file for evb-optimization
 !
 open(unit=81,file="qmdff.key",status='unknown')
-write(81,'(a)')"# This is an automatically generated keyword file for EVB-QMDFF optimizsations"
+write(81,'(a)')"# This is an automatically generated keyword file for EVB-QMDFF optimizations"
 write(81,'(a)')"# with the program evbopt.x"
 write(81,*)
+!
+!    Which kind of EVB coupling is used: for 2 QMDFFs always de_evb as default
+!
+if (qmdffnumber .eq. 1) then
+   write(81,*) "PES qmdff"
+else if (qmdffnumber .eq. 2) then
+   write(81,*) "PES de_evb"
+end if
+!
+!    QMDFF information
+!
 if (qmdffnumber.eq.1) then
-   write(81,*)"FFNAME  ",prefix1 // ".qmdff"
-   write(81,*)"EQMDFF",e1_shifted
+   write(81,*)"QMDFFNAMES  ",prefix1 // ".qmdff"
+   write(81,*)"ESHIFT",e1_shifted
 else if (qmdffnumber.eq.2) then
-   write(81,*)"FFNAME  ",prefix1 // ".qmdff  ",prefix2 // ".qmdff"
-   write(81,*)"2EVB",e1_shifted,e2_shifted
+   write(81,*)"QMDFFNAMES  ",prefix1 // ".qmdff  ",prefix2 // ".qmdff"
+   write(81,*)"ESHIFT ",e1_shifted,e2_shifted
 else if (qmdffnumber.eq.3) then
-      write(81,*)"FFNAME  ",prefix1 // ".qmdff  ",prefix2 // ".qmdff  ",prefix3 // ".qmdff"
-   write(81,*)"3EVB",e1_shifted,e2_shifted,e3_shifted
+      write(81,*)"QMDFFNAMES  ",prefix1 // ".qmdff  ",prefix2 // ".qmdff  ",prefix3 // ".qmdff"
+   write(81,*)"ESHIFT",e1_shifted,e2_shifted,e3_shifted
 end if 
 !
 !    calculate the needed time for optimization

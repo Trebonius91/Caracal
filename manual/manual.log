@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.18 (TeX Live 2017/TeX Live for SUSE Linux) (preloaded format=pdflatex 2021.4.21)  6 SEP 2021 17:13
+This is pdfTeX, Version 3.14159265-2.6-1.40.18 (TeX Live 2017/TeX Live for SUSE Linux) (preloaded format=pdflatex 2021.4.21)  4 OCT 2021 11:29
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -958,7 +958,7 @@ LaTeX Info: Redefining \nameref on input line 60.
 * \@reversemarginfalse
 * (1in=72.27pt=25.4mm, 1cm=28.453pt)
 
-<figures/titlepic.png, id=59, 800.0289pt x 828.2142pt>
+<figures/titlepic.png, id=63, 800.0289pt x 828.2142pt>
 File: figures/titlepic.png Graphic file (type png)
 
 <use figures/titlepic.png>
@@ -1037,28 +1037,99 @@ Underfull \hbox (badness 10000) in paragraph at lines 394--395
 
  []
 
-[10] [11]
-Package atveryend Info: Empty hook `BeforeClearDocument' on input line 419.
-Package atveryend Info: Empty hook `AfterLastShipout' on input line 419.
+[10]
+
+LaTeX Warning: Reference `sec:prog_qmdffgen' on page 11 undefined on input line
+ 425.
+
+[11] <./figures/evbopt_de.pdf, id=137, 376.40625pt x 301.125pt>
+File: ./figures/evbopt_de.pdf Graphic file (type pdf)
+
+<use ./figures/evbopt_de.pdf>
+Package pdftex.def Info: ./figures/evbopt_de.pdf used on input line 475.
+(pdftex.def)             Requested size: 302.32004pt x 241.84842pt.
+
+Underfull \hbox (badness 10000) in paragraph at lines 483--484
+
+ []
+
+[12] [13 <./figures/evbopt_de.pdf>]
+Overfull \hbox (10.85872pt too wide) in paragraph at lines 558--560
+[]\OT1/cmtt/m/n/12 read[]coord\OT1/cmr/m/n/12 (-20) : If given, the de-fined in
+-ter-nal co-or-di-nates are read in from the file \OT1/cmtt/m/n/12 coord[]def.i
+np\OT1/cmr/m/n/12 (-20) ,
+ []
+
+[14]
+Overfull \hbox (9.99463pt too wide) in paragraph at lines 610--610
+[]  \OT1/cmtt/m/n/12 -0.2598966E+01  -0.1689562E+00  -0.2337807E-02  -0.2485496
+E+01   0.1654694E+01[] 
+ []
+
+
+Overfull \hbox (9.99463pt too wide) in paragraph at lines 610--610
+[]   \OT1/cmtt/m/n/12 0.3883103E-01   0.2523122E+01  -0.1090708E+00  -0.8583873
+E-02   0.1909804E+01[] 
+ []
+
+
+Overfull \hbox (10.30338pt too wide) in paragraph at lines 610--610
+[]   \OT1/cmtt/m/n/12 0.1018732E+00   0.1786691E+01   0.1266274E+01  -0.1242103
+E+01  -0.8934828E+00[] 
+ []
+
+
+Overfull \hbox (10.30338pt too wide) in paragraph at lines 610--610
+[]   \OT1/cmtt/m/n/12 0.3391129E-02   0.5053883E-05  -0.3630294E-03   0.1683734
+E-03  -0.3711497E-05[] 
+ []
+
+
+Overfull \hbox (9.99463pt too wide) in paragraph at lines 610--610
+[]   \OT1/cmtt/m/n/12 0.1950042E-03  -0.2993883E-02  -0.4142712E-05  -0.4566316
+E-04   0.3697710E-04[] 
+ []
+
+
+Overfull \hbox (10.30338pt too wide) in paragraph at lines 610--610
+[]   \OT1/cmtt/m/n/12 0.4438535E-04   0.7573431E-04  -0.3227359E-03  -0.1882671
+E-04   0.1766393E-03[] 
+ []
+
+
+Overfull \hbox (9.99463pt too wide) in paragraph at lines 610--610
+[]   \OT1/cmtt/m/n/12 0.1371910E-01   0.3332208E-01   0.2103093E-03  -0.4587440
+E-02  -0.3262215E-01[] 
+ []
+
+
+Overfull \hbox (10.30338pt too wide) in paragraph at lines 610--610
+[]  \OT1/cmtt/m/n/12 -0.6211021E-03  -0.5506326E-02  -0.1298989E-02  -0.9317258
+E-05  -0.4769846E-03[] 
+ []
+
+[15] [16] [17] [18]
+Package atveryend Info: Empty hook `BeforeClearDocument' on input line 694.
+Package atveryend Info: Empty hook `AfterLastShipout' on input line 694.
  (./manual.aux)
-Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 419.
-Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 419.
+Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 694.
+Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 694.
 Package rerunfilecheck Info: File `manual.out' has not changed.
-(rerunfilecheck)             Checksum: 407523E62CB631502C23B3017FC2481A;831.
+(rerunfilecheck)             Checksum: 3618ECFDCF071442E0A87C7599DA4F3C;897.
 
 
 LaTeX Warning: There were undefined references.
 
-Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 419.
+Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 694.
  ) 
 Here is how much of TeX's memory you used:
- 23493 strings out of 494031
- 429792 string characters out of 6158374
- 645944 words of memory out of 5000000
- 26365 multiletter control sequences out of 15000+600000
- 13245 words of font info for 74 fonts, out of 8000000 for 9000
+ 23534 strings out of 494031
+ 430282 string characters out of 6158374
+ 646944 words of memory out of 5000000
+ 26379 multiletter control sequences out of 15000+600000
+ 13817 words of font info for 82 fonts, out of 8000000 for 9000
  475 hyphenation exceptions out of 8191
- 64i,11n,80p,8845b,473s stack positions out of 5000i,500n,10000p,200000b,80000s
+ 64i,12n,80p,8845b,475s stack positions out of 5000i,500n,10000p,200000b,80000s
 </usr/share/texmf/fonts/type1/public/amsfonts/cm/cmbx12.pfb></usr/share/texmf
 /fonts/type1/public/amsfonts/cm/cmcsc10.pfb></usr/share/texmf/fonts/type1/publi
 c/amsfonts/cm/cmmi12.pfb></usr/share/texmf/fonts/type1/public/amsfonts/cm/cmr12
@@ -1066,10 +1137,10 @@ c/amsfonts/cm/cmmi12.pfb></usr/share/texmf/fonts/type1/public/amsfonts/cm/cmr12
 f/fonts/type1/public/amsfonts/cm/cmssbx10.pfb></usr/share/texmf/fonts/type1/pub
 lic/amsfonts/cm/cmsy10.pfb></usr/share/texmf/fonts/type1/public/amsfonts/cm/cmt
 i12.pfb></usr/share/texmf/fonts/type1/public/amsfonts/cm/cmtt12.pfb>
-Output written on manual.pdf (11 pages, 836941 bytes).
+Output written on manual.pdf (18 pages, 869076 bytes).
 PDF statistics:
- 170 PDF objects out of 1000 (max. 8388607)
- 144 compressed objects within 2 object streams
- 26 named destinations out of 1000 (max. 500000)
- 13434 words of extra memory for PDF output out of 14400 (max. 10000000)
+ 217 PDF objects out of 1000 (max. 8388607)
+ 181 compressed objects within 2 object streams
+ 35 named destinations out of 1000 (max. 500000)
+ 13447 words of extra memory for PDF output out of 14400 (max. 10000000)
 

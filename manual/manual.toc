@@ -11,3 +11,4 @@
 \contentsline {subsection}{\numberline {3.2}evbopt}{10}{subsection.3.2}
 \contentsline {subsubsection}{\numberline {3.2.1}Introduction}{10}{subsubsection.3.2.1}
 \contentsline {subsubsection}{\numberline {3.2.2}dE-EVB}{10}{subsubsection.3.2.2}
+\contentsline {subsubsection}{\numberline {3.2.3}DG-EVB}{12}{subsubsection.3.2.3}

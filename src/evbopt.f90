@@ -522,7 +522,8 @@ if (dg_evb) then
       call upcase (keyword)
       string = record(next:120)
       if (keyword(1:11) .eq. 'DG_EVB { ' .or. keyword(1:11) .eq. 'DG_EVB{ ') then
-         do j=1,nkey-i
+         do j=1,nkey-i+1
+            next=1
             record = keyline(i+j)
             call gettext (record,keyword,next)
             call upcase (keyword)
@@ -541,8 +542,7 @@ if (dg_evb) then
             else if (keyword(1:18) .eq. 'GAUSS_THRESHOLD ') then
                read(record,*) names,g_thres 
             end if
-
-            if (keyword(1:11) .eq. '}') exit
+            if (record .eq. '}') exit
             if (j .eq. nkey-i) then
                write(*,*) "The DG-EVB section has no second delimiter! (})"
                call fatal
@@ -838,14 +838,10 @@ if (qmdffnumber.eq.2) then
      diff_ana=.false.
      lower_bond=1
      upper_bond=30
-     dg_evb_mode=1     
      read_coord=.false.
      num_coord=5
      double_alpha=.false.
-     dg_mat_num=.false.
-     add_alph=0
      more_info=.false.
-     g_thres=1E-10  ! value below it DG-EVB gaussians are neglected
      do i = 1, nkey
          next = 1
          record = keyline(i)

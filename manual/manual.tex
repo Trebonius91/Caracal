@@ -405,16 +405,291 @@ control parameters are listed:
 
 \begin{verbatim}
 
-FFNAME  min1.qmdff  min2.qmdff
- 2EVB       -272.22659664700754     -272.16798367875066
- path_energies ref.dat
- path_structure struc.xyz
- coupling  sd2
+ PES de_evb
+ QMDFFNAMES  min1.qmdff  min2.qmdff
+ ESHIFT    -272.22659664700754     -272.16798367875066
+ energies_ref ref.dat
+ coords_ref struc.xyz
  shift_manual
+ de_evb{
+    coupling sp
+ }
+\end{verbatim}
+
+The first keyword is always needed and specifies the used class of PES functions. Here, we 
+want to use the dE-EVB coupling (\texttt{de\_evb}). Other options (for \textbf{evbopt}) are
+dQ-EVB (\texttt{dq\_evb}) and DG-EVB (\texttt{dg\_evb}), see below.
+
+The keywords \texttt{QMDFFNAMES} and \texttt{ESHIFT} specifiy the properties of the 
+single QMDFFs, both their filenames and the energy shifts. These parameters are written 
+automatically if \textbf{qmdffgen} is executed first (see section \ref{sec:prog_qmdffgen}).
+
+Both the \texttt{ENERGIES\_REF} and \texttt{COORDS\_REF} keywords are needed to provide the 
+needed reference data for the reaction of interest that shall be described with EVB.
+Usually this would be a one-dimensional reaction path, but higher dimensional sampling 
+data could be used as well.
+
+The optimization is invoked by typing:
+
+\begin{verbatim}
+ evbopt.x evbopt.key
+\end{verbatim}
+
+A multi-start local-search Levenberg-Marquardt optimization is executed with the objective 
+to minimize the error sum between the EVB-QMDFF energies and the reference energies listed 
+in \texttt{ref.dat}, an usual output is:
+
+\begin{verbatim}
+ ...
+ Used off-diagonal-Term:
+ a*exp(-b*deltaE^2)+c*deltaE*exp(-d*deltaE^2)   (sp)
+ After Multi-Start-Local-Search step:           1
+ Local optimization finished, new best fitness:   8.3897511547073188E-004
+ After Multi-Start-Local-Search step:          15
+ Local optimization finished, new best fitness:   8.3877256721804922E-004
+ After Multi-Start-Local-Search step:          35
+ Local optimization finished, new best fitness:   8.3632257233213895E-004
+ .. .----. -- -.. --- -. . 
+ Multi start local optimization finished!
+ The best fitness-value is:   8.3632257233213895E-004
+ Look into evbopt.log for further details.
+ ...
+\end{verbatim}
+
+The total fitness is the central indicator of how good the reference reaction path is 
+reproduced with the EVB-QMDFF model, however, in order to gain more detailed knowledge 
+of the quality, one can look at the additional output, namely:
+
+\begin{itemize}
+ \item \texttt{energies.qmdff}: The EVB-QMDFF energies of all reference structures 
+ \item \texttt{single\_qmdff.dat}: The energies of both QMDFFs of all reference structure
+\end{itemize}
+
+Plotting the files together with the reference energies in \texttt{ref.dat} results in the 
+figure shown in fig. \ref{fig:evbopt_de}
+
+\begin{figure}
+          \centering
+          \sffamily
+          \def\svgwidth{\linewidth}
+          \includegraphics[height=8.5cm]{./figures/evbopt_de.pdf}
+          \caption{Reference energies plotted together with QMDFF energies and energies of the 
+             optimized dE-EVB-QMDFF.}
+	  \label{fig:evbopt_de}
+\end{figure}
+
+
+\subsubsection{DG-EVB}
+\textit{Folder}: \texttt{evbopt/DG-EVB/} \newline
+
+The distributed Gaussian (DG-EVB) coupling term enables the inclusion of QM-reference 
+gradients and frequencies into the formulation of the transition region, offering a much 
+better quality than dE-EVB or dQ-EVB.
+
+\textit{The following explanation and the example assumes that an optimized 1D reaction path
+of the reaction of interest is given. In principle, however, arbitrary collections of 
+reference data, e.g. from MD samplings, can be used as well.}
+
+Including gradients and frequencies to the used reference set needs somewhat more 
+preparational work than using only energies of all structures of the reaction path.
+The first question is: how many and which points along the reaction path shall 
+be chosen. In principle, we could simply choose all given structures and calculate 
+gradients and frequencies on it.
+Depending on the resolution of the path, dozens to hundreds of frequency calculations 
+might be needed, which almost always implies heavy computational demands. Further, the separate 
+optimization of coupling basis function widths needs an additional set of energies along 
+the path.
+In this example, the resulting input files are provided, such that this prepatational
+part might be skipped. It serves, however, as a template for how to prepare an
+DG-EVB-QMDFF surface for other reactions of interest,
+
+For the manual preparation, an utility script for the selection and preparation 
+of gradient/frequency reference  is given in the \texttt{scripts} main folder. 
+Copy the script \texttt{dg\_evb\_ref.sh} to the 
+actual folder if you want to redo the reference calculations.
+It requires the reaction path stored in \textit{struc.xyz} and a list of structure numbers 
+on which the reference data shall be calculated: \texttt{struc\_num.txt}.
+A file containing the header of the desired QM input (for Gaussan: \texttt{gauss.com},
+for orca: \texttt{orca.inp}, for CP2K: \texttt{run.inp}) must be provided as well.
+
+For convenience, the folder structure was already prepared for seven reference points 
+distributed along the path such that the transition state and the important transition
+region is covered well. Gaussian is here the chosen QM program, the frequency 
+calculations can be executed for all seven folders. 
+
+After this, the needed reference input file \texttt{dg\_ref.dat} can be generated 
+by executing the program \texttt{gen\_dg\_evb}. 
+
+
+
+
+The main input file for EVB optimizations is \texttt{evbopt.key}. It has the following 
+entries:
+
+\begin{verbatim}
+ PES dg_evb
+QMDFFNAMES  min1.qmdff  min2.qmdff
+ESHIFT  -132.07243067568406       -132.09078533339240
+energies_ref ref.dat
+coords_ref struc.xyz
+shift_manual
+
+dg_evb{
+   mode 2
+   points 7
+   point_ref dg_ref.dat
+   read_coord
+}
+\end{verbatim}
+
+After specification of a DG-EVB potential energy surfaces, the information concerning the 
+single QMDFFs and the used reference data for optimization is listed.
+All settings concerning the DG-EVB coupling term in particular are listed inside the 
+\texttt{dg\_evb} block. They have the following meaning:
+
+\begin{itemize}
+ \item \texttt{mode}: Which type of DG-EVB function built upon which kind of ererence 
+    shall be used. \texttt{1}: only energies, \texttt{2}: energies and gradients, \texttt{3}
+    energies, gradients and Hessians.
+ \item \texttt{points}: Number of DG-EVB reference points on which the energies, gradients 
+    and Hessians were calculated.
+ \item \texttt{point\_ref}: File in which the reference information for the DG-EVB points 
+    is stored.
+ \item \texttt{read\_coord}: If given, the defined internal coordinates are read in from the 
+    file \texttt{coord\_def.inp}, else, they are determined automatically.
+\end{itemize}
+
+Altogether, 4 or 5 different input files are needed to perform the optimization of a DG-EVB 
+coupling term (named as above):
+
+\begin{itemize}
+ \item \texttt{evbopt.key}: Main input file 
+ \item \texttt{ref.dat}: File with energies of the reaction path for Gaussian exponent 
+     optimization.
+ \item \texttt{struc.xyz}: File with structures of the reaction path.
+ \item \texttt{dg\_ref.dat}: Reference information for the DG-EVB points.
+ \item \texttt{coord\_def.inp}: Definition of internal coordinates for DG-EVB coupling (optional).
+\end{itemize}
+
+The \texttt{dg\_ref.dat} file needs to have a predefined formate, which is generated by the 
+\texttt{gen\_dg\_ref} program, given in the scripts folder. 
+Essentially, energies, geometries, gradients and Hessians of all reference points are there 
+listed in order, here for seven reference points along the path:
+
+\begin{verbatim}
+NPOINTS 7
+
+NATOM  6
+
+*POINT 1
+
+ENERGY    -132.073392
+
+GEOMETRY
+  -0.2598966E+01  -0.1689562E+00  -0.2337807E-02  -0.2485496E+01   0.1654694E+01
+   0.3883103E-01   0.2523122E+01  -0.1090708E+00  -0.8583873E-02   0.1909804E+01
+   0.1018732E+00   0.1786691E+01   0.1266274E+01  -0.1242103E+01  -0.8934828E+00
+   0.2439287E+01   0.1600681E+01  -0.8532495E+00
+END
+
+GRADIENT
+   0.3391129E-02   0.5053883E-05  -0.3630294E-03   0.1683734E-03  -0.3711497E-05
+   0.1950042E-03  -0.2993883E-02  -0.4142712E-05  -0.4566316E-04   0.3697710E-04
+   0.4438535E-04   0.7573431E-04  -0.3227359E-03  -0.1882671E-04   0.1766393E-03
+  -0.2798607E-03  -0.2275832E-04  -0.3868530E-04
+END
+
+HESSIAN
+   0.1371910E-01   0.3332208E-01   0.2103093E-03  -0.4587440E-02  -0.3262215E-01
+  -0.6211021E-03  -0.5506326E-02  -0.1298989E-02  -0.9317258E-05  -0.4769846E-03
+....
+END
+
+*POINT 2
+...
+\end{verbatim}
+
+Depending on the chosen DG-EVB coupling mode, energies (and geometries) might be sufficient 
+as well.
+
+If internal coordinates for the coupling are given in the \texttt{coord\_def.inp} file, a 
+predefined formate must be obeyed as well:
+One coordinate per line, each defined by the involved atom indices: Two for a bond,
+three for an angle, and four for dihedral/out of plane. For the latter one, a fifth 
+number indicating if dihedral or out of plane must be added \textit{after} the atom 
+indices, such that each dihedral/out of plane line consists of five numbers.
+ 
+In the example system, the internal coordinate set defined in \texttt{coord\_def.inp} 
+consists of four bonds:
+
+\begin{verbatim}
+ 1 5
+ 3 5
+ 1 3
+ 1 2
+\end{verbatim}
+
+The choice of internal coupling coordinates is not exactly black-box. The usual rule is that coordinates 
+involved in the reaction of interest are the most important, but the overall quality might 
+significantly raise or fall if another assumingly unimportant coordinate is added or removed.
+In the \textbf{evb\_kt\_driver} program explained below a more systematic and quite well working 
+approach of finding 
+the internal coordinates for the there used TREQ PES is implemented.
+
+The actual optimization of the DG-EVB coupling term is very simple: Just type 
+\begin{verbatim}
+ evbopt.x evbopt.key
+\end{verbatim}
+
+and the MSLS-LM algorithm is executed to optimize the parameter. This will take some seconds 
+to minutes.
+
+The program output should look something like this:
+
+\begin{verbatim}
+ ...
+ Used DG-EVB mode: 3 - energies, gradients and hessians (E+G+H)
+ The dimension of the linear equation F=DB is          105
+ ##################  QMDFFs!
+  . ...- -... --.- -- -.. ..-. ..-.
+ dg_evb-parameters are optimized with Multi Start Local Search.
+ We will start         100 single optimization runs.
+ The coefficient matrix D for DG-EVB will be calculated analytically!
+ Multi Start Local Search algorithm:
+ ---------------------------------------------------
+ After Multi-Start-Local-Search step:           1
+ Local optimization not converged, new best fitness:   1.5411906000070418E-006
+ After Multi-Start-Local-Search step:           2
+ Local optimization finished, new best fitness:   1.5075939192383248E-006
+ After Multi-Start-Local-Search step:          10
+ Local optimization finished, new best fitness:   1.3147886030294805E-006
+ After Multi-Start-Local-Search step:          11
+ Local optimization finished, new best fitness:   1.2190281156368069E-006
+ After Multi-Start-Local-Search step:          16
+ Local optimization finished, new best fitness:   1.1965456308064260E-006
+ After Multi-Start-Local-Search step:          30
+ Local optimization finished, new best fitness:   1.1388462232211951E-006
+ After Multi-Start-Local-Search step:          78
+ Local optimization finished, new best fitness:   1.1059136690605482E-006
+ .. .----. -- -.. --- -. . 
+ Multi start local optimization finished!
+ The best fitness-value is:   1.1059136690605482E-006
+ Look into evbopt.log for further details.
+ ...
 \end{verbatim}
 
 
+The total fitness is the central indicator of how good the reference reaction path is 
+reproduced with the EVB-QMDFF model, however, in order to gain more detailed knowledge 
+of the quality, one can look at the additional output, namely:
 
+\begin{itemize}
+ \item \texttt{energies.qmdff}: The EVB-QMDFF energies of all reference structures 
+ \item \texttt{single\_qmdff.dat}: The energies of both QMDFFs of all reference structure
+\end{itemize}
+
+Plotting the files together with the reference energies in \texttt{ref.dat} results in the 
+figure shown in fig. \ref{fig:evbopt_de}.
 
 \end{document}
 
