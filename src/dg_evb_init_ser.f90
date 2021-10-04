@@ -308,7 +308,7 @@ num_step=0.00001d0
 glob_chi=0
 msls_step=1
 write(*,*)  " . ...- -... --.- -- -.. ..-. ..-."
-write(*,*) "dg_evb-parameters are optimized with Multi Start Local Search."
+write(*,*) "DG-EVB-parameters are optimized with Multi Start Local Search."
 write(*,*) "We will start",maxstart,"single optimization runs."
 
 write(15,*) "--- DG-EVB COUPLING PARAMETERIZATION ---"

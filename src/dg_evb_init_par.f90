@@ -325,7 +325,7 @@ count=1
 !
 if (rank .eq. 0) then
    write(*,*)  " . ...- -... --.- -- -.. ..-. ..-."
-   write(*,*) "dg_evb-parameters are optimized with Multi Start Local Search."
+   write(*,*) "DG-EVB-parameters are optimized with Multi Start Local Search."
    write(*,*) "We will start",maxstart,"single optimization runs."
  
    write(15,*) "--- DG-EVB COUPLING PARAMETERIZATION ---"
