@@ -166,8 +166,8 @@ real(kind=8)::g_thres
 ! if for DG-EVB mode 3 two alphas per reference point shall be used 
 logical::double_alpha
 integer::add_alph
-! for the new RP-EVB coupling method
-logical::rp_evb
+! for the TREQ / RP-EVB coupling method
+logical::treq
 integer::rp_evb_points  ! number of reference points with energies, gradients and hessians
 integer::rp_irc_points  ! number of structures with energies along the IRC
 integer::rp_spl2_dim   ! total number of reference informations per gradient/hessian point
@@ -183,8 +183,8 @@ real(kind=8),allocatable::rp_spl_d22(:,:) ! same as above, but for gradients/hes
 real(kind=8),allocatable::rp_spl_s2(:) ! same as above, but for gradients/hessians
 real(kind=8),allocatable::rp_point_s(:) ! s values of the points with gradients and hessians
 real(kind=8),allocatable::rp_point_v12(:)  ! coupling strengths on these points
-real(kind=8),dimension(:,:),allocatable::dv12 ! the coupling gradients at the rp_evb points
-real(kind=8),dimension(:,:,:),allocatable::d2v12  ! the coupling hessians at the rp_evb points
+real(kind=8),dimension(:,:),allocatable::dv12 ! the coupling gradients at the TREQ points
+real(kind=8),dimension(:,:,:),allocatable::d2v12  ! the coupling hessians at the TREQ points
 integer::qmdff_order    ! if QMDFF1=educt, QMDFF2=product or the other way
 real(kind=8)::s_transfer  ! the actual value of the reaction coordinate s
 real(kind=8)::s_ts    ! position of the TS along the path (in terms of the s-parameter)
@@ -279,6 +279,7 @@ integer::num_fixed
 ! For constant pressure npt simulations with a barostat
 logical::npt
 real(kind=8)::pressure
+logical::verbose  ! activates verbose output of several programs
 
 !   If the starting velocity shall be read in
 logical::read_vel

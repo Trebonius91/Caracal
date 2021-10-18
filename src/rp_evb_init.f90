@@ -119,7 +119,7 @@ allocate(allf2_hess(nat6,nat6,rp_evb_points))
 !    derivatives
 !
 allocate(v12(points))   ! for all given structures on the path
-allocate(dv12(rp_evb_points,nat6))   ! only for the rp_evb reference points
+allocate(dv12(rp_evb_points,nat6))   ! only for the treq reference points
 allocate(d2v12(rp_evb_points,nat6,nat6))
 !
 !    Arrays for the cubic spline interpolation of the 1D reaction path

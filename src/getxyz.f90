@@ -32,7 +32,7 @@ do i = 1, nkey
    call gettext (record,keyword,next)
    call upcase (keyword)
    string = record(next:120)
-   if (keyword(1:11) .eq. 'XYZFILE ') then
+   if (keyword(1:11) .eq. 'XYZSTART ') then
       call getword (record,xyzfile,next)
       call basefile (xyzfile)
       call suffix (xyzfile,'xyz','old')

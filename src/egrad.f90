@@ -114,7 +114,7 @@ do i = 1, nkey
    call gettext (record,keyword,next)
    call upcase (keyword)
    string = record(next:120)
-   if (keyword(1:16) .eq. 'PATH_STRUCTURE ') then
+   if (keyword(1:16) .eq. 'COORDS_FILE ') then
       read(record,*) names,filegeo
       inquire(file=filegeo,exist=path_struc)
    end if
@@ -215,8 +215,8 @@ end if
 !
 ref_count=0
 open(unit=166,file=filegeo,status='old')
-open(unit=44,file="energies.qmdff",status='unknown')
-open(unit=45,file="gradients.qmdff",status='unknown')
+open(unit=44,file="energies.dat",status='unknown')
+open(unit=45,file="gradients.dat",status='unknown')
 write(*,*)  " . ...- -... --.- -- -.. ..-. ..-."
 write(*,*) "Calculating energy and gradient ..."
 allocate(g_evb(3,natoms))
@@ -227,7 +227,7 @@ call cpu_time(time1)  ! measure the needed time for comparization
 !
 open (unit=99,file="single_qmdff.dat",status='unknown')  
 open(unit=172,file="grad_square.dat",status="unknown")  ! TEST for gradients
-if (rp_evb) open (unit=48,file="rp_evb.out",status="unknown")
+if (treq) open (unit=48,file="treq.out",status="unknown")
 if (int_grad_plot) open (unit=192,file="int_grad.out",status="unknown")
 do
    ref_count=ref_count+1
@@ -268,7 +268,7 @@ do
 !
 !     Calculate and write the energies of the single qmdffs!
 !
-   if ((.not. rp_evb) .and. (.not. pot_ana) .and. (nqmdff .gt. 1) ) then
+   if ((.not. treq) .and. (.not. pot_ana) .and. (nqmdff .gt. 1) ) then
       call eqmdff(coord,e_qmdff1,e_qmdff2)
       write(99,*) e_qmdff1,e_qmdff2
    end if
@@ -284,7 +284,7 @@ if (print_wilson) then
    if (wilson_mode .eq. 2) close(216)
 end if
 
-if (rp_evb) close(48)
+if (treq) close(48)
 close(172)
 !
 !    For debugging, print the QMDFF components to two files (one for each QMDFF)
@@ -294,7 +294,7 @@ close(192)
 close(44)
 close(45)
 close(99)
-if (rp_evb) close(48)
+if (treq) close(48)
 if (int_grad_plot) close(192)
 if (do_debug) then
 !
@@ -358,7 +358,7 @@ duration=time2-time1
 
 write(*,*)  ".. .----. -- -.. --- -. . "
 write(*,*) "Calculation successfully finished!"
-write(*,*) "Energies: energies.qmdff, Gradients: gradients.qmdff"
+write(*,*) "Energies: energies.dat, Gradients: gradients.dat"
 write(*,*) 
 write(*,'(A, F10.3, A)') " The calculation needed a time of ",duration," seconds."
 !

@@ -76,8 +76,8 @@ end do
 !   For usage of the RP-EVB coupling term: correct the cartesian hessians for
 !   imaginary frequencies; remove them
 !
-!write(*,*) rp_evb
-if (rp_evb) then
+!write(*,*) treq
+if (treq) then
 !   call project_hess(hess_xyz)
 end if
 !
@@ -88,7 +88,7 @@ call hess2int(geo_xyz1,geo_int,hess_int,hess_xyz,grad_int)
 !   For usage of the RP-EVB coupling term: correct the internal hessians for
 !   imaginary frequencies; remove them
 !
-if (rp_evb) then
+if (treq) then
    call project_hess(hess_int)
 end if
 

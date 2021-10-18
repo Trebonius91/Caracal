@@ -75,7 +75,6 @@ integer::iout
 !
 integer::digits,iprint
 integer::iwrite,isend
-logical::silent,verbose
 logical::debug,holdup,abort
 !
 !     from tinker module "argue"

@@ -266,7 +266,7 @@ do i = 1, nkey
    call gettext (record,keyword,next)
    call upcase (keyword)
    string = record(next:120)
-   if (keyword(1:11) .eq. 'XYZFILE ') then
+   if (keyword(1:11) .eq. 'XYZSTART ') then
       read(record,*) names,xyzfile
    end if
 end do

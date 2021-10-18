@@ -65,7 +65,7 @@ real(kind=8),dimension(nat6)::q_qts
 real(kind=8),dimension(nat6)::int_path
 real(kind=8)::V12,root,d_p,expo,V12_0
 integer::dg_evb_mode,mat_size 
-!     For rp_evb/RP-EVB
+!     For TREQ
 real(kind=8)::denom,diff,eterm,num,s_act,z_act
 real(kind=8)::zeta   ! the damping function
 real(kind=8),dimension(nat6+2)::path_s   ! interpolated strcutures/energies along the path
@@ -163,7 +163,7 @@ if (pot_ana) then
 !   end if
 !
 
-pot_geo(:,:,1)=xyz2
+   pot_geo(:,:,1)=xyz2
 
 !
 !     Call one of the different potential energy surfaces
@@ -207,6 +207,7 @@ if (water_spc) then
 !
 !     Calculate the numerical gradient for test
 !
+      
       step=num_grad_step
       do i=1,natoms
          do j=1,3
@@ -228,9 +229,10 @@ if (water_spc) then
             g_evb(j,i)=g_evb(j,i)
          end do
       end do
+   else 
+      g_evb=pot_grad(:,:,1)
    end if
-
-!   g_evb=pot_grad(:,:,1)
+   return
 end if
 !
 !     Invoke orca if ab-initio MD is to be used
@@ -252,7 +254,7 @@ delta_Q=0 !if no dQ couplingterm is used
 !     Calculate the energies and gradients of the first QMDFF
 !
 n2=natoms
-if (.not. rp_evb) then
+if (.not. treq) then
    call ff_eg(n_one,at,xyz2,e,g_one)
    if (energysplit) then
       e_cov_local=e
@@ -277,7 +279,7 @@ if (nqmdff.eq.1) then
 !     In case of evb-qmdff, energy and gradients of the second QMDFF are determined
 !
 else if (nqmdff.eq.2) then
-   if (.not. rp_evb) then
+   if (.not. treq) then
       call ff_eg_two(n_one,at,xyz2,e_two,g_two)
       call ff_nonb_two(n_one,at,xyz2,q_two,r0ab,zab,r094_mod,sr42,&
                  &c6xy_two,e_two,g_two)
@@ -454,7 +456,7 @@ else if (nqmdff.eq.2) then
 !   The Reaction-Path(RP)-EVB coupling term
 !   corrected with pure energy interpolation in the TS region
 !
-   if (rp_evb) then
+   if (treq) then
    s_act=0.d0
 z_act=0.d0
 !

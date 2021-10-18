@@ -58,7 +58,7 @@ periodic=.false.
 !
 !     read number of atoms, allocate and check that all qmdffs have the 
 !     same number of atoms
-! 
+!
 call rdsolvff0(n_one,fffilen1)
 if (qmdffnumber.eq.2 .or. qmdffnumber.eq.3) then
    call rdsolvff0(n_two,fffilen2)      

@@ -239,7 +239,7 @@ call read_evb(rank)
 !     Specify them automatically and the full set of 3N-6 coordinates
 !     unless read in of internal coordinates is ordered explicitly
 !
-if (.not. dg_evb .and. .not. rp_evb) then
+if (.not. dg_evb .and. .not. treq) then
    read_coord=.false.
    do i = 1, nkey
       next = 1

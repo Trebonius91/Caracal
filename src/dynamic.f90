@@ -62,6 +62,8 @@ integer::afm_avg
 integer::afm_segment
 integer::afm_segment_avg
 logical::afm_second
+character(len=120)::xyzfile
+
 real(kind=8),dimension(:,:,:),allocatable::derivs  ! the derivatives of the potential 
                                              !   energy for all beads at once
 real(kind=8)::k_B ! inverse temperature and boltzmann constant
@@ -71,21 +73,23 @@ real(kind=8)::dt_info ! time in ps for information
 real(kind=8)::num_measure  ! how many times the temperature is measured..
 integer::nbeads_store   ! the stored number of beads (RPMD)
 character(len=20) keyword
-character(len=60)::names,a80
+character(len=80)::names,a80,coul_method
 character(len=120) record
 character(len=50)::fix_file ! file with numbers of fixed atoms
 character(len=120) string
 character(len=1)::qmdffnum
 character(len=40)::commarg ! string for command line argument
 integer::istat,readstat
+character(len=10)::ensemble ! which thermodynamic ensemble is used
 ! For box simulations with periodic boundary conditions
+logical::nvt  ! activates the NVT ensemble
 real(kind=8)::coul_cut,vdw_cut
 logical::periodic,ewald,ewald_brute,zahn
 real(kind=8)::ewald_accuracy
 real(kind=8)::boxlen_x,boxlen_y,boxlen_z
 real(kind=8)::e_pot_avg,e_kin_avg,e_tot_avg  ! averages for energies
 real(kind=8)::e_cov_avg,e_noncov_avg 
-character(len=50)::baro_name ! which barostat shall be used
+character(len=50)::baro_name,coul_name ! which barostat shall be used
 !     periodic box size
 real(kind=8)::xmin,ymin,zmin,xmax,ymax,zmax
 !     for read in of local RPMD activation
@@ -148,27 +152,27 @@ call getkey(rank)
 !      Option to change the atomic mass of one element in the system
 !
 change_mass=.false.
-do i = 1, nkey
-   next = 1
-   record = keyline(i)
-   call gettext (record,keyword,next)
-   call upcase (keyword)
-   string = record(next:120)
-   if (keyword(1:20) .eq. 'CHANGE_MASS ') then
-       read(record,*) names,elem_mass,newmass
-       change_mass=.true.
-   end if
-end do
+!do i = 1, nkey
+!   next = 1
+!   record = keyline(i)
+!   call gettext (record,keyword,next)
+!   call upcase (keyword)
+!   string = record(next:120)
+!   if (keyword(1:20) .eq. 'CHANGE_MASS ') then
+!       read(record,*) names,elem_mass,newmass
+!       change_mass=.true.
+!   end if
+!end do
 
-if (change_mass) then
-   write(*,*) "The CHANGE_MASS option was activated!"
-   write(*,*) "All ", elem_mass," atoms will be assinged a mass of ",newmass, " a.u."
-end if
+!if (change_mass) then
+!   write(*,*) "The CHANGE_MASS option was activated!"
+!   write(*,*) "All ", elem_mass," atoms will be assinged a mass of ",newmass, " a.u."
+!end if
 
 
 
 !
-!     Read in the start structure for dynamics
+!     Read in the start structure for dynamics (keyword: XYZSTART)
 !
 call getxyz
 !
@@ -187,472 +191,376 @@ allocate(centroid(3,natoms))
 
 !-----------------------Dynamic-inputparameters--------------------------
 !
-!     initialize the simulation length as number of time steps
 !
-query= .true.
-do i = 1, nkey
-    next = 1
-    record = keyline(i)
-    call gettext (record,keyword,next)
-    call upcase (keyword)
-    string = record(next:120)
-    if (keyword(1:11) .eq. 'STEPS ') then
-       read(record,*) names,nstep
-       query = .false.
-    end if
-end do
-call nextarg (string,exist)
-if (exist) then
-   read (string,*,err=10,end=10)  nstep
-   query = .false.
-end if
-10 continue
-
-if (query) then
-   write (iout,'(/," Enter the Number of Dynamics Steps to be &
-       &      Taken :  ",$)')
-   read (input,'(i10)')  nstep
-end if
-91 continue
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!     Read the general dynamic input parameters   !!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !
-!     set the time between trajectory snapshot coordinate dumps
+!   the default values:
 !
-dtdump = -1.0d0
-do i = 1, nkey
-    next = 1
-    record = keyline(i)
-    call gettext (record,keyword,next)
-    call upcase (keyword)
-    string = record(next:120)
-    if (keyword(1:11) .eq. 'TDUMP ') then
-       read(record,*) names,dtdump
-       query = .false.
-       goto 92
-    end if
-end do
-
-call nextarg (string,exist)
-if (exist)  read (string,*,err=80,end=80)  dtdump
-80 continue
-do while (dtdump .lt. 0.0d0)
-   write (iout,'(/," Enter Time between xyz Structure-Dumps in Femtoseconds &
-              [10] :  ",$)')
-   read (input,'(f20.0)',err=110)  dtdump
-   if (dtdump .le. 0.0d0)  dtdump = 10d0
-   110    continue
-end do
-92 continue
+nbeads=1  
+ensemble="NVE"
+nstep=0
+dt=1.d0
+dtdump=1.d0
 !
-!     Read in other dynamics input parameters 
-!     get the length of the dynamics time step in picoseconds
+!    Read in the commands from the keyfile 
 !
-dt = -1.0d0
-kelvin=0
-mode=-1
-isothermal = .true.
-do i = 1, nkey
-    next = 1
-    record = keyline(i)
-    call gettext (record,keyword,next)
-    call upcase (keyword)
-    string = record(next:120)
-    if (keyword(1:11) .eq. 'DELTAT ') then
-       read(record,*) names,dt
-    else if (keyword(1:11) .eq. 'TEMP ') then
-         read(record,*) names,kelvin
-    else if (keyword(1:20) .eq. 'THERMOSTAT') then
-         read(record,*) names,thermo
-    end if
-end do
-iwrite = nint(dtdump/(dt))
-
-!
-!     define the beta parameter for thermodynamics
-!
-beta=1.d0/(kelvin*k_B)
-call upcase (thermo)
-if (rank .eq. 0) then
-   if (dt .eq. -1.0d0) then
-      write(*,*) "No length of time step defined! Add the keyword DELTAT!"
-      call fatal
-   else if (kelvin .le. 0.0d0) then
-      write(*,*) "No temperature defined! Add the keyword TEMP!"
-      call fatal
-   else if (thermo .ne. "ANDERSEN" .and. thermo .ne. "NOSE-HOOVER") then
-      write(*,*) "No availiable thermostat was chosen! Only the Andersen"
-      write(*,*) "thermostat and the Nose-Hoov(e-Chain) thermostats are availiable at the moment." 
-      write(*,*) "Add the keyword THERMOSTAT!"
-      call fatal
-   end if
-end if
-
-
-if (thermo .eq. "ANDERSEN") then
-   thermostat=0
-   write(*,*) "The simple stochastic Andersen thermostat will be used!"
-   andersen_time=7.d0  !
-   andersen_step=int(andersen_time/dt)
-   do i = 1, nkey
-      next = 1
-      record = keyline(i)
-      call gettext (record,keyword,next)
-      call upcase (keyword)
-      string = record(next:120)
-      if (keyword(1:16) .eq. 'ANDERSEN_STEP ') then
-         read(record,*) names,andersen_step
-         exit
-      end if
-   end do
-   write(*,'(a,i5,a)') " The velocity reset will be done every ",andersen_step," MD steps."
-else if (thermo .eq. "NOSE-HOOVER") then
-   thermostat=2
-   nhc_length=4   ! default value for length of Nose-Hoover chain
-   nose_q=1.d0  ! default value for Nose damp factor
-   do i = 1, nkey
-      next = 1
-      record = keyline(i)
-      call gettext (record,keyword,next)
-      call upcase (keyword)
-      string = record(next:120)
-      if (keyword(1:11) .eq. 'NOSE_DAMP ') then
-         read(record,*) names,nose_q
-  !    else if (keyword(1:11) .eq. 'NHC_LENGTH ') then
-  !       read(record,*) names,nhc_length
-      end if
-   end do
-   write(*,*) "The deterministic Nose-Hoover chain thermostat will be used!"
-   write(*,'(a,i4)') " The length of the thermostat chain will be ",nhc_length
-   write(*,'(a,f14.7,a)') " The friction coefficient Q will be ",nose_q," times the MD timestep."
-   nose_q=nose_q*dt/2.41888428E-2    ! set Nose-Hoover friction decay rate as mulitple of timestep
-end if
-!
-!     If the system shall be calculated periodic in a box with length L
-!
-periodic=.false.
-boxlen_x=0.d0
-boxlen_y=0.d0
-boxlen_z=0.d0
-do i = 1, nkey
-    next = 1
-    record = keyline(i)
-    call gettext (record,keyword,next)
-    call upcase (keyword)
-    string = record(next:120)
-    if (keyword(1:11) .eq. 'PERIODIC ') then
-       read(record,*,iostat=readstat) names,boxlen_x,boxlen_y,boxlen_z 
-       periodic=.true.
-       write(*,*) "The keyword PERIODIC was found, therfore, the system will be simulated"
-       write(*,'(a,f16.8,a,f16.8,a,f16.8,a)') " in a box of dimensions",boxlen_x,"x", &
-               & boxlen_y,"x",boxlen_z," Angstroms."
-       exit
-    end if
-end do
-!
-!    Abort if the box lengths in x,y or z are too small or not set at all
-!
-if (periodic) then
-   if (boxlen_x .lt. 3d0) then
-      write(*,*) "The box dimension in x is too small! Please check the PERIODIC keyword!"
-      call fatal
-   end if
-   if (boxlen_y .lt. 3d0) then
-      write(*,*) "The box dimension in y is too small! Please check the PERIODIC keyword!"
-      call fatal
-   end if
-   if (boxlen_z .lt. 3d0) then
-      write(*,*) "The box dimension in z is too small! Please check the PERIODIC keyword!"
-      call fatal
-   end if
-end if
-!
-!     If an npt-ensemble/ barostat imposing the desired pressure value shall be used
-!
-npt=.false.
-pressure=0.d0
-do i = 1, nkey
-    next = 1
-    record = keyline(i)
-    call gettext (record,keyword,next)
-    call upcase (keyword)
-    string = record(next:120)
-    if (keyword(1:11) .eq. 'NPT ') then
-       read(record,*) names,pressure
-       npt=.true.
-       write(*,*) "The NPT ensemble with constant pressure will be simulated."
-       write(*,'(a,f14.6,a)') "The pressure will be",pressure," atmospheres"
-       exit
-    end if
-end do
-!
-!    If the NPT ensemble was chosen, read in the barostat choice! (default: Berendsen)
-!
-barostat=0
-if (npt) then
-   barostat=1
-   do i = 1, nkey
-       next = 1
-       record = keyline(i)
-       call gettext (record,keyword,next)
-       call upcase (keyword)
-       string = record(next:120)
-       if (keyword(1:11) .eq. 'BAROSTAT ') then
-          read(record,*) names,baro_name
-          call upcase(baro_name)
-          if (baro_name .eq. "BERENDSEN") then
-             barostat=1
-          else if (baro_name .eq. "NOSE-HOOVER") then
-             barostat=2
-          else 
-             write(*,*) "No valid barostat chosen! BERENDSEN and  & 
-                            & NOSE-HOOVER are available!"
-          end if
-          exit
-       end if
-   end do
-   if (barostat .eq. 1) then
-      write(*,*) "The Berendsen barostat will be used!"
-   else if (barostat .eq. 2) then
-      write(*,*) "The Nose-Hoover chain barostat will be used!"
-   end if
-end if
-
-!
-!     For the Nose-Hoover barostat: read in its damping factor
-!
-if (npt) then
-   nose_tau=100.d0  ! default value for Nose damp factor
-   do i = 1, nkey
-      next = 1
-      record = keyline(i)
-      call gettext (record,keyword,next)
-      call upcase (keyword)
-      string = record(next:120)
-      if (keyword(1:11) .eq. 'BARO_DAMP ') then
-         read(record,*) names,nose_tau
-      end if
-   end do
-   write(*,'(a,f14.7,a)') " The barostat damping tau will ",nose_tau," times the MD timestep."
-   nose_q=nose_q*dt/2.41888428E-2    ! set Nose-Hoover friction decay rate as mulitple of timestep
-end if
-
-!
-!     If the system shall be calculated within a box with hard walls (nonperiodic)
-!
-box_walls=.false.
-do i = 1, nkey
-    next = 1
-    record = keyline(i)
-    call gettext (record,keyword,next)
-    call upcase (keyword)
-    string = record(next:120)
-    if (keyword(1:11) .eq. 'BOX_WALLS ') then
-       read(record,*) names,boxlen_x,boxlen_y,boxlen_z
-       box_walls=.true.
-       write(*,*) "The keyword BOX_WALLS was found, therfore, the system will be simulated"
-       write(*,'(a,f16.8,a,f16.8,a,f16.8,a)') " in a box of dimensions ",boxlen_x,"x",boxlen_y,"x", & 
-                 & boxlen_z," Angstroms."
-       write(*,*) "No periodicity will be applied, instead, the atoms will be reflected" 
-       write(*,*) "at the box borders."
-       exit
-    end if
-end do
-!
-!    Abort if the box lengths in x,y or z are too small or not set at all
-!
-if (box_walls) then
-   if (boxlen_x .lt. 3d0) then
-      write(*,*) "The box dimension in x is too small! Please check the PERIODIC keyword!"
-      call fatal
-   end if
-   if (boxlen_y .lt. 3d0) then
-      write(*,*) "The box dimension in y is too small! Please check the PERIODIC keyword!"
-      call fatal
-   end if
-   if (boxlen_z .lt. 3d0) then
-      write(*,*) "The box dimension in z is too small! Please check the PERIODIC keyword!"
-      call fatal
-   end if
-end if
-
-
-!
-!     If a periodic calculation is done, look, which type of handling of Coulomb
-!     interations shall be used
-!
-ewald=.false.
-if (periodic) then
-   ewald_accuracy=1E-6
-   do i = 1, nkey
-      next = 1
-      record = keyline(i)
-      call gettext (record,keyword,next)
-      call upcase (keyword)
-      string = record(next:120)
-      if (keyword(1:11) .eq. 'COULOMB ') then
-         read(record,*) names,a80
-         call upcase(a80)
-         if (a80 .eq. "PPPME") then
-            ewald=.true.
-            write(*,*) "The Particle Particle Particle Mesh Ewald (PPPME) method"
-            write(*,*) " will be used for the handling of Coulomb interactions."
-            write(*,*) "Please choose another method, the implementation is not complete!"
-            call fatal
-         end if
-         if (a80 .eq. 'ZAHN ') then
-            zahn=.true.
-            write(*,*) "The modified cutoff method for liquids as introduced by Zahn"
-            write(*,*) " will be used for the handling of Coulomb interactions."
-         end if
-         exit
-      end if
-   end do
-end if
-!
-!     If a periodic calculation without Ewald is ordered, set the Coulomb cutoff
-!     to a certain value, if desired. Else, half the box length is used.
-!
-coul_cut=0.d0
-if ((periodic) .and. (.not. ewald)) then
-   do i = 1, nkey
-      next = 1
-      record = keyline(i)
-      call gettext (record,keyword,next)
-      call upcase (keyword)
-      string = record(next:120)
-      if (keyword(1:11) .eq. 'COUL_CUTOFF ') then
-         read(record,*) names,coul_cut
-         write(*,*) "You ordered that the Coulomb interactions shall be cut off"   
-         write(*,'(a,f15.8,a)') "  at ",coul_cut," Angstroms."
-         exit
-      end if
-   end do
-end if
-if (periodic .and. (.not. ewald)) then
-   write(*,*) "NOTE: you have ordered a periodic calculation without Ewald summation,"
-   write(*,*) " therefore the Coulomb cutoff will be smoothed by a switching function"
-   write(*,*) " in order to avoid discontinuities."
-end if
-!    
-!     If desired, set a cutoff value for dispersion interactions
-!     Else, 10 Angstroms are used.
-!
-vdw_cut=10.d0
 do i = 1, nkey
    next = 1
    record = keyline(i)
    call gettext (record,keyword,next)
    call upcase (keyword)
    string = record(next:120)
-   if (keyword(1:11) .eq. 'VDW_CUTOFF ') then
-      read(record,*) names,vdw_cut
-      write(*,*) "You ordered that the dispersion interactions shall be cut off"
-      write(*,'(a,f15.8,a)') "  at ",coul_cut," Angstroms."
-      exit
+!    Name of xyz input file (for information) 
+   if (keyword(1:11) .eq. 'XYZSTART ') then
+      read(record,*) names,xyzfile
+!    Number of RPMD beads
+   else if (keyword(1:20) .eq. 'BEAD_NUMBER ') then
+      read(record,*) names,nbeads
+!    Which thermodynamic ensemble is used
+   else if (keyword(1:13) .eq. 'ENSEMBLE ') then
+      read(record,*) names,ensemble
+!    How many MD steps are simulated 
+   else if (keyword(1:11) .eq. 'STEPS ') then
+      read(record,*) names,nstep
+!    Time step of the Verlet algorithm
+   else if (keyword(1:11) .eq. 'DELTAT ') then
+      read(record,*) names,dt
+!    Time between two xyz trajectory dumps
+   else if (keyword(1:11) .eq. 'TDUMP ') then
+      read(record,*) names,dtdump
    end if
 end do
+!
+!     Check the the read in settings 
+!
+nvt=.false.
+npt=.false.
+if (nbeads .lt. 1) then
+   write(*,*) "The number of RPMD beads must be positive!"
+   call fatal
+end if
+call upcase(ensemble)
+if (ensemble .eq. "NVT") then
+   nvt=.true.
+else if (ensemble .eq. "NPT") then
+   npt=.true.
+else 
+   write(*,*) "No valid thermodynamic ensemble given! Choose either"
+   write(*,*) " NVT or NPT."
+   call fatal
+end if
+if (nstep .lt. 1) then
+   write(*,*) "The number of MD timesteps must be greater than zero!"
+   call fatal
+end if
+if (dt .lt. 1D-5) then
+   write(*,*) "The MD timestep is too small to be useful!"
+   call fatal
+end if
 
 !
-!     If a periodic calculation is ordered, look if the Smooth particle mesh Ewald 
-!     method shall be compared with the full Ewald sum for benchmark
+!    The write frequency
 !
-ewald_brute=.false.
-if (periodic) then
+iwrite = nint(dtdump/(dt))
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!     Read the parameter for the NVT ensemble     !!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
+if (nvt) then
+!
+!    The default values:
+!
+   kelvin=0
+   thermo="none"
+   periodic=.false.
+   box_walls=.false.
+   boxlen_x=0.d0
+   boxlen_y=0.d0
+   boxlen_z=0.d0
+   ewald=.false.
+   zahn=.true.
+   coul_method="ZAHN"
+   coul_cut=10.d0
+   vdw_cut=10.d0
+   andersen_step=70
    do i = 1, nkey
       next = 1
       record = keyline(i)
       call gettext (record,keyword,next)
       call upcase (keyword)
+      call upcase (record)
       string = record(next:120)
-      if (keyword(1:11) .eq. 'EWALD_FULL ') then
-         ewald_brute=.true.
-         write(*,*) "The keyword EWALD_FULL was activated! A single MD step will be "
-         write(*,*) "calculated and the SPME method will be compared with the exact "
-         write(*,*) "brute-force Ewald summation."
+      if (trim(adjustl(record(1:11))) .eq. 'NVT {' .or. trim(adjustl(record(1:11))) &
+                 &  .eq. 'NVT{') then
+         do j=1,nkey-i+1
+            next=1
+            record = keyline(i+j)
+            call gettext (record,keyword,next)
+            call upcase (keyword)
+            write(*,*) "key",keyword
+!    The simulation temperature
+            if (keyword(1:11) .eq. 'TEMP ') then
+               read(record,*) names,kelvin
+!    The thermostat
+            else if (keyword(1:20) .eq. 'THERMOSTAT ') then
+               read(record,*) names,thermo
+               call upcase(thermo)
+!    If periodic, the dimensions of the simulation box
+            else if (keyword(1:13) .eq. 'PERIODIC ') then
+               read(record,*,iostat=readstat) names,boxlen_x,boxlen_y,boxlen_z
+               periodic=.true.
+!    If a box with hard walls, the dimensions
+            else if (keyword(1:11) .eq. 'BOX_WALLS ') then
+               read(record,*) names,boxlen_x,boxlen_y,boxlen_z
+               box_walls=.true.
+!    For the periodic coulomb interactions 
+            else if (keyword(1:11) .eq. 'COULOMB ') then
+               read(record,*) names,a80
+               call upcase(a80)
+               if (a80 .eq. "PPPME") then
+                  ewald=.true.
+                  write(*,*) "The Particle Particle Particle Mesh Ewald (PPPME) method"
+                  write(*,*) " will be used for the handling of Coulomb interactions."
+                  write(*,*) "Please choose another method, the implementation is not complete!"
+                  call fatal
+               end if
+               if (a80 .eq. 'ZAHN ') then
+                  zahn=.true.
+               end if
+               coul_method=a80
+!    The cutoff distance for Coulomb interactions
+            else if (keyword(1:14) .eq. 'COUL_CUTOFF ') then
+               read(record,*) names,coul_cut
+!    The cutoff distance for VDW interactions
+            else if (keyword(1:13) .eq. 'VDW_CUTOFF ') then
+               read(record,*) names,vdw_cut
+!    How often the Andersen thermostat velocity rescaling is applied
+            else if (keyword(1:16) .eq. 'ANDERSEN_STEP ') then
+               read(record,*) names,andersen_step
+!    The damping factor for the Nose-Hoover thermostat
+            else if (keyword(1:13) .eq. 'NOSE_DAMP ') then
+               read(record,*) names,nose_q
+            end if
+            if (keyword(1:13) .eq. '}') exit
+            if (j .eq. nkey-i) then
+               write(*,*) "The NVT section has no second delimiter! (})"
+               call fatal
+            end if
+         end do
          exit
       end if
    end do
-
-
+!
+!     Check the the read in settings 
+!
+   if (kelvin .lt. 0.d0) then
+      write(*,*) "Give a positive temperature!"
+      call fatal
+   end if
+     
+   if (trim(thermo) .eq. "ANDERSEN") then
+      thermostat = 1
+   else if (trim(thermo) .eq. "NOSE-HOOVER") then
+      thermostat = 2
+   else 
+      write(*,*) "No availiable thermostat was chosen! Only the Andersen"
+      write(*,*) "thermostat and the Nose-Hoov(e-Chain) thermostats are availiable at the moment." 
+      write(*,*) "Add the keyword THERMOSTAT!"
+      call fatal
+   end if   
 end if
 
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!     Read the parameter for the NPT ensemble     !!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+if (npt) then
+   kelvin=0
+   pressure=0
+   thermo="none"
+   barostat=1  ! berendsen is default
+   periodic=.false.
+   box_walls=.false.
+   boxlen_x=0.d0
+   boxlen_y=0.d0
+   boxlen_z=0.d0
+   ewald=.false.
+   zahn=.true.
+   coul_method="ZAHN"
+   coul_cut=10.d0
+   vdw_cut=10.d0
+   andersen_step=70
+   nose_q=1.d0
+   nose_tau=100.d0
+   andersen_step=70
+
+   do i = 1, nkey
+      next = 1
+      record = keyline(i)
+      call gettext (record,keyword,next)
+      call upcase (keyword)
+      call upcase (record)
+      string = record(next:120)
+      if (trim(adjustl(record(1:11))) .eq. 'NPT {' .or. trim(adjustl(record(1:11))) &
+                 &  .eq. 'NPT{') then
+         do j=1,nkey-i+1
+            next=1
+            record = keyline(i+j)
+            call gettext (record,keyword,next)
+            call upcase (keyword)
+            if (keyword(1:11) .eq. 'TEMP ') then
+               read(record,*) names,kelvin
+            else if (keyword(1:11) .eq. 'PRES ') then
+               read(record,*) names,pressure
+            else if (keyword(1:20) .eq. 'THERMOSTAT ') then
+               read(record,*) names,thermo
+               call upcase(thermo)
+            else if (keyword(1:11) .eq. 'BAROSTAT ') then
+               read(record,*) names,baro_name
+               call upcase(baro_name)
+                if (baro_name .eq. "BERENDSEN") then
+                   barostat=1
+                else if (baro_name .eq. "NOSE-HOOVER") then
+                   barostat=2
+                else
+                   write(*,*) "No valid barostat chosen! BERENDSEN and  & 
+                            & NOSE-HOOVER are available!"
+                end if
+            else if (keyword(1:13) .eq. 'PERIODIC ') then
+               read(record,*,iostat=readstat) names,boxlen_x,boxlen_y,boxlen_z
+               periodic=.true.
+            else if (keyword(1:11) .eq. 'COULOMB ') then
+               read(record,*) names,a80
+               call upcase(a80)
+               if (a80 .eq. "PPPME") then
+                  ewald=.true.
+                  write(*,*) "The Particle Particle Particle Mesh Ewald (PPPME) method"
+                  write(*,*) " will be used for the handling of Coulomb interactions."
+                  write(*,*) "Please choose another method, the implementation is not complete!"
+                  call fatal
+               end if
+               if (a80 .eq. 'ZAHN ') then
+                  zahn=.true.
+               end if
+               coul_method=a80
+            else if (keyword(1:11) .eq. 'COUL_CUTOFF ') then
+               read(record,*) names,coul_cut
+            else if (keyword(1:11) .eq. 'VDW_CUTOFF ') then
+               read(record,*) names,vdw_cut
+            else if (keyword(1:16) .eq. 'ANDERSEN_STEP ') then
+               read(record,*) names,andersen_step
+            else if (keyword(1:13) .eq. 'NOSE_DAMP ') then
+               read(record,*) names,nose_q
+            else if (keyword(1:11) .eq. 'BARO_DAMP ') then
+               read(record,*) names,nose_tau
+            end if
+            if (keyword(1:13) .eq. '}') exit
+            if (j .eq. nkey-i) then
+               write(*,*) "The NPT section has no second delimiter! (})"
+               call fatal
+            end if
+         end do
+      end if
+   end do
+!
+!     Check the the read in settings 
+!
+   if (kelvin .lt. 0.d0) then
+      write(*,*) "Give a positive temperature!"
+      call fatal
+   end if
+   if (pressure .lt. 0.d0) then
+      write(*,*) "Give a positive pressure!"
+      call fatal
+   end if 
+   call upcase (thermo)
+   if (trim(thermo) .eq. "ANDERSEN") then 
+      thermostat = 1
+   else if (trim(thermo) .eq. "NOSE-HOOVER") then
+      thermostat = 2
+   else
+      write(*,*) "No availiable thermostat was chosen! Only the Andersen"
+      write(*,*) "thermostat and the Nose-Hoov(e-Chain) thermostats are availiable at the moment."
+      write(*,*) "Add the keyword THERMOSTAT!"
+      call fatal
+   end if
+   if (.not. periodic) then
+      write(*,*) "The NPT ensemble can only be simulated in periodic systems!"
+      call fatal
+   end if
+!
+!     set Nose-Hoover friction decay rate as mulitple of timestep
+!
+   nose_q=nose_q*dt/2.41888428E-2   
+end if
+
+!
+!     define the beta parameter for thermodynamics
+!
+beta=1.d0/(kelvin*k_B)
 !
 !     convert timestep to atomic units!
 !
 dt_info=0.001*dt ! time in ps for information write out
 dt = dt/2.41888428E-2
-!tautemp = max(tautemp,dt)
-!taupres = max(taupres,dt)
 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!     Read parameters for force/mechanochem.      !!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-!
-!     For MECHANOCHEMISTRY simulations: Add forces to certain atoms!
-!
-!     Main keyword: ADD_FORCE
-!
-add_force = .false.
+add_force=.false.
 do i = 1, nkey
-    next = 1
-    record = keyline(i)
-    call gettext (record,keyword,next)
-    call upcase (keyword)
-    string = record(next:120)
-    if (keyword(1:11) .eq. 'ADD_FORCE ') then
-       add_force=.true.
-       write(*,*) "The keyword ADD_FORCE was found!"
-       write(*,*) "Therefore a mechanochemistry trajectory will be"
-       write(*,*) "calculated, until a rupture event is monitored and"
-       write(*,*) "the user will be informed."
-       write(*,*) "The keywords FORCE1 and FORCE2 must be present, which the formate:"
-       write(*,*) "FORCE1/2 [atom index] [force constant (N)] [vector (x,y,z)]"
-       exit
-    end if
+   next = 1
+   record = keyline(i)
+   call gettext (record,keyword,next)
+   call upcase (keyword)
+   string = record(next:120)
+   if (trim(adjustl(record(1:11))) .eq. 'FORCE {' .or. trim(adjustl(record(1:11))) .eq. 'FORCE{') then
+      add_force=.true.
+      do j=1,nkey-i+1
+         next=1
+         record = keyline(i+j)
+         call gettext (record,keyword,next)
+         call upcase (keyword)
+!     First atom on which force is applied: index and force vector
+         if (keyword(1:11) .eq. 'VEC1 ') then
+            read(record,*) names,force1_at,force1_k,force1_v(1),force1_v(2),force1_v(3)
+!     Second atom on which force is applied: index and force vector
+         else if (keyword(1:11) .eq. 'VEC2 ') then
+            read(record,*) names,force2_at,force2_k,force2_v(1),force2_v(2),force2_v(3)
+!     Start an atomic force microscope (AFM) simulation run
+         else if (keyword(1:11) .eq. 'AFM_RUN ') then
+            afm_run=.true.
+!     For AFM simulation: index of fixed atom on surface
+         else if (keyword(1:11) .eq. 'AFM_FIX ') then
+            read(record,*) names,afm_fix_at
+!     For AFM simulation: index of moved atom on tip and force vector
+         else if (keyword(1:11) .eq. 'AFM_MOVE ') then
+            read(record,*) names,afm_move_at,afm_move_dist,afm_move_v(1),afm_move_v(2),afm_move_v(3)
+!     How often status information for AFM shall be printed out
+         else if (keyword(1:11) .eq. 'AFM_AVG ') then
+            read(record,*) names,afm_avg
+!     If two separate reactions shall be monitored, give the number of MD steps after which the 
+!     second event shall be looked at
+         else if (keyword(1:15) .eq. 'AFM_SECOND ') then
+            read(record,*) names,afm_segment
+            afm_second=.true.
+         end if
+         if (record .eq. '}') exit
+         if (j .eq. nkey-i) then
+            write(*,*) "The NPT section has no second delimiter! (})"
+            call fatal
+         end if
+      end do
+   end if
 end do
-!
-!     Alternative: perform an AFM simulation: successive elongation of 
-!       the molecule of interest!
-!
-afm_run = .false.
-do i = 1, nkey
-    next = 1
-    record = keyline(i)
-    call gettext (record,keyword,next)
-    call upcase (keyword)
-    string = record(next:120)
-    if (keyword(1:11) .eq. 'AFM_RUN ') then
-       afm_run=.true.
-       write(*,*) "The keyword AFM_RUN was found!"
-       write(*,*) "Therefore a simulation of an AFM experiment will be"
-       write(*,*) "conducted. One atom will be fixed (surface),"
-       write(*,*) "the other atom will be moved away with a harmonic"
-       write(*,*) "force applied until the end of the MD run."
-       write(*,*) "The keywords AFM_FIX and AFM_MOVE must be present, which the formate:"
-       write(*,*) " AFM_FIX [atom index]"
-       write(*,*) " AFM_MOVE [atom index] [max.elongation (Angstrom)] [vector (x,y,z)]"
-       exit
-    end if
-end do
-
-
-!
-!     If Mechanochemistry was activated: read in the atoms as well as 
-!      vectors and strenghts for the applied forces 
-!
 if (add_force) then
-   do i = 1, nkey
-      next = 1
-      record = keyline(i)
-      call gettext (record,keyword,next)
-      call upcase (keyword)
-      string = record(next:120)
-!
-!     Ordering: [Atom index] [Force (N)] [Vector (x,y,z)]
-!
-      if (keyword(1:11) .eq. 'FORCE1 ') then
-         read(record,*) names,force1_at,force1_k,force1_v(1),force1_v(2),force1_v(3)
-      else if (keyword(1:11) .eq. 'FORCE2 ') then
-         read(record,*) names,force2_at,force2_k,force2_v(1),force2_v(2),force2_v(3)
-      end if
-   end do
 !
 !     normalize the force vectors
 !
@@ -677,11 +585,10 @@ if (add_force) then
 !     be written  
 !
    write(*,*) "Distances between atoms with attached force will be written to"
-   write(*,*) "file force_distances.dat"  
+   write(*,*) "file force_distances.dat"
    open(unit=78,file="force_distances.dat",status="replace")
    write(78,*) "# distances between the atoms with attached force, in Angstrom:"
 end if
-
 !
 !     If the AFM run was activated: read in the fixed and moving atom 
 !     and initialize the settings 
@@ -734,7 +641,7 @@ if (afm_run) then
    write(*,*) "AFM distances and forces will be written to file "
    write(*,*) "afm_log.dat"
    open(unit=79,file="afm_log.dat",status="replace")
-   write(79,*) "# time (ps)    AFM distance (Angstrom)   AFM force (nN)" 
+   write(79,*) "# time (ps)    AFM distance (Angstrom)   AFM force (nN)"
 !
 !     allocate array with averaged force values during dynamics 
 !
@@ -745,6 +652,34 @@ if (afm_run) then
    afm_segment_avg=afm_segment/(afm_avg*iwrite)
 end if
 
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!     Read more detailed/special MD parameters    !!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+!
+!     If a periodic calculation is ordered, look if the Smooth particle mesh Ewald 
+!     method shall be compared with the full Ewald sum for benchmark
+!
+ewald_brute=.false.
+if (periodic) then
+   do i = 1, nkey
+      next = 1
+      record = keyline(i)
+      call gettext (record,keyword,next)
+      call upcase (keyword)
+      string = record(next:120)
+      if (keyword(1:11) .eq. 'EWALD_FULL ') then
+         ewald_brute=.true.
+         write(*,*) "The keyword EWALD_FULL was activated! A single MD step will be "
+         write(*,*) "calculated and the SPME method will be compared with the exact "
+         write(*,*) "brute-force Ewald summation."
+         exit
+      end if
+   end do
+
+end if
 
 !
 !      Read in velocities from file as starting for momentum
@@ -828,73 +763,52 @@ if (calc_ekin) then
    open(unit=156,file="ekin_step.dat",status="replace")
    write(156,*) "#  centroid estimation     virial theorem"
 end if
-
-!-----------------------RPMD-inputparameters--------------------------
 !
-!     the number of beads
+!     Activate if you want to control if the total energy is conserved
 !
-nbeads=0
+energycon=.false.
 do i = 1, nkey
-  next = 1
-  record = keyline(i)
-  call gettext (record,keyword,next)
-  call upcase (keyword)
-  string = record(next:120)
-  if (keyword(1:20) .eq. 'BEAD_NUMBER ') then
-     read(record,*) names,nbeads
-  end if
+    next = 1
+    record = keyline(i)
+    call gettext (record,keyword,next)
+    call upcase (keyword)
+    string = record(next:120)
+    if (keyword(1:11) .eq. 'E_CON ') then
+       energycon=.true.
+    end if
 end do
-if (rank .eq. 0) then
-   if (nbeads .lt. 1) then
-      write(*,*) "No valid bead number given! Add the keyword BEAD_NUMBER!"
-      call fatal
-   else
-      write(*,'(a,i3,a)') " The ring polymer will have ",nbeads," beads."
-   end if
-end if
 !
-!     If more than one bead is given, decide if all atoms shall be treated 
-!     with this number or only some of them, with all others remaining at 
-!     1 bead
+!     Activate the additional output of gradients and velocities every tdump
+!     time step 
 !
-
+verbose=.false.
 do i = 1, nkey
-  next = 1
-  record = keyline(i)
-  call gettext (record,keyword,next)
-  call upcase (keyword)
-  string = record(next:120)
-  if (keyword(1:20) .eq. 'RPMD_LOCAL ') then
-      allocate(rpmd_atoms(100))
-      read(record,*) names
-      k=1
-!
-!     Read in the atom indices of each single educt: quite complicated in fortran..
-!
-      act_number=" "
-      do j=1,120
-         at_index(j)=record(j:j)
-         if (at_index(j) .ne. " ") then
-            if (len(trim(act_number)) .lt. 1) then
-               act_number=at_index(j)
-            else
-               act_number=trim(act_number) // at_index(j)
-            end if
-         else
-            if (len(trim(act_number)) .ge. 1) then
-               read(act_number,*,iostat=istat) rpmd_atoms(k)
-               if (istat .eq. 0) then
-                  k=k+1
-               else
-                  rpmd_atoms(k)=0
-               end if
-            end if
-            act_number=" "
-         end if
-      end do
-      stop "Not implemented so far due to problems!"
-   end if
+    next = 1
+    record = keyline(i)
+    call gettext (record,keyword,next)
+    call upcase (keyword)
+    string = record(next:120)
+    if (keyword(1:20) .eq. 'OUTPUT_VERBOSE ') then
+       verbose=.true.
+    end if
 end do
+
+!
+!     Activate for separate printout of covalent and noncovalent fractions 
+!     of the QMDFF potential energy
+!
+energysplit=.false.
+do i = 1, nkey
+    next = 1
+    record = keyline(i)
+    call gettext (record,keyword,next)
+    call upcase (keyword)
+    string = record(next:120)
+    if (keyword(1:16) .eq. 'SPLIT_ENERGY ') then
+       energysplit=.true.
+    end if
+end do
+
 !
 !     store the number of beads during structure gen.
 !
@@ -939,6 +853,8 @@ do i = 1, nkey
        exit 
     end if
 end do
+!-----------------------Initialize-MD-Run--------------------------
+!
 !
 !     If the system shall be described periodic of with hard box walls : 
 !     Shift the system to the first octand
@@ -1035,51 +951,57 @@ end if
 !
 if (int_coord_plot) open(unit=191,file="int_coord.out",status="unknown")
 !
-!     initialize the NHC thermostat, if needed
+!-----------------------Print-Information-for-run------------------------
 !
-if (thermo .eq. "NHC") then
-   allocate(nhc_zeta(nhc_length,natoms*nbeads))
-   nhc_zeta=0.d0
+!
+write(*,*) "----------------------------------------------------------"
+write(*,*) "The following molecular dynamics job will be started:"
+write(*,*) " - Input geometry: ",trim(xyzfile)
+if (nbeads .eq. 1) then
+   write(*,*) " - Number of RPMD beads: 1 (classical)"
+else 
+   write(*,'(a,i4)') "  - Number of RPMD beads: ",nbeads
 end if
+if (ensemble .eq. "NVT") then
+   write(*,*) " - Thermodynamic ensemble: NVT "
+else if (ensemble .eq. "NPT") then
+   write(*,*) " - Thermodynamic ensemble: NpT "
+end if
+write(*,'(a,i10)') "  - Number of simulated MD steps:",nstep
+write(*,'(a,f12.5)') "  - MD time step (fs):",dt*2.41888428E-2
+write(*,'(a,f15.5)') "  - Total simulated timescale (ps):",dt*2.41888428E-2*nstep/1000.d0
+write(*,'(a,f13.5,a)') "  - Trajectory frames will be written every",dtdump," fs"
+if (nvt) then
+   write(*,'(a,f12.5)') "  - Desired temperature (K): ",kelvin
+   write(*,*) " - The temperature will be applied by the ",trim(thermo)," thermostat"
+   if (periodic) then
+      write(*,*) " - The periodic box has the dimensions (x,y,z) (Angstron):"
+      write(*,'(a,f14.6,f14.6,f14.6)') "    ",boxlen_x*bohr,boxlen_y*bohr,boxlen_z*bohr
+      write(*,*) " - Long range Coulomb interactions treated with: ",trim(coul_method)
+   end if
+   write(*,'(a,f11.3,a)') "  - (Short) Coulomb interactions have a cutoff of ",coul_cut, " A"
+   write(*,'(a,f11.3,a)') "  - VDW interactions have a cutoff of ",vdw_cut, " A"
+   if (thermo .eq. "ANDERSEN") then
+      write(*,'(a,i6,a)') "  - The Andersen velocity rescaling is done every ",andersen_step," MD steps"
+   end if 
+   if (thermo .eq. "NOSE-HOOVER") then
+      write(*,'(a,f12.5,a)') "  - The Nose-Hoover thermostat damping Q is: ",nose_q," time steps"    
+   end if 
+end if
+
+
+
 !
 !     call the initialization routine
 !
+
 call mdinit(derivs)
-!
-!     Activate if you want to control if the total energy is conserved
-!
-energycon=.false.
-do i = 1, nkey
-    next = 1
-    record = keyline(i)
-    call gettext (record,keyword,next)
-    call upcase (keyword)
-    string = record(next:120)
-    if (keyword(1:11) .eq. 'E_CON ') then
-       energycon=.true.
-    end if
-end do
-!
-!     Activate for separate printout of covalent and noncovalent fractions 
-!     of the QMDFF potential energy
-!
-energysplit=.false.
-do i = 1, nkey
-    next = 1
-    record = keyline(i)
-    call gettext (record,keyword,next)
-    call upcase (keyword)
-    string = record(next:120)
-    if (keyword(1:16) .eq. 'SPLIT_ENERGY ') then
-       energysplit=.true.
-    end if
-end do
 !
 !     if you want to control if the total energy is conserved
 !
 
-if (energycon .eqv. .true.) then
-   open(unit=123,file="energies.dat",status="unknown")
+if (verbose .or. energycon) then
+   open(unit=123,file="md_energies.dat",status="unknown")
    write(123,*) "#   MD step   pot.energy    kin.energy   total energy "
    e_pot_avg=0.d0
    e_kin_avg=0.d0
@@ -1096,13 +1018,14 @@ end if
 !
 open(unit=28,file="trajectory.xyz",status="unknown")
 !
-!     debug: also write gradients of all atoms to file 
-open(unit=29,file="gradients.dat",status="unknown")
+if (verbose) then
+!     verbose output: also write gradients of all atoms to file 
+   open(unit=29,file="md_gradients.dat",status="unknown")
+!     verbose output: also write velocities of all atoms to file 
+   open(unit=30,file="md_velocities.dat",status="unknown")
+end if
 
-!     debug: also write velocities of all atoms to file 
-open(unit=30,file="velocities.dat",status="unknown")
-
-write(*,*) "You are starting a velocity verlet dynamic-calculation"
+write(*,*) 
 write(*,*)  " . ...- -... --.- -- -.. ..-. ..-."
 !
 !    Measure the needed time for dynamic steps
@@ -1150,7 +1073,6 @@ do istep = 1, nstep
       analyze=.true.
    end if
    call verlet (istep,dt,derivs,epot,ekin,afm_force,analyze)
-
 !
 !     TEST: write out bondlengths to bonds.log
 !
@@ -1187,7 +1109,7 @@ do istep = 1, nstep
       end if
    end if
 
-   if (energycon) then
+   if (energycon .or. verbose) then
       if (mod(istep,iwrite) .eq. 0) then
          write(123,*) istep,epot,ekin,epot+ekin
          e_pot_avg=e_pot_avg+epot
@@ -1288,9 +1210,14 @@ call cpu_time(time2)
 duration=time2-time1
 write(*,*)
 write(*,'(A, F12.3, A)') " The calculation needed a time of",duration," seconds."
-write(*,*) " Trajectory written to 'trajectory.xyz', temperatures to 'temperature.dat',"
-write(*,*) " gradients to 'gradients.dat', velocities to 'velocities.dat', "
-write(*,*) " energies to 'energies.dat'."
+if (verbose) then
+   write(*,*) " Trajectory written to 'trajectory.xyz', temperatures to 'temperature.dat',"
+   write(*,*) " gradients to 'md_gradients.dat', velocities to 'md_velocities.dat', "
+   write(*,*) " energies to 'md_energies.dat'."
+else 
+   write(*,*) " Trajectory written to 'trajectory.xyz', temperatures to 'temperature.dat'."
+end if
+
 write(*,*)
 
 write(*,*) ".. .----. -- -.. --- -. . "

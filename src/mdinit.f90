@@ -76,7 +76,7 @@ call random_init_local(rank)
 do i=1,nbeads
    q_1b=q_i(:,:,i)
    call gradient (q_1b,epot,derivs_1d,i)
-  
+    
    derivs(:,:,i)=derivs_1d
 end do
 !if (calc_modus .eq. 1) stop "Jgdi2"

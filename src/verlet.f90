@@ -475,33 +475,33 @@ do i=1,nbeads
    epot=epot+epot1
 end do
 !
-!   write out the gradients to file (DEBUG)
+!   write out the gradients to file (verbose)
 !
-if (mod(istep,iwrite) .eq. 0) then
-   write(29,*) natoms*nbeads
-   write(29,*)
-   do k=1,nbeads
-      do i=1,natoms
-         write(29,*) i,k,derivs(:,i,k)
+if (verbose) then 
+   if (mod(istep,iwrite) .eq. 0) then
+      write(29,*) natoms*nbeads
+      write(29,*)
+      do k=1,nbeads
+         do i=1,natoms
+            write(29,*) i,k,derivs(:,i,k)
+         end do
       end do
-   end do
-end if
+   end if
 
 !
-!    write out the velocities to file (DEBUG)
+!    write out the velocities to file (verbose)
 !
 
-if (mod(istep,iwrite) .eq. 0) then
-   write(30,*) natoms*nbeads
-   write(30,*)
-   do k=1,nbeads
-      do i=1,natoms
-         write(30,*) i,k,p_i(:,i,k)/mass(i)
+   if (mod(istep,iwrite) .eq. 0) then
+      write(30,*) natoms*nbeads
+      write(30,*)
+      do k=1,nbeads
+         do i=1,natoms
+            write(30,*) i,k,p_i(:,i,k)/mass(i)
+         end do
       end do
-   end do
-
+   end if
 end if
-
 !
 !     For Mechanochemistry calculations: Add the additional forces here 
 !     to the gradient of the reference method!
@@ -534,7 +534,6 @@ if (afm_run) then
    end do
    afm_force=afm_force/newton2au
 end if 
-
 !
 !     update the momentum (full time step)
 !
@@ -547,7 +546,6 @@ p_i=p_i-0.5d0*dt*derivs
 !     on the full-time step
 !
 call get_centroid(centroid)
-
 if (thermostat .eq. 2) then
 !
 !     The NPT ensemble: correct momenta and pressure 
@@ -612,8 +610,6 @@ end if
 !     --> Replace momenta with a fresh sampling from a Gaussian
 !     distribution at the temperature of interest
 !
-
-
 if (thermostat .eq. 0) then
    if (mod(istep,andersen_step) .eq. 0) then
       call andersen

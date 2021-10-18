@@ -3434,8 +3434,8 @@ do i=1,temp_num
       write(15,'(a)') "    irc_struc irc.xyz"
       write(15,'(a)') "# file with reference energies of the IRC:"
       write(15,'(a)') "    irc_ens irc_ens.dat"
-      write(15,'(a)') "# number of RP-EVB G+H reference points:"
-      write(15,'(a,i5)') "    rp_evb ",n_rp_pts
+      write(15,'(a)') "# number of TREQ G+H reference points:"
+      write(15,'(a,i5)') "    treq ",n_rp_pts
       write(15,'(a)') "# RP-EVB damping coefficient for the coupling:"
       write(15,'(a,f14.7)') "    rp_exp_coeff ",pre_exp
       write(15,'(a)') "# borders of the RP direct interpolation region:"

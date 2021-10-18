@@ -162,7 +162,7 @@ end do
 evb_dq=.false.
 evb_de=.false.
 dg_evb=.false.
-rp_evb=.false.
+treq=.false.
 if (method .eq. "DE_EVB")  then
    write(*,*) "The dE-EVB (energy-gap) coupling term will be used!"
    write(*,*) 
@@ -175,14 +175,15 @@ else if (method .eq. "DG_EVB") then
    dg_evb=.true.
    write(*,*) "The DG-EVB (distributed Gaussian) coupling term will be used!"
    write(*,*)
-else if (method .eq. "RP_EVB") then
-   rp_evb=.true.
-   write(*,*) "The RP-EVB (reaction path) coupling term will be used!"
+else if (method .eq. "TREQ") then
+   treq=.true.
+   write(*,*) "The TREQ (transition region corrected reaction path) PES" 
+   write(*,*) " description will be used!"
    write(*,*)
 else 
    write(*,*) "No valid EVB coupling term was given!"
    write(*,*) "Add the PES keyword with either 'de_evb', 'dq_evb', 'dg_evb'"
-   write(*,*) "  or 'rp_evb' as parameter!"
+   write(*,*) "  or 'treq' as parameter!"
    call fatal
 end if
 
@@ -585,15 +586,15 @@ do i = 1, nkey
    call gettext (record,keyword,next)
    call upcase (keyword)
    string = record(next:120)
-   if (keyword(1:11) .eq. 'RP_EVB ') then
+   if (keyword(1:11) .eq. 'TREQ ') then
       read(record,*) names,rp_evb_points
-      rp_evb=.true.
+      treq=.true.
       names="ref.input"
       inquire(file=names,exist=exist)
       if (rank .eq. 0) then
          if (.not. exist) then
-            rp_evb=.false.
-            write(*,*) "You have ordered a Reaction Path EVB calculation (RP-EVB),"
+            treq=.false.
+            write(*,*) "You have ordered a TREQ calculation,"
             write(*,*) "but the file ", trim(names)," containing the reference informations"
             write(*,*) "is not availiable!"
             write(*,*) "Look into the manual for further informations."
@@ -795,7 +796,7 @@ if (qmdffnumber.eq.2) then
 !     --> only serial calculation
 !
    if (rank .eq. 0) then
-      if ((.not.evb_dq) .and. (.not.dg_evb) .and. (.not.rp_evb)) then
+      if ((.not.evb_dq) .and. (.not.dg_evb) .and. (.not.treq)) then
          allocate(energies_result(reference_counter))
          call optimize_dE(energies_qmdff,fileenergy,reference_counter,energies_result)
 
@@ -887,11 +888,11 @@ if (qmdffnumber.eq.2) then
       end if
    end if
 !
-!    Reaction path EVB (RP-EVB)  --> BETA-VERSION
+!    Transition corrected reaction path EVB (TREQ)  
 !
-   if (rp_evb) then
+   if (treq) then
        if (rank .eq. 0) then
-          stop "No optimization of parameters needed for RP_EVB!"
+          stop "No optimization of parameters needed for TREQ!"
        end if
    end if
    

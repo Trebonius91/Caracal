@@ -64,8 +64,6 @@ n = 0
 !
 !     flags for information levels within the program
 !
-silent = .false.
-verbose = .false.
 debug = .false.
 abort = .false.
 !

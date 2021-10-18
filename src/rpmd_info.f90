@@ -126,7 +126,7 @@ if (rank .eq. 0) then
                write(15,'(a,i5,i5,i5,i5)') "       out of plane angle: ", coord_def(i,2:5)
             end if
          end do
-      else if (rp_evb) then
+      else if (treq) then
          write(15,'(a)') "   - Used coupling type: RP-EVB (reaction path)"
          write(15,'(a,i5)') "   - Number of RP-EVB points: ", rp_evb_points
          write(15,'(a,f10.5)') "   - Position of TS (s): ",s_ts

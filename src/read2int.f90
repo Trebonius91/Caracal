@@ -50,9 +50,9 @@ logical::redun
 state_open=0
 redun=.false.
 !
-!    For rp_evb, define the number of points
+!    For TREQ, define the number of points
 !
-if (rp_evb) dg_evb_points=rp_evb_points
+if (treq) dg_evb_points=rp_evb_points
 
 ref_input_unit=10
 open(unit=ref_input_unit,file=dg_ref_file,status="old",iostat=state_open)

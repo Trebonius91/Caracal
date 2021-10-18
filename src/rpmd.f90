@@ -386,7 +386,7 @@ allocate(derivs_1d(3,natoms),q_1b(3,natoms))
 !     for RP-EVB: reallocate global arrays for storage and comparison with previous 
 !     values
 !
-if (rp_evb) then
+if (treq) then
    deallocate(inter_old,i_best_old)
    allocate(inter_old(nbeads,nat6))
    allocate(i_best_old(nbeads))
