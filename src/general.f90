@@ -298,6 +298,13 @@ logical::frcsave
 logical::uindsave
 
 !
+!     For evaluation of coordinates during dynamic.x calculation
+!
+logical::eval_coord  ! if evaluation takes place
+integer::eval_step  ! after how many MD steps a new evaluation shall be done 
+integer::eval_number   ! number of evaluated coordinates 
+integer,allocatable::eval_inds(:,:)   ! list of evaluated coordinates (indices)
+!
 !     from tinker module "usage"
 !     --> used atoms for energy calculation: OBSOLETE
 !

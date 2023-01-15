@@ -87,7 +87,7 @@ OBJS = general.o evb_mod.o qmdff.o lm_module.o debug.o \
        transrot.o nhc.o orca_grad.o set_periodic.o box_image.o \
        ewald_recip.o bsplgen.o setchunk.o ewald_adjust.o ewald_fft.o \
        bspline.o dftmod.o exp_switch.o nhc_npt.o opt_qmdff_ser.o \
-       lm_qmdff.o water_init.o egrad_water.o \
+       lm_qmdff.o water_init.o egrad_water.o ev_coord_init.o \
        \
        egrad_ch4oh.o util_ch4oh.o egrad_h3.o \
        numeral.o getnumb.o getstring.o torphase.o egrad_ch4h.o \

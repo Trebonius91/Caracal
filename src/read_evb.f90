@@ -66,6 +66,7 @@ real(kind=8)::s_q1_r  ! temporary variable for QMDFF damping range (RP-EVB)
 logical::path_struc,path_energy,coupl,params
 logical::evb1,evb2,evb3,ffname1,ffname2,ffname3,defqmdff
 logical::exist,exists,has_next,coupl1
+logical::read_name
 integer::rank ! the current MPI rank
 character(len=80)::corr_name,method
 
@@ -479,6 +480,7 @@ if (orca) then
    goto 678
 end if
 
+read_name=.false.
 do i = 1, nkey
    next = 1
    record = keyline(i)
@@ -512,8 +514,13 @@ do i = 1, nkey
          evb2=.true.
          qmdffnumber=3
       end if
+      read_name = .true.
    end if
 end do
+if (.not. read_name) then
+   write(*,*) "Please check the QMDFFNAMES keyword!"
+   call fatal
+end if
 !write(*,*) evb2,evb3
 do i = 1, nkey
    next = 1

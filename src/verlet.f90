@@ -89,6 +89,9 @@ real(kind=8)::act_vol,act_dens
 !   for Berendsen barostat 
 real(kind=8)::beren_scale
 real(kind=8)::press_avg  ! the average pressure for printout
+!   for printout of coordinate values 
+real(kind=8)::coord_act
+real(kind=8)::ang,dihed
 !parameter(pi=3.1415926535897932384626433832795029d0)
 
 
@@ -646,6 +649,29 @@ if (analyze) then
    press_avg=0.d0
 end if
 
+!
+!     Calculate values of evaluated coordinates in actual structure 
+!
+if (eval_coord) then
+   if (mod(istep,eval_step) .eq. 0) then
+      write(141,'(i10)',advance="no") istep
+      do i=1,eval_number
+         if (eval_inds(i,1) .eq. 1) then
+            write(141,'(3f14.8)',advance="no") centroid(:,eval_inds(i,2))*bohr
+         else if (eval_inds(i,1) .eq. 2) then 
+            write(141,'(f14.8)',advance="no") dist(eval_inds(i,2),eval_inds(i,3), &
+                 & centroid)*bohr
+         else if (eval_inds(i,1) .eq. 3) then
+            write(141,'(f14.8)',advance="no") ang(eval_inds(i,2),eval_inds(i,3), &
+                 & eval_inds(i,4),centroid)*180.d0/pi
+         else if (eval_inds(i,1) .eq. 4) then
+             write(141,'(f14.8)',advance="no") dihed(eval_inds(i,2),eval_inds(i,3), &
+                 & eval_inds(i,4),eval_inds(i,5),centroid)*180.d0/pi
+         end if
+      end do
+      write(141,*)
+   end if
+end if
 
 !
 !     If an error occured in the trajectory and one of the entries is either NaN

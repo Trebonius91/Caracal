@@ -719,6 +719,34 @@ if (periodic) then
 end if
 
 !
+!      Evaluate time-dependent values of chosen coordinates
+!
+eval_coord=.false.
+eval_step = 1
+do i = 1, nkey
+   next = 1
+   record = keyline(i)
+   call gettext (record,keyword,next)
+   call upcase (keyword)
+   string = record(next:120)
+   if (keyword(1:20) .eq. 'EVAL_COORD ') then
+      read(record,*,iostat=readstat) names,eval_step
+      if (readstat .ne. 0) then
+         write(*,*) "Correct format: EVAL_COORD [write frequency (number)]"
+         call fatal
+      end if
+      write(*,*) "The keyword EVAL_COORD was activated! All coordinates listed "
+      write(*,*) " in the file 'coord_eval.inp' will be read in and their values "
+      write(*,*) " will be written out every ",eval_step," steps to the file "
+      write(*,*) " coord_eval.dat"
+      call ev_coord_init  
+      eval_coord=.true.
+      exit
+   end if
+end do
+
+
+!
 !      Read in velocities from file as starting for momentum
 !
 read_vel=.false.
@@ -1237,7 +1265,7 @@ if (energysplit) then
    write(*,'(a,f16.8,a)') " The average value of the nonbonded pot. energy was: ",e_noncov_avg/num_measure," Hartrees."
  
 end if
-!stop "Hgougoug"
+if (eval_coord) close(141)
 if (int_coord_plot) close(191)
 !
 !    calculate the needed time for dynamic steps
