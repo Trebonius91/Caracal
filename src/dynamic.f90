@@ -288,6 +288,7 @@ if (nvt) then
    coul_cut=10.d0
    vdw_cut=10.d0
    andersen_step=70
+   nose_q=100.d0
    do i = 1, nkey
       next = 1
       record = keyline(i)
@@ -302,25 +303,44 @@ if (nvt) then
             record = keyline(i+j)
             call gettext (record,keyword,next)
             call upcase (keyword)
-            write(*,*) "key",keyword
 !    The simulation temperature
             if (keyword(1:11) .eq. 'TEMP ') then
-               read(record,*) names,kelvin
+               read(record,*,iostat=readstat) names,kelvin
+               if (readstat .ne. 0) then
+                  write(*,*) "Correct format: TEMP [temperature (K)]"
+                  call fatal
+               end if
 !    The thermostat
             else if (keyword(1:20) .eq. 'THERMOSTAT ') then
-               read(record,*) names,thermo
+               read(record,*,iostat=readstat) names,thermo
+               if (readstat .ne. 0) then
+                  write(*,*) "Correct format: THERMOSTAT [thermostat]"
+                  call fatal
+               end if
                call upcase(thermo)
 !    If periodic, the dimensions of the simulation box
             else if (keyword(1:13) .eq. 'PERIODIC ') then
                read(record,*,iostat=readstat) names,boxlen_x,boxlen_y,boxlen_z
                periodic=.true.
+               if (readstat .ne. 0) then
+                  write(*,*) "Correct format: PERIODIC [xlen,ylen,zlen (A)]"
+                  call fatal
+               end if
 !    If a box with hard walls, the dimensions
             else if (keyword(1:11) .eq. 'BOX_WALLS ') then
-               read(record,*) names,boxlen_x,boxlen_y,boxlen_z
+               read(record,*,iostat=readstat) names,boxlen_x,boxlen_y,boxlen_z
                box_walls=.true.
+               if (readstat .ne. 0) then
+                  write(*,*) "Correct format: BOX_WALLS [xlen,ylen,zlen (A)]"
+                  call fatal
+               end if
 !    For the periodic coulomb interactions 
             else if (keyword(1:11) .eq. 'COULOMB ') then
-               read(record,*) names,a80
+               read(record,*,iostat=readstat) names,a80
+               if (readstat .ne. 0) then
+                  write(*,*) "Correct format: COULOMB [method]"
+                  call fatal
+               end if
                call upcase(a80)
                if (a80 .eq. "PPPME") then
                   ewald=.true.
@@ -335,16 +355,32 @@ if (nvt) then
                coul_method=a80
 !    The cutoff distance for Coulomb interactions
             else if (keyword(1:14) .eq. 'COUL_CUTOFF ') then
-               read(record,*) names,coul_cut
+               read(record,*,iostat=readstat) names,coul_cut
+               if (readstat .ne. 0) then
+                  write(*,*) "Correct format: COUL_CUTOFF [value (A)]"
+                  call fatal
+               end if
 !    The cutoff distance for VDW interactions
             else if (keyword(1:13) .eq. 'VDW_CUTOFF ') then
-               read(record,*) names,vdw_cut
+               read(record,*,iostat=readstat) names,vdw_cut
+               if (readstat .ne. 0) then
+                  write(*,*) "Correct format: VDW_CUTOFF [value (A)]"
+                  call fatal
+               end if
 !    How often the Andersen thermostat velocity rescaling is applied
             else if (keyword(1:16) .eq. 'ANDERSEN_STEP ') then
-               read(record,*) names,andersen_step
+               read(record,*,iostat=readstat) names,andersen_step
+               if (readstat .ne. 0) then
+                  write(*,*) "Correct format: ANDERSEN_STEP [No. of steps]"
+                  call fatal
+               end if
 !    The damping factor for the Nose-Hoover thermostat
             else if (keyword(1:13) .eq. 'NOSE_DAMP ') then
-               read(record,*) names,nose_q
+               read(record,*,iostat=readstat) names,nose_q
+               if (readstat .ne. 0) then
+                  write(*,*) "Correct format: NOSE_DAMP [integer (>1)]"
+                  call fatal
+               end if
             end if
             if (keyword(1:13) .eq. '}') exit
             if (j .eq. nkey-i) then
@@ -375,6 +411,7 @@ if (nvt) then
    end if   
 end if
 
+write(*,*) nose_q
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!     Read the parameter for the NPT ensemble     !!
@@ -396,7 +433,7 @@ if (npt) then
    coul_cut=10.d0
    vdw_cut=10.d0
    andersen_step=70
-   nose_q=1.d0
+   nose_q=100.d0
    nose_tau=100.d0
    andersen_step=70
 

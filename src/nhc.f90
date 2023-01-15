@@ -48,6 +48,7 @@ real(kind=8)::w(3)
 !
 !     Precalculate frequently used variables
 !
+
 ekt=1.380649E-23/4.3597447E-18*kelvin
 nc = 5
 ns = 3
@@ -127,7 +128,6 @@ do i = 1, natoms
       end do
    end do
 end do
-
 
 return
 end subroutine nhc 

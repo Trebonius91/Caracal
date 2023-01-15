@@ -41,22 +41,32 @@ implicit none
 integer::i,j,k
 real(kind=8)::dp(natoms)
 real(kind=8)::beta_n
+real(kind=8)::atom_rand
+real(kind=8)::atom_frac
 real(kind=8)::rand ! the current variable to be randomized
 !
-!write(*,*) "test"
 !     scale the inverse temperature with the number of beads
 !
-!write(*,*) "andersen!"
-!   TEST: Double division through nbeads!!
 beta_n=beta/nbeads!/nbeads 
+!
+!     Calculate the fraction of atoms whose velocities shall be 
+!     rescaled, based on the anderson step size (inverse)
+!
+atom_frac=1.d0/(andersen_step)
 dp=sqrt(mass(1:natoms)/beta_n)
 do i=1,3
    do j=1,natoms
-      do k=1,nbeads
-          rand=p_i(i,j,k)
-          call randomn(rand)
-          p_i(i,j,k)=rand*dp(j)
-      end do
+      call random(atom_rand)
+!
+!     If an atom was chosen to be active, rescale its velocity
+!
+!      if (atom_rand .le. atom_frac) then
+         do k=1,nbeads
+             rand=p_i(i,j,k)
+             call randomn(rand)
+             p_i(i,j,k)=rand*dp(j)
+         end do
+!      end if
    end do
 end do
 !stop "Guog"

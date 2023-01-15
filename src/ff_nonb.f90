@@ -91,7 +91,7 @@ do k=1,nnci
 !     apply periodic boundaries, if needed
 !
    if (periodic) then 
-      call box_image(vab)
+      call box_image(vab(1),vab(2),vab(3))
    end if
  
    r2=dot_product(vab,vab)

@@ -610,7 +610,7 @@ end if
 !     --> Replace momenta with a fresh sampling from a Gaussian
 !     distribution at the temperature of interest
 !
-if (thermostat .eq. 0) then
+if (thermostat .eq. 1) then
    if (mod(istep,andersen_step) .eq. 0) then
       call andersen
    end if

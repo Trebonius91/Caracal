@@ -262,10 +262,10 @@ end if
 !     distribution at the temperature of interest
 !
 if (constrain .ne. 2) then
-   if (thermostat .eq. 0) then
-      if (mod(istep,andersen_step) .eq. 0) then
+   if (thermostat .eq. 1) then
+!      if (mod(istep,andersen_step) .eq. 0) then
          call andersen
-      end if
+!      end if
    end if
 end if
 !

@@ -45,6 +45,7 @@ use evb_mod
 implicit none
 integer::i,j  ! loop index
 integer::rank ! dummy MPI parameter
+integer::backup  ! backup for andersen_step
 real(kind=8),dimension(3,natoms,nbeads)::derivs
 real(kind=8),dimension(3,natoms)::derivs_1d,q_1b
 real(kind=8),dimension(nat6)::act_int,int_ideal
@@ -93,6 +94,8 @@ call get_centroid(centroid)
 !
 !     Beta-mode:  do the same for the Nose-Hoover thermostat!
 !
+backup = andersen_step
+andersen_step = 1
 if (thermostat .eq. 0 .or. thermostat .eq. 1) then
    if (read_vel) then
       do i=1,natoms
@@ -107,7 +110,7 @@ end if
 !
 if (thermostat .eq. 2) then
    call andersen
- !  p_i=0.d0
+!   p_i=0.d0
    nfree=3.d0*natoms
    ekt = k_B * kelvin
    qterm = ekt * nose_q * nose_q
@@ -124,7 +127,7 @@ if (thermostat .eq. 2) then
    qbar = dble(nfree+1) * qterm
 
 end if
-
+andersen_step = backup
 !
 !     If the Berendsen barostat is used
 !

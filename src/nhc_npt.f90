@@ -52,6 +52,7 @@ real(kind=8)::volbox
 !
 !     Precalculate frequently used variables
 !
+write(*,*) "dtt",dt
 ekt=1.380649E-23/4.3597447E-18*kelvin
 nc = 5
 ns = 3

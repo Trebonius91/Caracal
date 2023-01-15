@@ -39,6 +39,7 @@ implicit none
 integer::i  ! loop index
 integer::thermos ! if the thermostat shall be applied 
                  ! (0: no,  1: yes)
+integer::backup  ! backup for andersen_step
 real(kind=8),dimension(3,natoms,nbeads)::derivs
 real(kind=8),dimension(3,natoms)::derivs_1d,q_1b
 real(kind=8),dimension(nat6)::act_int,int_ideal
@@ -83,11 +84,14 @@ end if
 !     Reset the momentum to a pseudo random distribution
 !     --> apply the andersen thermostat or the GLE for partly resampling
 !
+backup = andersen_step
+andersen_step = 1
 if ((thermos .eq. 1) .and. (thermostat .eq. 0)) then 
    call andersen
 else if (thermostat .eq. 1) then 
    stop "No GLE implemented!"
 end if
+andersen_step = backup
 !
 !     set momentum to zero for fixed atoms 
 !

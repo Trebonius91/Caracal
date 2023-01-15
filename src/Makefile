@@ -15,7 +15,7 @@ LIBRARY = libqmdff.a
 CURRENT = $(shell pwd)
 
 SRCDIR = src
-FFLAGS =  -fno-align-commons -Wno-argument-mismatch -O1  #-ffree-form #-Wall # normal version
+FFLAGS =  -fno-align-commons -fallow-argument-mismatch -O1  #-ffree-form #-Wall # normal version
 #FFLAGS =  -fno-align-commons -g -ffpe-trap=zero,invalid,overflow,underflow  #-ffree-form #-Wall # debug version!
 LINKFLAGS = -static-libgcc -fopenmp -llapack -lblas -lfftw3 -fno-align-commons # normal version 
 #LINKFLAGS = -static-libgcc -fopenmp -llapack -lblas -lfftw3 -fno-align-commons -g -ffpe-trap=zero,invalid,overflow,underflow # debug version!
@@ -97,10 +97,10 @@ OBJS = general.o evb_mod.o qmdff.o lm_module.o debug.o \
        egrad_nh3oh.o util_nh3oh.o \
        \
        qmdffgen.o evbopt.o egrad.o dynamic.o evb_qmdff.o rpmd.o \
-       irc.o evb_kt_driver.o mult_qmdff.o qmdffopt.o
+       irc.o evb_kt_driver.o mult_qmdff.o #qmdffopt.o
  
 EXES = qmdffgen.x dynamic.x egrad.x evbopt.x evb_qmdff.x rpmd.x \
-       irc.x evb_kt_driver.x mult_qmdff.x qmdffopt.x
+       irc.x evb_kt_driver.x mult_qmdff.x #qmdffopt.x
 
 all: $(OBJS)  $(EXES)
 
