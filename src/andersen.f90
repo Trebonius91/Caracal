@@ -52,11 +52,11 @@ beta_n=beta/nbeads!/nbeads
 !     Calculate the fraction of atoms whose velocities shall be 
 !     rescaled, based on the anderson step size (inverse)
 !
-atom_frac=1.d0/(andersen_step)
+!atom_frac=1.d0/(andersen_step)
 dp=sqrt(mass(1:natoms)/beta_n)
 do i=1,3
    do j=1,natoms
-      call random(atom_rand)
+!      call random(atom_rand)
 !
 !     If an atom was chosen to be active, rescale its velocity
 !

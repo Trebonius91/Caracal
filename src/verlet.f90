@@ -111,6 +111,8 @@ if (npt) then
    calc_vir=.true.
    vir_ten=0.d0
 end if
+
+
 !
 !     For the first timestep: set the pressure to the desired value
 !
@@ -154,6 +156,15 @@ end if
 p_i=p_i-0.5d0*dt*derivs
 !end if
 !
+
+!
+!     set momentum to zero for fixed atoms 
+!
+if (fix_atoms) then
+   do i=1,fix_num
+      p_i(:,fix_list(i),:)=0.d0
+   end do
+end if
 
 
 

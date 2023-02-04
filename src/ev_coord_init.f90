@@ -44,7 +44,12 @@ character(len=80)::line_act
 !
 !    Read in number of lines/coordinates to evaluate 
 !
-open(unit=138,file="coord_eval.inp",status="old")
+open(unit=138,file="coord_eval.inp",status="old",iostat=readstat)
+if (readstat .ne. 0) then
+   write(*,*) "The EVAL_COORD keyword was found, but the file 'coord_eval.inp'"
+   write(*,*) " is not there!"
+   call fatal
+end if
 nlines=0
 do 
    read(138,*,iostat=readstat) line_act

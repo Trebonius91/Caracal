@@ -102,6 +102,7 @@ character(len=60)::test,soschl_pre1,soschl_hess
 logical::exists,has_next,par_soschl,coupl1
 logical::evb1,evb2,evb3,ffname1,ffname2,ffname3,defqmdff
 logical::path_struc,path_energy,coupl,ts_xyz,params
+logical::keyword1,keyword2,keyword3
 !     the MPI rank (here always 0)
 integer::rank
 
@@ -411,7 +412,6 @@ if (nvt) then
    end if   
 end if
 
-write(*,*) nose_q
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!     Read the parameter for the NPT ensemble     !!
@@ -550,14 +550,15 @@ dt = dt/2.41888428E-2
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!     Read parameters for force/mechanochem.      !!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
 add_force=.false.
 do i = 1, nkey
    next = 1
    record = keyline(i)
    call gettext (record,keyword,next)
    call upcase (keyword)
+   call upcase (record)
    string = record(next:120)
+   write(*,*) record(1:11)
    if (trim(adjustl(record(1:11))) .eq. 'FORCE {' .or. trim(adjustl(record(1:11))) .eq. 'FORCE{') then
       add_force=.true.
       do j=1,nkey-i+1
@@ -574,6 +575,7 @@ do i = 1, nkey
 !     Start an atomic force microscope (AFM) simulation run
          else if (keyword(1:11) .eq. 'AFM_RUN ') then
             afm_run=.true.
+            add_force = .false.  ! no usual force addition in the case of an AFM run
 !     For AFM simulation: index of fixed atom on surface
          else if (keyword(1:11) .eq. 'AFM_FIX ') then
             read(record,*) names,afm_fix_at
@@ -589,9 +591,9 @@ do i = 1, nkey
             read(record,*) names,afm_segment
             afm_second=.true.
          end if
-         if (record .eq. '}') exit
+         if (keyword(1:13) .eq. '}') exit
          if (j .eq. nkey-i) then
-            write(*,*) "The NPT section has no second delimiter! (})"
+            write(*,*) "The FORCE section has no second delimiter! (})"
             call fatal
          end if
       end do
@@ -630,9 +632,13 @@ end if
 !     If the AFM run was activated: read in the fixed and moving atom 
 !     and initialize the settings 
 !
+
 if (afm_run) then
    afm_avg=50
    afm_second=.false.
+   afm_fix_at=0
+   afm_move_at=0
+   
    do i = 1, nkey
       next = 1
       record = keyline(i)
@@ -657,6 +663,10 @@ if (afm_run) then
          afm_second=.true.
       end if
    end do
+!
+!     Check if obligatory AFM settings were read in
+!
+   if (afm_
 !
 !     normalize the force vector
 !
@@ -913,8 +923,9 @@ do i = 1, nkey
           k=k+1
        end do
        fix_num=k-1
-       write(*,'(a,i5,a)') "The FIXED_ATOMS option was activated! In total, ",fix_num,&
-            & " atoms will be hold fixed."
+       write(*,'(a,i5,a)') " The FIXED_ATOMS option was activated! In total, ",fix_num,&
+            & " atoms"
+       write(*,*) " will be hold fixed."
        exit 
     end if
 end do
@@ -1241,14 +1252,13 @@ if (afm_run) then
    write(*,*) "written to file 'afm_averages.dat'."
    write(*,*)
    if (afm_second) then
-      write(*,*) afm_segment_avg,nstep/(afm_avg*iwrite) 
-      write(*,'(a,f14.7,a,f14.7,a)') "The first reaction is located at ",&
+      write(*,'(a,f14.7,a,f14.7,a)') " The first reaction is located at ",&
                   & maxval(force_avgs(1:afm_segment_avg))," nN at ",maxval(len_avgs(1:afm_segment_avg))," Angstrom."
-      write(*,'(a,f14.7,a,f14.7,a)') "The second reaction is located at ",&
+      write(*,'(a,f14.7,a,f14.7,a)') " The second reaction is located at ",&
                   & maxval(force_avgs(afm_segment_avg:nstep/(afm_avg*iwrite)))," nN at ",& 
                   & maxval(len_avgs(afm_segment_avg:nstep/(afm_avg*iwrite)))," Angstrom."
    else 
-      write(*,'(a,f14.7,a,f14.7,a)') "The maximum force recorded is ",&
+      write(*,'(a,f14.7,a,f14.7,a)') " The maximum force recorded is ",&
                   & maxval(force_avgs(1:nstep/(afm_avg*iwrite)))," nN at ",&
                   & maxval(len_avgs(1:nstep/(afm_avg*iwrite)))," Angstrom."
       write(*,*) maxloc(force_avgs),maxloc(len_avgs)

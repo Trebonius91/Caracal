@@ -498,14 +498,16 @@ do i = 1, nkey
       read(record,*,iostat=readstat) names,fffile1,fffile2,fffile3
       ffname3=.true.
       defqmdff=.true.
-      if (readstat .eq. 1) then
+      if (readstat .ne. 0) then
          read(record,*,iostat=readstat) names,fffile1,fffile2
          ffname2=.true.
          defqmdff=.true.
-         if (readstat .eq. 1) then
-            write(*,*) "Please give two or three QMDFFs as diabatic surfaces in "
-            write(*,*) "  the command QMDFFNAMES!"
-            call fatal
+         if (readstat .ne. 0) then
+            if (qmdffnumber .ne. 1) then
+               write(*,*) "Please give two or three QMDFFs as diabatic surfaces in "
+               write(*,*) "  the command QMDFFNAMES!"
+               call fatal 
+            end if
          else if (readstat .eq. 0) then
             evb3=.true.
             qmdffnumber=2
