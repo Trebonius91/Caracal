@@ -558,7 +558,6 @@ do i = 1, nkey
    call upcase (keyword)
    call upcase (record)
    string = record(next:120)
-   write(*,*) record(1:11)
    if (trim(adjustl(record(1:11))) .eq. 'FORCE {' .or. trim(adjustl(record(1:11))) .eq. 'FORCE{') then
       add_force=.true.
       do j=1,nkey-i+1
@@ -649,24 +648,49 @@ if (afm_run) then
 !     Ordering: [Atom index] [Force (N)] [Vector (x,y,z)]
 !
       if (keyword(1:11) .eq. 'AFM_FIX ') then
-         read(record,*) names,afm_fix_at
+         read(record,*,iostat=readstat) names,afm_fix_at
+         if (readstat .ne. 0) then
+            write(*,*) "Please check AFM_FIX keyword!"
+            call fatal
+         end if
       else if (keyword(1:11) .eq. 'AFM_MOVE ') then
-         read(record,*) names,afm_move_at,afm_move_dist,afm_move_v(1),afm_move_v(2),afm_move_v(3)
+         read(record,*,iostat=readstat) names,afm_move_at,afm_move_dist,afm_move_v(1), &
+                   & afm_move_v(2),afm_move_v(3)
+         if (readstat .ne. 0) then
+            write(*,*) "Please check AFM_MOVE keyword!"
+            call fatal
+         end if
       else if (keyword(1:11) .eq. 'AFM_AVG ') then
-         read(record,*) names,afm_avg
+         read(record,*,iostat=readstat) names,afm_avg
+         if (readstat .ne. 0) then
+            write(*,*) "Please check AFM_AVG keyword!"
+            call fatal
+         end if
 !
 !     If two separate reactions shall be monitored, give the number of MD steps after which the 
 !     second event shall be looked at
 !
       else if (keyword(1:15) .eq. 'AFM_SECOND ') then
-         read(record,*) names,afm_segment
+         read(record,*,iostat=readstat) names,afm_segment
+         if (readstat .ne. 0) then
+            write(*,*) "Please check AFM_SECOND keyword!"
+            call fatal
+         end if
          afm_second=.true.
       end if
    end do
 !
 !     Check if obligatory AFM settings were read in
 !
-   if (afm_
+   if (afm_fix_at .eq. 0) then
+      write(*,*) "Please add the keyword AFM_FIX for the AFM simulation!"
+      call fatal
+   end if
+   if (afm_move_at .eq. 0) then
+      write(*,*) "Please add the keyword AFM_MOVE for the AFM simulation!"
+      call fatal
+   end if
+
 !
 !     normalize the force vector
 !
