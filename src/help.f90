@@ -50,7 +50,7 @@ write(*,*) "--- egrad.x -------- Calculating energies and gradients ------------
 write(*,*) "--- evb_qmdff.x ---- Geoopts and frequency calculations ------------"
 write(*,*) "--- irc.x  --------- optimizing TS and IRC paths -------------------"
 write(*,*) "--- dynamic.x ------ run unbiased dynamic trajectories -------------"
-write(*,*) "--- rpmd.x --------- Calculating rate constants with RPMD ----------"
+write(*,*) "--- calc_rate.x ---- Calculating rate constants with (RP)MD --------"
 write(*,*) "--- evb_kt_driver.x- Black box k(T) calculations (beta vers.!) -----" 
 write(*,*) "--- mult_qmdff.x---- QMDFF solvent box generation ------------------"
 write(*,*) "--- qmdffopt.x------ Subsequent optimization of QMDFF parameters ---"
@@ -447,17 +447,17 @@ if (trim(progname) .eq. "dynamic") then
 end if
 
 !
-!     Program RPMD: general infos and list of all keywords
+!     Program CALC_RATE: general infos and list of all keywords
 !
-if (trim(progname) .eq. "rpmd") then
+if (trim(progname) .eq. "calc_rate") then
    write(*,*) "------------------------------------------------------------------"
-   write(*,*) "------ PROGRAM RPMD.X : SHORT OVERVIEW AND HELP ------------------"
+   write(*,*) "------ PROGRAM CALC_RATE.X : SHORT OVERVIEW AND HELP -------------"
    write(*,*) "------------------------------------------------------------------"
    write(*,*) "--- PART A: basic usage:------------------------------------------"
    write(*,*) "This program does all calculations that are needed to determine"
    write(*,*) "the value of a rate constant (k(T)) for a given temperature and"
    write(*,*) "a reaction path. "
-   write(*,*) "The basic usage is: rpmd.x qmdff.key"
+   write(*,*) "The basic usage is: calc_rate.x qmdff.key"
    write(*,*) "This calculation can be done in parallel. To invoke this,"
    write(*,*) "type 'mpirun -np [nprocs] [absolute path]/evbopt.x qmdff.key'"
    write(*,*) "The whole rate constant calculation is done in five steps:"

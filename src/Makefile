@@ -82,8 +82,8 @@ OBJS = general.o evb_mod.o qmdff.o lm_module.o debug.o \
        int2step.o sign_func.o krondel.o opt_irc.o sum_dv12.o \
        rpmd_check.o recross_serial.o dg_evb_init_par.o help.o\
        int_diff.o fact.o grad_test.o atomname.o lin_reg.o \
-       matrix_exp.o cholesky.o cholesky.o rpmd_read.o \
-       rpmd_info.o egrad_dg_evb.o egrad_treq.o calc_d2vec.o \
+       matrix_exp.o cholesky.o cholesky.o calc_rate_read.o \
+       calc_rate_info.o egrad_dg_evb.o egrad_treq.o calc_d2vec.o \
        transrot.o nhc.o orca_grad.o set_periodic.o box_image.o \
        ewald_recip.o bsplgen.o setchunk.o ewald_adjust.o ewald_fft.o \
        bspline.o dftmod.o exp_switch.o nhc_npt.o opt_qmdff_ser.o \
@@ -96,10 +96,10 @@ OBJS = general.o evb_mod.o qmdff.o lm_module.o debug.o \
        egrad_mueller.o egrad_o3.o egrad_ch4cn.o util_ch4cn.o  \
        egrad_nh3oh.o util_nh3oh.o \
        \
-       qmdffgen.o evbopt.o egrad.o dynamic.o evb_qmdff.o rpmd.o \
+       qmdffgen.o evbopt.o egrad.o dynamic.o evb_qmdff.o calc_rate.o \
        irc.o evb_kt_driver.o mult_qmdff.o #qmdffopt.o
  
-EXES = qmdffgen.x dynamic.x egrad.x evbopt.x evb_qmdff.x rpmd.x \
+EXES = qmdffgen.x dynamic.x egrad.x evbopt.x evb_qmdff.x calc_rate.x \
        irc.x evb_kt_driver.x mult_qmdff.x #qmdffopt.x
 
 all: $(OBJS)  $(EXES)
