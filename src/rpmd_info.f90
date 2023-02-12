@@ -163,6 +163,10 @@ if (rank .eq. 0) then
       write(15,'(a)') " * The Andersen thermostat is used, the velocity distribution will be"
       write(15,'(a,i6,a)') "    reset each ",andersen_step," MD steps during dynamics."
    end if
+   if (thermo .eq. "NOSE-HOOVER") then
+      write(15,'(a)') " * The Nose-Hoover thermostat is used, the velocity distribution will be"
+      write(15,'(a,f14.6,a)') "    coupled to heat variable with ",nose_q," coupling strength."
+   end if
    if (umbr_type .eq. "BIMOLEC") then
       write(15,'(a)') " * A bimolecular reaction will be investigated."
    else if (umbr_type .eq. "CYCLOADD") then

@@ -139,9 +139,8 @@ subroutine random_init_local(rank)
 
     call system_clock(count=clock)
 
-    seed = clock + 37 * (/ (i - 1, i = 1, n) /)+rank*166763
-!    seed=100.d0 
-!    write(*,*) "seed manipulated!"
+!    seed = clock + 37 * (/ (i - 1, i = 1, n) /)+rank*166763
+    seed=100.d0 
     call random_seed(put = seed)
 
     deallocate(seed)

@@ -37,7 +37,7 @@
 !
 !     part of EVB
 !
-subroutine mdinit(derivs)
+subroutine mdinit(derivs,xi_ideal,dxi_act,bias_mode)
 use general
 use qmdff
 use evb_mod
@@ -54,6 +54,7 @@ real(kind=8)::xi_ideal,xi_real
 real(kind=8)::epot  ! the actual potential energy
 real(kind=8)::centroid(3,natoms)  !  the centroid with all the 
                                   !  com's of all beads
+integer::bias_mode  ! usual sampling traj.: 1, constraint: 2
 real(kind=8)::qterm,k_B,ekt  ! for NHC initialization
 parameter(k_B=0.316679D-5) ! the boltzmann constant in au/kelvin
 !
@@ -66,9 +67,9 @@ end if
 !
 !     initalize the random number generator for the thermostat
 !
-rank=0
+!rank=0
 !if (calc_modus .eq. 1) stop "Jgdi"
-call random_init_local(rank)
+!call random_init_local(rank)
 !
 !     get the potential energy and atomic forces
 !     for each bead at once: define its current structure and collect 
@@ -87,6 +88,15 @@ end do
 !     of the force constant
 !
 call get_centroid(centroid)
+!
+!     Add the bias potential for umbrella samplings!
+!
+if (bias_mode .eq. 1) then
+   call umbrella(centroid,xi_ideal,int_ideal,xi_real,dxi_act,derivs,1)
+else if (bias_mode .eq. 2) then
+   call umbrella(centroid,xi_ideal,int_ideal,xi_real,dxi_act,derivs,0)
+end if
+
 !if (calc_modus .eq. 1) stop "Jgdi3"
 !
 !     Reset the momentum to a pseudo random distribution
@@ -94,16 +104,21 @@ call get_centroid(centroid)
 !
 !     Beta-mode:  do the same for the Nose-Hoover thermostat!
 !
-backup = andersen_step
-andersen_step = 1
-if (thermostat .eq. 0 .or. thermostat .eq. 1) then
-   if (read_vel) then
-      do i=1,natoms
-         p_i(:,i,1)=-vel_start(i,:)*mass(i)
-      end do
-   else 
-      call andersen
+if (.not. nve) then
+   backup = andersen_step
+   andersen_step = 1
+   if (thermostat .eq. 0 .or. thermostat .eq. 1) then
+      if (read_vel) then
+         do i=1,natoms
+            p_i(:,i,1)=-vel_start(i,:)*mass(i)
+         end do
+      else 
+         call andersen
+      end if
    end if
+   andersen_step = backup
+else 
+   p_i=0
 end if
 !
 !     Set the initial values for the Nose-Hoover-Chain thermostat
@@ -127,14 +142,12 @@ if (thermostat .eq. 2) then
    qbar = dble(nfree+1) * qterm
 
 end if
-andersen_step = backup
 !
 !     If the Berendsen barostat is used
 !
 if (barostat .eq. 1) then
    taupres=2.d0
    compress=0.000046d0*prescon/1000.d0
-   write(*,*) "compress",compress
 !
 !     If the Nose-Hoover chain barostat is used
 !
@@ -142,6 +155,13 @@ else if (barostat .eq. 2) then
    qterm = ekt * nose_tau * nose_tau
    qbar = dble(nfree+1) * qterm
 end if
+
+if (fix_atoms) then
+   do i=1,fix_num
+      p_i(:,fix_list(i),:)=0.d0
+   end do
+end if
+
 
 return
 end subroutine mdinit

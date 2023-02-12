@@ -104,10 +104,11 @@ call getkey(rank)
 !
 !     Read in the QMDFF and EVB terms
 !
-call read_evb(rank)
+call read_pes(rank)
 !
 !    Read in the structures of a reactionpath
 !
+filegeo="xyasdfdud"
 do i = 1, nkey
    next = 1
    record = keyline(i)
@@ -127,7 +128,10 @@ if (.not. path_struc) then
       inquire(file=filegeo,exist=exist)
    end do
 end if
-
+if (filegeo .eq. "xyasdfdud") then
+   write(*,*) "Please add the COORDS_FILE keyword!"
+   call fatal
+end if
 !
 !     If the debugging mode shall be started to print out more details!
 !
@@ -214,7 +218,13 @@ end if
 !     produce the EVB-QMDFF-energies for all points
 !
 ref_count=0
-open(unit=166,file=filegeo,status='old')
+open(unit=166,file=filegeo,status='old',iostat=readstat)
+if (readstat .ne. 0) then
+   write(*,*) "The file ",filegeo," with the geometries to be calculated is missing!"
+   write(*,*) "Please edit the COORDS_FILE keyword!"
+   call fatal
+end if
+
 open(unit=44,file="energies.dat",status='unknown')
 open(unit=45,file="gradients.dat",status='unknown')
 write(*,*)  " . ...- -... --.- -- -.. ..-. ..-."

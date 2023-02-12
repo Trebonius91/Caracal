@@ -182,7 +182,7 @@ call get_centroid(centroid)
 !
 !     constrain the system to the xi value if desired
 !
-const_good=0.d0
+const_good=0
 if (constrain .eq. 1) then
    call constrain_q(centroid,xi_ideal,dxi_act,const_good,dt)
 end if
@@ -296,7 +296,6 @@ if (do_debug) then
    end do
 end if
 !write(*,*) "q_i",q_i
-!write(*,*) "p_i",p_i
 !write(*,*) "derivs",derivs
 return
 end subroutine verlet_bias

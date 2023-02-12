@@ -186,7 +186,6 @@ do i=1,nwater
       vir_ten(2,3)=vir_ten(2,3)+HH_vec(2)*g_local_a(3)
       vir_ten(3,3)=vir_ten(3,3)+HH_vec(3)*g_local_a(3)
    end if
-
 !
 !     Calculate the bond-angle coupling term
 ! 
@@ -197,11 +196,11 @@ do i=1,nwater
    g_local_a(:)=dr_HH/r_OH1*OH1_vec(:)*k_rtheta
    g_local_b(:)=dr_HH/r_OH2*OH2_vec(:)*k_rtheta
 
-   g_act(:,i_H1)=g_act(:,i_H1)+k_rtheta*2d0*dr_OH1/r_HH*HH_vec(:)- &
+   g_act(:,i_H1)=g_act(:,i_H1)+k_rtheta*1d0*(dr_OH1+dr_OH2)/r_HH*HH_vec(:)- &
                     & g_local_a
-   g_act(:,i_H2)=g_act(:,i_H2)-k_rtheta*2d0*dr_OH2/r_HH*HH_vec(:)- &
+   g_act(:,i_H2)=g_act(:,i_H2)-k_rtheta*1d0*(dr_OH1+dr_OH2)/r_HH*HH_vec(:)- &
                     & g_local_b
-   g_act(:,i_O)=g_act(:,i_O)+g_local_a + g_local_b
+   g_act(:,i_O)=g_act(:,i_O) + g_local_a + g_local_b
 
 !
 !     the components of the virial tensor, if needed
@@ -217,7 +216,6 @@ do i=1,nwater
       vir_ten(2,3)=vir_ten(2,3)+OH1_vec(2)*g_local_a(3)+OH2_vec(2)*g_local_b(3)
       vir_ten(3,3)=vir_ten(3,3)+OH1_vec(3)*g_local_a(3)+OH2_vec(3)*g_local_b(3)
    end if
-
 !
 !     Calculate the bond-bond coupling term
 !
@@ -244,8 +242,6 @@ do i=1,nwater
       vir_ten(2,3)=vir_ten(2,3)+OH1_vec(2)*g_local_a(3)+OH2_vec(2)*g_local_b(3)
       vir_ten(3,3)=vir_ten(3,3)+OH1_vec(3)*g_local_a(3)+OH2_vec(3)*g_local_b(3)
    end if
-
-
 end do
 !
 !      Second, calculate the intermolecular energy part
@@ -289,15 +285,15 @@ do i=1,natoms
 !     the components of the virial tensor, if needed
 ! 
             if (calc_vir) then
-               vir_ten(1,1)=vir_ten(1,1)-dist_vec(1)*g_vec(1)
-               vir_ten(2,1)=vir_ten(2,1)-dist_vec(2)*g_vec(1)
-               vir_ten(3,1)=vir_ten(3,1)-dist_vec(3)*g_vec(1)
-               vir_ten(1,2)=vir_ten(1,2)-dist_vec(1)*g_vec(2)
-               vir_ten(2,2)=vir_ten(2,2)-dist_vec(2)*g_vec(2)
-               vir_ten(3,2)=vir_ten(3,2)-dist_vec(3)*g_vec(2)
-               vir_ten(1,3)=vir_ten(1,3)-dist_vec(1)*g_vec(3)
-               vir_ten(2,3)=vir_ten(2,3)-dist_vec(2)*g_vec(3)
-               vir_ten(3,3)=vir_ten(3,3)-dist_vec(3)*g_vec(3)
+               vir_ten(1,1)=vir_ten(1,1)+dist_vec(1)*g_vec(1)
+               vir_ten(2,1)=vir_ten(2,1)+dist_vec(2)*g_vec(1)
+               vir_ten(3,1)=vir_ten(3,1)+dist_vec(3)*g_vec(1)
+               vir_ten(1,2)=vir_ten(1,2)+dist_vec(1)*g_vec(2)
+               vir_ten(2,2)=vir_ten(2,2)+dist_vec(2)*g_vec(2)
+               vir_ten(3,2)=vir_ten(3,2)+dist_vec(3)*g_vec(2)
+               vir_ten(1,3)=vir_ten(1,3)+dist_vec(1)*g_vec(3)
+               vir_ten(2,3)=vir_ten(2,3)+dist_vec(2)*g_vec(3)
+               vir_ten(3,3)=vir_ten(3,3)+dist_vec(3)*g_vec(3)
              end if
 
 !
@@ -332,6 +328,5 @@ do i=1,natoms
       end if
    end do
 end do
-!stop "gup"
 return
 end subroutine egrad_water

@@ -233,7 +233,7 @@ call getxyz
 !
 !     Read in the QMDFF and EVB terms
 !
-call read_evb(rank)
+call read_pes(rank)
 !
 !     Do all calculations in internal coordinates!
 !     Specify them automatically and the full set of 3N-6 coordinates

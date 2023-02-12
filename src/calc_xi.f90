@@ -610,7 +610,6 @@ else if ((umbr_type .eq. "CYCLOREVER") .or. (umbr_type .eq. "REARRANGE") .or. &
 !
 !    the forming bonds (in total form_num bonds)
 !
-!   write(*,*) "form",form_num,break_num
 !   stop "hgpgu"
    do i=1,form_num
       atom1=bond_form(i,1)

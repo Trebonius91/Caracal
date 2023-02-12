@@ -45,6 +45,7 @@ program rpmd
 use general
 use evb_mod
 use debug
+use qmdff
 implicit none
 !
 !     include MPI library
@@ -123,7 +124,7 @@ character(len=10)::pmf_minloc
 real(kind=8)::pmf_max,pmf_min  ! the minimum and maximum of the PMF
 !     for MPI parallelization
 logical::recross_mpi   ! if recrossing shall be calculated in parallel or serial
-integer::ierr,ID
+integer::ierr,ID,impi_error
 integer::psize,rank,source,status(MPI_STATUS_SIZE)
 integer::count,tag_mpi,dest,message
 integer::maxwork,numwork
@@ -154,9 +155,9 @@ real(kind=8),allocatable::dxi_act(:,:) ! the calculated Xi derivative
 real(kind=8),allocatable::d2xi_act(:,:,:,:)  ! the calculated Xi hessian
 character(len=40)::commarg ! string for command line argument
 character(len=120)::adum
-real(kind=8)::pi  ! the pi
+!real(kind=8)::pi  ! the pi
 
-pi=3.141592653589793238462643d0
+!pi=3.141592653589793238462643d0
 
 !
 !     Start MPI parallel computation:
@@ -178,7 +179,7 @@ err_act_max=10  ! maximal number of errors per actual sampling, before other sta
 if (rank .eq. 0) then
    call cpu_time(time(1))
 end if
-
+call mpi_barrier(mpi_comm_world,ierr)
 !
 !     Open a logfile in which all informations that are printed 
 !     to screen and additional informations will be stored!
@@ -242,10 +243,10 @@ end if
 
 
 !
-!     Read in the QMDFF and EVB terms
+!     Read in the information about the PES in use
 !
 use_rpmd=.true.  ! for init_int etc.
-call read_evb(rank)
+call read_pes(rank)
 
 !
 !     Read in settings for the rpmd calculation
@@ -253,7 +254,6 @@ call read_evb(rank)
 
 call rpmd_read(rank,dt,dtdump,dt_info,gen_step,equi_step,umbr_step,xi_min,&
           & xi_max,pmf_min,pmf_max,nbins,pmf_minloc,print_poly,ts_file,recross_mpi)
-
 !
 !     convert timestep to atomic units!
 !
@@ -479,7 +479,6 @@ if (oldfolder) then
    if (.not. dont_del) then
       if (rank .eq. 0) then
          call system("rm -r "// foldername)
-         stop "Hhpu"
          call system ("mkdir "//foldername)
       end if
    else
@@ -498,7 +497,8 @@ else
       call system ("mkdir "//foldername)
    end if
 end if
-call mpi_barrier(mpi_comm_world,ierr)
+call mpi_barrier(mpi_comm_world,impi_error)
+
 call chdir(foldername)
 !
 !     signalize that the calculation is under way: If it is canceled before
@@ -612,20 +612,24 @@ if ((.not. dont_equi) .and. (rank .eq. 0)) then
 !    
       if (thermostat .eq. 0) then
          if (andersen_step .eq. 0) then
-            andersen_step=80!int(dsqrt(dble(gen_step)))
+            andersen_step=30!int(dsqrt(dble(gen_step)))
          end if
       else if (thermostat .eq. 1) then
          stop "no GLE implemented!"
       end if
-      call mdinit_bias(xi_val,dxi_act,derivs,1,2)
+  !    call mdinit_bias(xi_val,dxi_act,derivs,1,2)
+      call mdinit(derivs,xi_val,dxi_act,2)
       do istep = 1, gen_step
-         call verlet_bias (istep,dt,xi_val,xi_real,dxi_act,energy_act,derivs,i,0)
+         call verlet(istep,dt,derivs,energy_act,0d0,0d0,xi_val,xi_real,dxi_act,i,0,.false.)
+    !     call verlet_bias (istep,dt,xi_val,xi_real,dxi_act,energy_act,derivs,i,0)
 !
+!          call verlet_bias (istep,dt,xi_val,xi_real,dxi_act,energy_act,derivs,i,0)
 !     check the trajectory, if failed, go to beginning of trajectory
 !
          if (act_check .and. istep .gt. 10) then
             call rpmd_check(istep,gen_step,1,0,0,energy_act,xi_val,xi_real,&
                         & energy_ts,err_act,struc_reset,err_count,traj_error)
+
             if (traj_error .eq. 1) then
                q_i=q_i_save
                goto 112
@@ -709,7 +713,8 @@ if ((.not. dont_equi) .and. (rank .eq. 0)) then
 !
 !     Reinitialize the dynamics (momenta etc.)
 !
-      call mdinit_bias(xi_val,dxi_act,derivs,1,2)
+  !    call mdinit_bias(xi_val,dxi_act,derivs,1,2)
+      call mdinit(derivs,xi_val,dxi_act,2)
       do istep = 1, gen_step
          if (istep .eq. 1) then
 !
@@ -717,8 +722,8 @@ if ((.not. dont_equi) .and. (rank .eq. 0)) then
 !
             write(a80,'(a,3e14.7)') "theq",q_i(:,1,1)
          end if
-          
-         call verlet_bias (istep,dt,xi_val,xi_real,dxi_act,energy_act,derivs,i,0)
+         call verlet(istep,dt,derivs,energy_act,0d0,0d0,xi_val,xi_real,dxi_act,i,0,.false.) 
+!         call verlet_bias (istep,dt,xi_val,xi_real,dxi_act,energy_act,derivs,i,0)
          if (istep .eq. 1) then
 !
 !     avoid definition bugs...
@@ -1117,8 +1122,8 @@ if (.not. dont_umbr) then
 !
 !     Reinitialize the dynamics (momenta etc.)
 !
-            
-               call mdinit_bias(xi_val,dxi_act,derivs,1,2)   
+       !        call mdinit_bias(xi_val,dxi_act,derivs,1,2) 
+               call mdinit(derivs,xi_val,dxi_act,2)
 !
 !     Run the current umbrella trajectory for equilibration
 !     
@@ -1133,7 +1138,8 @@ if (.not. dont_umbr) then
                   stop "No GLE implemented!"
                end if
                do istep = 1, equi_step
-                  call verlet_bias (istep,dt,xi_val,xi_real,dxi_act,energy_act,derivs,j,0)
+                  call verlet(istep,dt,derivs,energy_act,0d0,0d0,xi_val,xi_real,dxi_act,j,0,.false.)
+               !   call verlet_bias (istep,dt,xi_val,xi_real,dxi_act,energy_act,derivs,j,0)
 !
 !     check the trajectory, if failed, go to beginning of trajectory
 !
@@ -1189,7 +1195,8 @@ if (.not. dont_umbr) then
                end do
                do istep = 1, umbr_step
 
-                  call verlet_bias (istep,dt,xi_val,xi_real,dxi_act,energy_act,derivs,k,0)
+                  call verlet(istep,dt,derivs,energy_act,0d0,0d0,xi_val,xi_real,dxi_act,k,0,.false.)
+            !      call verlet_bias (istep,dt,xi_val,xi_real,dxi_act,energy_act,derivs,k,0)
 !
 !     check the trajectory, if failed, go to beginning of the equilibration trajectory
 !     then also reset actual values of average and variance
@@ -1645,7 +1652,9 @@ if ((umbr_type .eq. "ATOM_SHIFT") .or. (umbr_type .eq. "CYCLOREVER") .or. &
    end if
 end if
 if (rank .eq. 0) then
-   maxlocate=maxloc(pmf(-int(xi_min/((xi_max-xi_min)/(nbins)))+1:4999),dim=1)
+!   MOD 11.02.2023: Replaced complicated maxloc formula by simple one..
+   maxlocate=maxloc(pmf(:),dim=1)
+!   maxlocate=maxloc(pmf(-int(xi_min/((xi_max-xi_min)/(nbins)))+1:nbins-1),dim=1)
    xi_barrier=bin_coord(maxlocate)
 !
 !     Take the educt asymptotic (xi=zero) as lowest PMF value

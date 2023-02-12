@@ -111,12 +111,12 @@ if (rank .eq. 0) then
            & " for",real(recr_equi)*dt_info," ps."
    write(*,'(a,f11.4,a,f11.4,a)') " Evolving parent trajectory at Xi= ",xi_ideal, &
            & " for",real(recr_equi)*dt_info," ps."
-   call mdinit_bias(xi_ideal,dxi_act,derivs,1,1)
+   call mdinit(derivs,xi_ideal,dxi_act,2)
 !
 !     do dynamics with the verlet subroutine, constrain is activated
 !
    do i=1,recr_equi
-      call verlet_bias(i,dt,xi_ideal,xi_real,dxi_act,en_act,derivs,j,1)
+      call verlet(i,dt,derivs,en_act,0d0,0d0,xi_ideal,xi_real,dxi_act,j,1,.false.)
 !
 !     check the trajectory, if failed, go to beginning of trajectory
 !     --> check after some equilibration time first!
@@ -349,7 +349,7 @@ else
 ! 
             do l=1,child_evol
      !          write(*,*) "centroid3!",q_i
-               call verlet_bias(l,dt,xi_ideal,xi_real,dxi_act,en_act,derivs,m,2)
+               call verlet(l,dt,derivs,en_act,0d0,0d0,xi_ideal,xi_real,dxi_act,m,2,.false.)
                if (xi_real .gt.0) then
                   kappa_num(l)=kappa_num(l)+vs/fs
                end if
@@ -380,14 +380,14 @@ else
 !
 !     Also redo the initialization of the dynamics
 !   
-     call mdinit_bias(xi_ideal,dxi_act,derivs,1,2)
+     call mdinit(derivs,xi_ideal,dxi_act,2)
 
 !
 !     Sample the parent trajectory to generate a new starting configuration
-!     for the childs
+!     for the children
 
       do j=1,child_interv
-         call verlet_bias(i,dt,xi_ideal,xi_real,dxi_act,en_act,derivs,j,1)
+         call verlet(i,dt,derivs,en_act,0d0,0d0,xi_ideal,xi_real,dxi_act,j,1,.false.)
 !
 !     check the trajectory, if failed, go to beginning of trajectory
 !

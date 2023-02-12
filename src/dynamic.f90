@@ -82,7 +82,6 @@ character(len=40)::commarg ! string for command line argument
 integer::istat,readstat
 character(len=10)::ensemble ! which thermodynamic ensemble is used
 ! For box simulations with periodic boundary conditions
-logical::nvt  ! activates the NVT ensemble
 real(kind=8)::coul_cut,vdw_cut
 logical::periodic,ewald,ewald_brute,zahn
 real(kind=8)::ewald_accuracy
@@ -95,6 +94,11 @@ real(kind=8)::xmin,ymin,zmin,xmax,ymax,zmax
 !     for read in of local RPMD activation
 character(len=1)::at_index(200)
 character(len=20)::act_number
+!   for umbrella samplings 
+real(kind=8),allocatable::dxi_act(:,:)
+real(kind=8)::xi_ideal,xi_real
+integer::bias_mode
+integer::round,constrain
 !     the evb-qmdff input
 character(len=70)::fffile1,fffile2,fffile3,fileinfo,filets
 character(len=70)::filets2
@@ -179,7 +183,7 @@ call getxyz
 !
 !     Read in the QMDFF and EVB terms
 !
-call read_evb(rank)
+call read_pes(rank)
 !
 !     initialize the temperature, pressure and coupling baths
 !
@@ -204,6 +208,8 @@ ensemble="NVE"
 nstep=0
 dt=1.d0
 dtdump=1.d0
+bias_mode=0  ! no umbrella sampling as default
+allocate(dxi_act(3,natoms))
 !
 !    Read in the commands from the keyfile 
 !
@@ -247,9 +253,11 @@ if (ensemble .eq. "NVT") then
    nvt=.true.
 else if (ensemble .eq. "NPT") then
    npt=.true.
+else if (ensemble .eq. "NVE") then
+   nve=.true.
 else 
    write(*,*) "No valid thermodynamic ensemble given! Choose either"
-   write(*,*) " NVT or NPT."
+   write(*,*) " NVE, NVT or NPT."
    call fatal
 end if
 if (nstep .lt. 1) then
@@ -267,6 +275,103 @@ end if
 iwrite = nint(dtdump/(dt))
 
 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!     Read the parameter for the NVE ensemble     !!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+if (nve) then
+   thermostat = 0
+   kelvin=0
+   thermo="none"
+   periodic=.false.
+   box_walls=.false.
+   boxlen_x=0.d0
+   boxlen_y=0.d0
+   boxlen_z=0.d0
+   ewald=.false.
+   zahn=.true.
+   coul_method="ZAHN"
+   coul_cut=10.d0
+   vdw_cut=10.d0
+   andersen_step=70
+   nose_q=100.d0
+   do i = 1, nkey
+      next = 1
+      record = keyline(i)
+      call gettext (record,keyword,next)
+      call upcase (keyword)
+      call upcase (record)
+      string = record(next:120)
+      if (trim(adjustl(record(1:11))) .eq. 'NVE {' .or. trim(adjustl(record(1:11))) &
+                 &  .eq. 'NVE{') then
+         do j=1,nkey-i+1
+            next=1
+            record = keyline(i+j)
+            call gettext (record,keyword,next)
+            call upcase (keyword)
+!    If periodic, the dimensions of the simulation box
+            if (keyword(1:13) .eq. 'PERIODIC ') then
+               read(record,*,iostat=readstat) names,boxlen_x,boxlen_y,boxlen_z
+               periodic=.true.
+               if (readstat .ne. 0) then
+                  write(*,*) "Correct format: PERIODIC [xlen,ylen,zlen (A)]"
+                  call fatal
+               end if
+!    If a box with hard walls, the dimensions
+            else if (keyword(1:11) .eq. 'BOX_WALLS ') then
+               read(record,*,iostat=readstat) names,boxlen_x,boxlen_y,boxlen_z
+               box_walls=.true.
+               if (readstat .ne. 0) then
+                  write(*,*) "Correct format: BOX_WALLS [xlen,ylen,zlen (A)]"
+                  call fatal
+               end if
+!    For the periodic coulomb interactions
+            else if (keyword(1:11) .eq. 'COULOMB ') then
+               read(record,*,iostat=readstat) names,a80
+               if (readstat .ne. 0) then
+                  write(*,*) "Correct format: COULOMB [method]"
+                  call fatal
+               end if
+               call upcase(a80)
+               if (a80 .eq. "PPPME") then
+                  ewald=.true.
+                  write(*,*) "The Particle Particle Particle Mesh Ewald (PPPME) method"
+                  write(*,*) " will be used for the handling of Coulomb interactions."
+                  write(*,*) "Please choose another method, the implementation is not complete!"
+                  call fatal
+               end if
+               if (a80 .eq. 'ZAHN ') then
+                  zahn=.true.
+               end if
+               coul_method=a80
+!    The cutoff distance for Coulomb interactions
+            else if (keyword(1:14) .eq. 'COUL_CUTOFF ') then
+               read(record,*,iostat=readstat) names,coul_cut
+               if (readstat .ne. 0) then
+                  write(*,*) "Correct format: COUL_CUTOFF [value (A)]"
+                  call fatal
+               end if
+!    The cutoff distance for VDW interactions
+            else if (keyword(1:13) .eq. 'VDW_CUTOFF ') then
+               read(record,*,iostat=readstat) names,vdw_cut
+               if (readstat .ne. 0) then
+                  write(*,*) "Correct format: VDW_CUTOFF [value (A)]"
+                  call fatal
+               end if
+            end if
+            if (keyword(1:13) .eq. '}') exit
+            if (j .eq. nkey-i) then
+               write(*,*) "The NVE section has no second delimiter! (})"
+               call fatal
+            end if
+         end do
+         exit
+      end if
+   end do
+
+end if
+
+!write(*,*) periodic
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!     Read the parameter for the NVT ensemble     !!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -434,7 +539,7 @@ if (npt) then
    vdw_cut=10.d0
    andersen_step=70
    nose_q=100.d0
-   nose_tau=100.d0
+   nose_tau=4000.d0
    andersen_step=70
 
    do i = 1, nkey
@@ -1018,7 +1123,6 @@ end do
 !
 if (npt) then
    pressure=pressure/prescon
-   write(*,*) "pressure after conversion", pressure
 end if
 !
 !     For periodic systems: convert the box lengths to bohr as well!
@@ -1066,6 +1170,8 @@ if (ensemble .eq. "NVT") then
    write(*,*) " - Thermodynamic ensemble: NVT "
 else if (ensemble .eq. "NPT") then
    write(*,*) " - Thermodynamic ensemble: NpT "
+else if (ensemble .eq. "NVE") then
+   write(*,*) " - Thermodynamic ensemble: NVE "
 end if
 write(*,'(a,i10)') "  - Number of simulated MD steps:",nstep
 write(*,'(a,f12.5)') "  - MD time step (fs):",dt*2.41888428E-2
@@ -1079,6 +1185,10 @@ if (nvt) then
       write(*,'(a,f14.6,f14.6,f14.6)') "    ",boxlen_x*bohr,boxlen_y*bohr,boxlen_z*bohr
       write(*,*) " - Long range Coulomb interactions treated with: ",trim(coul_method)
    end if
+   if (box_walls) then
+      write(*,*) " - The hard walled box has the dimensions (x,y,z) (Angstron):"
+      write(*,'(a,f14.6,f14.6,f14.6)') "    ",boxlen_x*bohr,boxlen_y*bohr,boxlen_z*bohr
+   end if
    write(*,'(a,f11.3,a)') "  - (Short) Coulomb interactions have a cutoff of ",coul_cut, " A"
    write(*,'(a,f11.3,a)') "  - VDW interactions have a cutoff of ",vdw_cut, " A"
    if (thermo .eq. "ANDERSEN") then
@@ -1089,13 +1199,34 @@ if (nvt) then
    end if 
 end if
 
+if (npt) then
+   write(*,'(a,f12.5)') "  - Desired temperature (K): ",kelvin
+   write(*,'(a,f12.5)') "  - Desired pressure (atm): ",pressure*prescon
+   write(*,*) " - The temperature will be applied by the ",trim(thermo)," thermostat"
+   write(*,*) " - The pressure will be applied by the ",trim(baro_name), " barostat"
+   write(*,*) " - The periodic box has the initial dimensions (x,y,z) (Angstron):"
+   write(*,'(a,f14.6,f14.6,f14.6)') "    ",boxlen_x*bohr,boxlen_y*bohr,boxlen_z*bohr
+   write(*,*) " - Long range Coulomb interactions treated with: ",trim(coul_method)
+   if (box_walls) then
+      write(*,*) " - The hard walled box has the dimensions (x,y,z) (Angstron):"
+      write(*,'(a,f14.6,f14.6,f14.6)') "    ",boxlen_x*bohr,boxlen_y*bohr,boxlen_z*bohr
+   end if
+   write(*,'(a,f11.3,a)') "  - (Short) Coulomb interactions have a cutoff of ",coul_cut, " A"
+   write(*,'(a,f11.3,a)') "  - VDW interactions have a cutoff of ",vdw_cut, " A"
+   if (thermo .eq. "ANDERSEN") then
+      write(*,'(a,i6,a)') "  - The Andersen velocity rescaling is done every ",andersen_step," MD steps"
+   end if
+   if (thermo .eq. "NOSE-HOOVER") then
+      write(*,'(a,f12.5,a)') "  - The Nose-Hoover thermostat damping Q is: ",nose_q," time steps"
+   end if
+end if
 
 
 !
 !     call the initialization routine
 !
 
-call mdinit(derivs)
+call mdinit(derivs,xi_ideal,dxi_act,bias_mode)
 !
 !     if you want to control if the total energy is conserved
 !
@@ -1143,8 +1274,9 @@ if (afm_run) len_avg(:)=0
 !
 !     Open files for temperature etc. printouts
 !
-open(unit=236,file="temperature.dat",status="unknown")
-
+if (.not. nve) then
+   open(unit=236,file="temperature.dat",status="unknown")
+end if
 !write(*,*) "INFO: Here are bond lengths written to bonds.log!"
 !write(*,*) " delete this if no longer needed!"
 write(*,*) "Performing MD ...."
@@ -1163,16 +1295,12 @@ do istep = 1, nstep
 !     Write the trajectory frame every iwrite timesteps
 !
    if (mod(istep,iwrite) .eq. 0) then
-      write(28,*) natoms*nbeads
-      write(28,*) 
-      do k=1,nbeads
-         do i=1,natoms
-            write(28,*) name(i),q_i(:,i,k)*bohr
-         end do
-      end do
       analyze=.true.
    end if
-   call verlet (istep,dt,derivs,epot,ekin,afm_force,analyze)
+   round=0
+   constrain=-1
+   call verlet (istep,dt,derivs,epot,ekin,afm_force,xi_ideal,xi_real,dxi_act, &
+            & round,constrain,analyze)
 !
 !     TEST: write out bondlengths to bonds.log
 !
@@ -1287,8 +1415,10 @@ if (afm_run) then
                   & maxval(len_avgs(1:nstep/(afm_avg*iwrite)))," Angstrom."
       write(*,*) maxloc(force_avgs),maxloc(len_avgs)
    end if
-end if 
-write(*,'(a,f12.5,a)') " The averaged measured temperature was:",temp_test/num_measure," K."
+end if
+if (.not. nve) then 
+   write(*,'(a,f12.5,a)') " The averaged measured temperature was:",temp_test/num_measure," K."
+end if
 if (energycon) then
    write(*,'(a,f16.8,a)') " The average value of the potential energy was: ",e_pot_avg/num_measure," Hartrees."
    write(*,'(a,f16.8,a)') " The average value of the kinetic energy was: ",e_kin_avg/num_measure," Hartrees."
@@ -1314,7 +1444,11 @@ if (verbose) then
    write(*,*) " gradients to 'md_gradients.dat', velocities to 'md_velocities.dat', "
    write(*,*) " energies to 'md_energies.dat'."
 else 
-   write(*,*) " Trajectory written to 'trajectory.xyz', temperatures to 'temperature.dat'."
+   if (nve) then
+      write(*,*) " Trajectory written to 'trajectory.xyz'."
+   else 
+      write(*,*) " Trajectory written to 'trajectory.xyz', temperatures to 'temperature.dat'."
+   end if
 end if
 
 write(*,*)

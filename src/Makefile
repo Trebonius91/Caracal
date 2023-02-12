@@ -5,7 +5,7 @@
 #FC = gfortran  # GNU Fortran
 # FC = ifort   # Intel Fortran compiler 
 #  Fortran compiler for MPI version
- FC = mpif90  # GNU Fortran
+ FC = mpifort  # GNU Fortran
 # FC = mpifort # Intel Fortran compiler
 
 #  Location of the compiled and linked executables
@@ -71,10 +71,10 @@ OBJS = general.o evb_mod.o qmdff.o lm_module.o debug.o \
        int2grad.o hess2int.o diagonalize.o dist.o ang.o oop.o \
        dihed.o optimize_3evb.o energy_1g.o mat_diag.o dmatinv.o \
        mdinit.o next_geo.o prepare.o promo.o promo_log.o random.o \
-       read2int.o read_geo.o read_grad.o read_hess.o read_evb.o \
-       geoopt.o calc_freq.o sum_v12.o umbr_coord.o verlet_bias.o \
+       read2int.o read_geo.o read_grad.o read_hess.o read_pes.o \
+       geoopt.o calc_freq.o sum_v12.o umbr_coord.o \
        umbrella.o wham.o prob.o supdot.o calc_xi.o calc_com.o\
-       andersen.o mdinit_bias.o recross.o constrain_q.o constrain_p.o\
+       andersen.o recross.o constrain_q.o constrain_p.o\
        calc_k_t.o bonds_ref.o pre_sample.o get_centroid.o rfft.o  \
        irfft.o rp_evb_init.o build_spline.o interp_spline.o \
        spline_dist.o project_hess.o project_hess_xyz.o egqmdff_corr.o\

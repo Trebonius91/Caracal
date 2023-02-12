@@ -34,7 +34,7 @@ subroutine fatal
 implicit none
 write(*,*) 
 write(*,*) "An ERROR occured! EVB-QMDFF will be terminated."
-write(*,*) "If the error message remains ask J.Steffen (steffen@pctc.uni-kiel.de) for further maintenance."
+write(*,*) "If the error message remains ask J.Steffen (mail@j-steffen.org) for further maintenance."
 write(*,*) 
 stop
 

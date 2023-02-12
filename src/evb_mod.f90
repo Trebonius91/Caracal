@@ -277,7 +277,9 @@ real(kind=8)::box_size
 integer::box_fixed(1000)
 integer::num_fixed
 ! For constant pressure npt simulations with a barostat
-logical::npt
+logical::npt  ! NpT ensemble 
+logical::nve  ! NVE ensemble 
+logical::nvt  ! NVT ensemble
 real(kind=8)::pressure
 logical::verbose  ! activates verbose output of several programs
 

@@ -44,7 +44,6 @@ integer::i,j  ! loop indices
 integer::atom1,atom2  ! the current atom numbers
 real(kind=8)::Rx,Ry,Rz
 
-write(*,*) "form",form_num,break_num
 allocate(form_ref(form_num),break_ref(break_num))
 !
 !     calculate the forming bonds

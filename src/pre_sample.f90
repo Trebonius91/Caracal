@@ -119,7 +119,8 @@ do i=1,n_all+1
    write(15,'(a,f8.4,a,f11.4,a)') " Begin structure interpolation at Xi= ",xi_val, &
             & " for",real(gen_step)*dt_info," ps."
    do istep=1,gen_step
-      call verlet_bias (istep,dt,xi_val,xi_real,dxi_act,en_act,derivs,i,3)
+
+      call verlet(istep,dt,derivs,en_act,0d0,0d0,xi_val,xi_real,dxi_act,i,3,.false.)
    end do
    pre_equi(i,:,:)=q_i(:,:,1)
 end do

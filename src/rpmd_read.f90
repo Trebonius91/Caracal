@@ -37,6 +37,7 @@ subroutine rpmd_read(rank,dt,dtdump,dt_info,gen_step,equi_step,umbr_step,xi_min,
 use general
 use evb_mod
 use debug 
+use qmdff
 implicit none
 !     The current MPI rank
 integer, intent(out) :: rank 
@@ -153,8 +154,12 @@ energy_tol = 250d0
 gen_test = .false.
 !     If the debugging mode shall be set on (write out every single structure)
 do_debug = .false.
-
-
+!     No NVE ensemble will be used
+nve = .false.
+!     No NpT ensemble will be used 
+npt = .false.
+!     No periodic calculation
+periodic = .false.
 !    
 !     Start big loop over all keywords and read them in
 !
@@ -290,10 +295,10 @@ if (rank .eq. 0) then
    else if (kelvin .le. 0.0d0) then
       write(*,*) "No temperature defined! Add the keyword TEMP!"
       call fatal
-   else if ((thermo .ne. "ANDERSEN") .and. (thermo .ne. "GLE")) then
+   else if ((thermo .ne. "ANDERSEN") .and. (thermo .ne. "NOSE-HOOVER")) then
       write(*,*) "No availiable thermostat was chosen! The Andersen"
-      write(*,*) "thermostat as well as the Generalized Langevin Equation (GLE)"
-      write(*,*) "thermostat are avaibliable at the moment. Add the keyword THERMOSTAT!"
+      write(*,*) "thermostat as well as the Nose-Hoover thermostat are "
+      write(*,*) "available at the moment. Add the keyword THERMOSTAT!"
       call fatal
    end if
 !
@@ -358,7 +363,6 @@ if (rank .eq. 0) then
       call fatal
    end if
    call upcase(pmf_minloc)
-   write(*,*) "Minloc", pmf_minloc
    if (pmf_minloc .ne. 'ZERO' .and. pmf_minloc .ne. 'PMF_MIN') then
       write(*,*) "The keyword PMF_MINLOC was found but no valid option was"
       write(*,*) "chosen! Take ZERO or PMF_MIN!"
@@ -431,7 +435,7 @@ end if
 !     A (and C) matrix
 !
 if (thermo .eq. "ANDERSEN") then
-   thermostat=0
+   thermostat=1
 !
 !     Determine the rate at which the thermostat random hits shall be applied:
 !     after each andersen_step MD steps (default: 80)
@@ -447,36 +451,12 @@ if (thermo .eq. "ANDERSEN") then
          read(record,*) names,andersen_step
       end if
    end do
-else if (thermo .eq. "GLE") then
-   if (rank .eq. 0) then
-      write(*,*) "The Generalized Langevin Equation (GLE) thermostat is used."
-      write(*,*) "Read in the gle_A.txt file with the parameter matrix A..."
-   end if
-   inquire(file="gle_A.txt",exist=exist)
-   if (.not. exist) then
-      if (rank .eq. 0) then
-         write(*,*) "ERROR! The GLE thermostat was chosen but no gle_A.txt file provided!"
-      end if
-      call fatal
-   end if
-   allocate(gle_mat_A(5,5))  ! currently, only 5x5 GLE matrices are needed
-   allocate(gle_mat_C(5,5))  ! the GLE C matrix will be set to zero first
-   gle_ns=5-1   ! number of dimensions n for GLE thermostat
-   open(unit=45,file="gle_A.txt",status="old")
-   do i=1,5
-      read(45,*,iostat=readstat) gle_mat_A(i,:)
-      if (readstat .ne. 0 .and. rank .eq. 0) then
-         write(*,*) "ERROR! The GLE matrix file gle_A.txt seems to have a wrong formate!"
-         call fatal
-      end if
-   end do
+else if (thermo .eq. "NOSE-HOOVER") then
+   nose_q = 100.0
 !
 !    convert the GLE matrix entries to atomic units of inverse time 
 !
-   gle_mat_A=gle_mat_A*2.418884326505e-17
-   gle_mat_C=0.d0
-   close(45)
-   thermostat=1
+   thermostat=2
 end if
 
 !

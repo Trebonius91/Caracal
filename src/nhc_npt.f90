@@ -52,7 +52,6 @@ real(kind=8)::volbox
 !
 !     Precalculate frequently used variables
 !
-write(*,*) "dtt",dt
 ekt=1.380649E-23/4.3597447E-18*kelvin
 nc = 5
 ns = 3
@@ -65,6 +64,7 @@ eksum=0.d0
 odnf = 1.0d0 + 3.0d0/df
 gn1kt = (1.0d0+df) * ekt
 press_diff = (press_act-pressure)
+!write(*,*) "pressure",press_act,pressure,press_diff
 scale = 1.0d0
 
 !

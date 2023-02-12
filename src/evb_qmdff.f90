@@ -133,7 +133,7 @@ call getxyz
 !
 !     Read in the QMDFF and EVB terms
 !
-call read_evb(rank)
+call read_pes(rank)
 !
 !     Open logfile for EVB-QMDFF calculations on single structure
 !     print header and time
