@@ -88,8 +88,8 @@ backup = andersen_step
 andersen_step = 1
 if ((thermos .eq. 1) .and. (thermostat .eq. 0)) then 
    call andersen
-else if (thermostat .eq. 1) then 
-   stop "No GLE implemented!"
+!else if (thermostat .eq. 1) then 
+!   stop "No GLE implemented!"
 end if
 andersen_step = backup
 !

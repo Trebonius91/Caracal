@@ -610,13 +610,13 @@ if ((.not. dont_equi) .and. (rank .eq. 0)) then
 !     Reinitialize the dynamics (momenta etc.)
 !     (first: dynamic allocation for Andersen thermostat or initialization of GLE)
 !    
-      if (thermostat .eq. 0) then
-         if (andersen_step .eq. 0) then
-            andersen_step=30!int(dsqrt(dble(gen_step)))
-         end if
-      else if (thermostat .eq. 1) then
-         stop "no GLE implemented!"
-      end if
+!      if (thermostat .eq. 0) then
+!         if (andersen_step .eq. 0) then
+!            andersen_step=30!int(dsqrt(dble(gen_step)))
+!         end if
+!      else if (thermostat .eq. 1) then
+!         stop "no GLE implemented!"
+!      end if
   !    call mdinit_bias(xi_val,dxi_act,derivs,1,2)
       call mdinit(derivs,xi_val,dxi_act,2)
       do istep = 1, gen_step
@@ -713,7 +713,7 @@ if ((.not. dont_equi) .and. (rank .eq. 0)) then
 !
 !     Reinitialize the dynamics (momenta etc.)
 !
-  !    call mdinit_bias(xi_val,dxi_act,derivs,1,2)
+ !     call mdinit_bias(xi_val,dxi_act,derivs,1,2)
       call mdinit(derivs,xi_val,dxi_act,2)
       do istep = 1, gen_step
          if (istep .eq. 1) then
@@ -1129,14 +1129,14 @@ if (.not. dont_umbr) then
 !     
 !     Reset the thermostat
 !
-               andersen_step=0
-               if (thermostat .eq. 0) then
-                  if (andersen_step .eq. 0) then
-                     andersen_step=80!int(dsqrt(dble(equi_step)))
-                  end if
-               else if (thermostat .eq. 1) then
-                  stop "No GLE implemented!"
-               end if
+             !  andersen_step=0
+         !      if (thermostat .eq. 1) then
+         !         if (andersen_step .eq. 0) then
+         !      !      andersen_step=80!int(dsqrt(dble(equi_step)))
+         !         end if
+         !      else if (thermostat .eq. 1) then
+         !         stop "No GLE implemented!"
+         !      end if
                do istep = 1, equi_step
                   call verlet(istep,dt,derivs,energy_act,0d0,0d0,xi_val,xi_real,dxi_act,j,0,.false.)
                !   call verlet_bias (istep,dt,xi_val,xi_real,dxi_act,energy_act,derivs,j,0)
@@ -1177,14 +1177,14 @@ if (.not. dont_umbr) then
                   open(unit=117,file="rpmd_traj.xyz",status="unknown")
                end if
             
-               andersen_step=0
-               if (thermostat .eq. 0) then
-                  if (andersen_step .eq. 0) then
-                     andersen_step=80!floor(dsqrt(dble(umbr_step)))
-                  end if  
-               else if (thermostat .eq. 1) then
-                  stop "No GLE implemented!"
-               end if
+          !     andersen_step=0
+          !     if (thermostat .eq. 0) then
+          !        if (andersen_step .eq. 0) then
+          !           andersen_step=80!floor(dsqrt(dble(umbr_step)))
+          !        end if  
+          !     else if (thermostat .eq. 1) then
+          !        stop "No GLE implemented!"
+          !     end if
 !
 !     calculate unbiased gradient for first sampling step
 !

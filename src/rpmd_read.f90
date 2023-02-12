@@ -65,7 +65,7 @@ character(len=50)::fix_file ! file with numbers of fixed atoms
 !     if recrossing shall be parallelized
 logical, intent (out)::recross_mpi
 !     Loop indices 
-integer::i,j,k,l,p
+integer::i,j,k,l,p,m
 !     Needed characters for read in
 character(len=20) keyword
 character(len=60)::names,names2
@@ -79,7 +79,7 @@ character(len=1)::at_index(200)
 character(len=1)::act_char
 character(len=20)::act_bond
 character(len=20)::act_number
-logical::active,exist
+logical::active,exist,section
 integer::next
 !     status of actual read in
 integer::readstat,istat
@@ -96,6 +96,10 @@ umbr_step = 0
 umbr_traj = 0
 !     temperature for the whole calculations (Kelvin)
 kelvin = 0.0d0
+!     the nose-hoover damping
+nose_q = 100.0
+!     the andersen step, after how many MD steps the velocities are rescaled
+andersen_step = 60
 !     timestep for the trajectories (fs)
 dt = -1.d0
 !     if a trajectory shall be printed out, frequency for printout structures 
@@ -154,18 +158,26 @@ energy_tol = 250d0
 gen_test = .false.
 !     If the debugging mode shall be set on (write out every single structure)
 do_debug = .false.
+!     If atoms of the system shall be fixed during calculation
+fix_atoms=.false.
 !     No NVE ensemble will be used
 nve = .false.
 !     No NpT ensemble will be used 
 npt = .false.
 !     No periodic calculation
 periodic = .false.
+
 !    
 !     Start big loop over all keywords and read them in
 !
 write(15,*)
 write(15,*) "Read in all keywords for the program..."
 write(15,*)
+
+! -------------------------------------------------------------------
+!     A) First, read in settings that do not belong to a section
+! -------------------------------------------------------------------
+write(15,*) "A) General parameters..."
 do i = 1, nkey
    next = 1
    record = keyline(i)
@@ -175,7 +187,7 @@ do i = 1, nkey
 !
 !     reset the read status to successful (check it for each keyword)
 !
-   readstat= 0  
+   readstat= 0
 !
 !     If a traditional force field shall be calculated, activate global flag!
 !     Here also read in a start structure like in dynamic.x to determine the 
@@ -185,82 +197,784 @@ do i = 1, nkey
    if (keyword(1:20) .eq. 'GENERATE_STEPS ') then
       read(record,*,iostat=readstat) names,gen_step
    else if (keyword(1:20) .eq. 'EQUILIBR_STEPS ') then
-      read(record,*,iostat=readstat) names,equi_step
-   else if (keyword(1:20) .eq. 'UMBRELLA_STEPS ') then
-      read(record,*,iostat=readstat) names,umbr_step
-   else if (keyword(1:20) .eq. 'UMBRELLA_TRAJS ') then
-      read(record,*,iostat=readstat) names,umbr_traj
-   else if (keyword(1:11) .eq. 'DELTAT ') then
-      read(record,*,iostat=readstat) names,dt
-   else if (keyword(1:11) .eq. 'TEMP ') then
-      read(record,*,iostat=readstat) names,kelvin
-   else if (keyword(1:20) .eq. 'THERMOSTAT') then
-      read(record,*,iostat=readstat) names,thermo
-      call upcase(thermo)
-   else if (keyword(1:20) .eq. 'BEAD_NUMBER ') then
-      read(record,*,iostat=readstat) names,nbeads
-   else if (keyword(1:20) .eq. 'NPATHS ') then
-      read(record,*,iostat=readstat) names,npaths
-   else if (keyword(1:20) .eq. 'MAX_ERROR ') then
-      read(record,*,iostat=readstat) names,err_max
-   else if (keyword(1:20) .eq. 'NO_CHECK ') then
-      act_check=.false.
-   else if (keyword(1:20) .eq. 'RECROSS_NOCHECK ') then
-      recross_check=.false.
-   else if (keyword(1:20) .eq. 'UMBRELLA_BIAS ') then
-      read(record,*,iostat=readstat) names,k_force
-   else if (keyword(1:20) .eq. 'UMBRELLA_BONDS ') then
-      read(record,*,iostat=readstat) names,umbr_lo,umbr_hi
-   else if (keyword(1:20) .eq. 'UMBRELLA_DIST ') then
-      read(record,*,iostat=readstat) names,umbr_dist
-   else if (keyword(1:15) .eq. 'R_INF ') then
-      read(record,*,iostat=readstat) names,r_inf
-   else if (keyword(1:20) .eq. 'UMBRELLA_TYPE ') then
-      read(record,*,iostat=readstat) names,umbr_type
-      call upcase(umbr_type)
-   else if (keyword(1:20) .eq. 'PMF_XI_RANGE ') then
-      read(record,*,iostat=readstat) names,xi_min,xi_max
-   else if (keyword(1:20) .eq. 'PMF_BINS ') then
-      read(record,*,iostat=readstat) names,nbins
-   else if (keyword(1:20) .eq. 'PMF_METHOD ') then
-      read(record,*,iostat=readstat) names,pmf_method
-      call upcase(pmf_method)
    else if (keyword(1:20) .eq. 'TS_STRUC ') then
       read(record,*,iostat=readstat) names,ts_file
-   else if (keyword(1:20) .eq. 'RECROSS_EQUI ') then
-      read(record,*,iostat=readstat) names,recr_equi
-   else if (keyword(1:20) .eq. 'CHILD_TOTAL ') then
-      read(record,*,iostat=readstat) names,child_tot
-   else if (keyword(1:20) .eq. 'CHILD_INTERVAL ') then
-      read(record,*,iostat=readstat) names,child_interv
-   else if (keyword(1:20) .eq. 'CHILD_PERPOINT ') then
-      read(record,*,iostat=readstat) names,child_point
-   else if (keyword(1:20) .eq. 'CHILD_EVOL ') then
-      read(record,*,iostat=readstat) names,child_evol
-   else if (keyword(1:20) .eq. 'RECROSS_MPI ') then
-      recross_mpi = .true.
-   else if (keyword(1:16) .eq. 'PMF_MINLOC ') then
-      read(record,*,iostat=readstat) names,pmf_minloc
+      if (readstat .ne. 0) then
+         write(*,*) "Correct format: TS_STUC [filename]"
+         call fatal
+      end if
+   else if (keyword(1:20) .eq. 'BEAD_NUMBER ') then
+      read(record,*,iostat=readstat) names,nbeads
+      if (readstat .ne. 0) then
+         write(*,*) "Correct format: BEAD_NUMBER [Number of RPMD beads]"
+         call fatal
+      end if
+   else if (keyword(1:11) .eq. 'DELTAT ') then
+      read(record,*,iostat=readstat) names,dt
+      if (readstat .ne. 0) then
+         write(*,*) "Correct format: DELTAT [MD time step (fs)]"
+         call fatal
+      end if
    else if (keyword(1:16) .eq. 'PRINT_POLYMER ') then
       read(record,*,iostat=readstat) names,print_poly
+      if (readstat .ne. 0) then
+         write(*,*) "Correct format: PRINT_POLYMER [Xi-value]"
+         call fatal
+      end if
+   else if (keyword(1:20) .eq. 'FIX_ATOMS ') then
+      fix_atoms=.true.
+      read(record,*) names,fix_file
+      if (readstat .ne. 0) then
+         write(*,*) "Correct format: FIX_ATOMS [filename with indices]"
+         call fatal
+      end if
+   else if (keyword(1:11) .eq. 'TDUMP ') then
+      read(record,*) names,dtdump
+      if (readstat .ne. 0) then
+         write(*,*) "Correct format: TDUMP [time interval (fs)]"
+         call fatal
+      end if
+!  
+!     calculate the frequency of print outs
+!     
+      iwrite = nint(dtdump/dt_info*0.001d0)
    else if (keyword(1:16) .eq. 'RPMD_EN_TOL ') then
       read(record,*,iostat=readstat) names,energy_tol
-   else if (keyword(1:16) .eq. 'RECROSS_NOCHECK ') then
-      recross_check = .false.
-   else if (keyword(1:16) .eq. 'GEN_TEST ') then
-      read(record,*,iostat=readstat) names,gen_pr_frac
-      gen_pr_act=0
-      gen_test=.true.
+      if (readstat .ne. 0) then
+         write(*,*) "Correct format: RPMD_EN_TOL [energy tolerance (kJ/mol)]"
+         call fatal
+      end if
+   else if (keyword(1:20) .eq. 'GEN_TEST ') then
+      gen_test = .true.
+   else if (keyword(1:20) .eq. 'MAX_ERROR ') then
+      read(record,*,iostat=readstat) names,err_max
+      if (readstat .ne. 0) then
+         write(*,*) "Correct format: MAX_ERROR [Number of errors]"
+         call fatal
+      end if
+   else if (keyword(1:20) .eq. 'NO_CHECK ') then
+      act_check=.false.
    else if (keyword(1:16) .eq. 'DEBUG ') then
       do_debug=.true.
       debug_unit=112
    end if
-   if (readstat .ne. 0) then
-      write(*,*) "ERROR! The qmdff.key file has an invalid formate!"
-      write(*,*) "Did you forget keyword-parameters?"
-      call fatal
+end do
+write(15,*) "...done!"
+
+! -------------------------------------------------------------------
+!     B) SECOND, read in the NVT section!
+! -------------------------------------------------------------------
+section=.false.
+write(15,*) "B) The NVT section..."
+do i = 1, nkey
+   next = 1 
+   record = keyline(i)
+   call gettext (record,keyword,next)
+   call upcase (keyword)
+   call upcase (record)
+   string = record(next:120)
+   if (trim(adjustl(record(1:11))) .eq. 'NVT {' .or. trim(adjustl(record(1:11))) &
+              &  .eq. 'NVT{') then
+      section=.true.
+      do j=1,nkey-i+1
+         next=1
+         record = keyline(i+j)
+         call gettext (record,keyword,next)
+         call upcase (keyword)
+!    The simulation temperature
+         if (keyword(1:11) .eq. 'TEMP ') then
+            read(record,*,iostat=readstat) names,kelvin
+            if (readstat .ne. 0) then
+               write(*,*) "Correct format: TEMP [temperature (K)]"
+               call fatal
+            end if
+!    The thermostat 
+         else if (keyword(1:20) .eq. 'THERMOSTAT ') then
+            read(record,*,iostat=readstat) names,thermo
+            if (readstat .ne. 0) then
+               write(*,*) "Correct format: THERMOSTAT [thermostat]"
+               call fatal
+            end if
+            call upcase(thermo)
+!    How often the Andersen thermostat velocity rescaling is applied
+         else if (keyword(1:16) .eq. 'ANDERSEN_STEP ') then
+            read(record,*,iostat=readstat) names,andersen_step
+            if (readstat .ne. 0) then
+               write(*,*) "Correct format: ANDERSEN_STEP [No. of steps]"
+               call fatal
+            end if
+!    The damping factor for the Nose-Hoover thermostat
+         else if (keyword(1:13) .eq. 'NOSE_DAMP ') then
+            read(record,*,iostat=readstat) names,nose_q
+            if (readstat .ne. 0) then
+               write(*,*) "Correct format: NOSE_DAMP [integer (>1)]"
+               call fatal
+            end if
+         end if
+         if (keyword(1:13) .eq. '}') exit
+         if (j .eq. nkey-i) then
+            write(*,*) "The NVT section has no second delimiter! (})"
+            call fatal
+         end if
+      end do
+      exit
    end if
 end do
+if (.not. section) then
+   write(*,*) "Please add a NVT section with parameters to the keyfile!"
+   call fatal
+end if
+write(15,*) "... done!"
+section = .false.
+
+! -------------------------------------------------------------------
+!     C) THIRD, read in the MECHA section!
+! -------------------------------------------------------------------
+
+write(15,*) "C) The MECHA section..."
+section=.false.
+do i = 1, nkey
+   next = 1
+   record = keyline(i)
+   call gettext (record,keyword,next)
+   call upcase (keyword)
+   call upcase (record)
+   string = record(next:120)
+   if (trim(adjustl(record(1:11))) .eq. 'MECHA {' .or. trim(adjustl(record(1:11))) &
+              &  .eq. 'MECHA{') then
+      section=.true.
+      do j=1,nkey-i+1
+         next=1
+         record = keyline(i+j)
+         call gettext (record,keyword,next)
+         call upcase (keyword)
+!    First, read in only the TYPE, and decide based on this, which parameters must 
+!      be read in else 
+         if (keyword(1:20) .eq. 'TYPE ') then
+            read(record,*,iostat=readstat) names,umbr_type
+            call upcase(umbr_type)
+            if (readstat .ne. 0) then
+               write(*,*) "Correct format: TYPE [Identifier for mechanism]"
+               call fatal
+            end if
+         end if
+      end do
+   end if
+end do
+if (.not. section) then
+   write(*,*) "Please add a MECHA section with parameters to the keyfile!"
+   call fatal
+end if
+
+!
+!    Read in the type of reaction and define the number of forming and breaking bonds
+!
+call upcase(umbr_type)
+if (umbr_type .eq. "UNIMOLEC") then
+   form_num=1
+   break_num=1
+   sum_eds=1
+else if (umbr_type .eq. "BIMOLEC") then
+   form_num=1
+   break_num=1
+   sum_eds=2
+else if (umbr_type .eq. "CYCLOADD") then
+   form_num=2
+   break_num=0
+   sum_eds=2
+else if (umbr_type .eq. "MERGING") then
+   form_num=1
+   break_num=0
+   sum_eds=2
+else if (umbr_type .eq. "ADDITION") then
+   form_num=2
+   break_num=1
+   sum_eds=2
+else if (umbr_type .eq. "ADDITION3") then
+   form_num=3
+   break_num=2
+   sum_eds=3
+else if (umbr_type .eq. "ADD3_SOLV") then
+   form_num=3
+   break_num=2
+   sum_eds=2
+else if (umbr_type .eq. "ADDITION4") then
+   form_num=4
+   break_num=3
+   sum_eds=4
+else if (umbr_type .eq. "ADD4_SOLV") then
+   form_num=4
+   break_num=3
+   sum_eds=2
+else if (umbr_type .eq. "ELIMINATION") then
+   form_num=1
+   break_num=2
+   sum_eds=1
+else if (umbr_type .eq. "CYCLOREVER") then
+   form_num=0
+   break_num=2
+   sum_eds=1
+else if (umbr_type .eq. "REARRANGE") then
+   form_num=1
+   break_num=1
+   sum_eds=1
+else if (umbr_type .eq. "DECOM_1BOND") then
+   form_num=0
+   break_num=1
+   sum_eds=1
+else if (umbr_type .eq. "ATOM_SHIFT") then
+else
+   if (rank .eq. 0) then
+      write(*,*) "This umbrella coordinate set is currently not supported!"
+      write(*,*) "Use one of the supported sets (look into the manual)"
+   end if
+   call fatal
+end if
+
+!
+!    Allocate arrays for reaction type parametrization
+!
+allocate(at_ed(sum_eds,200),n_ed(sum_eds),mass_ed(sum_eds))
+at_ed=0
+n_ed=0
+
+!
+!     allocate arrays for breaking and forming bonds as well as for its 
+!     reading in
+!
+
+if (umbr_type .ne. "ATOM_SHIFT") then
+   allocate(bond_form(form_num,2))
+   allocate(bond_break(break_num,2))
+   allocate(input_form(form_num))
+   allocate(input_break(break_num))
+end if
+
+do i = 1, nkey
+   next = 1
+   record = keyline(i)
+   call gettext (record,keyword,next)
+   call upcase (keyword)
+   call upcase (record)
+   string = record(next:120)
+   if (trim(adjustl(record(1:11))) .eq. 'MECHA {' .or. trim(adjustl(record(1:11))) &
+              &  .eq. 'MECHA{') then
+      do j=1,nkey-i+1
+         next=1
+         record = keyline(i+j)
+         call gettext (record,keyword,next)
+         call upcase (keyword)
+!
+!     Now read in all other informaton of the MECHA section
+!
+         if (keyword(1:20) .eq. 'EDUCT1 ') then
+            read(record,*) names
+            k=1
+!
+!     Read in the atom indices of each single educt: quite complicated in fortran..
+!
+            act_number=" "
+            do l=1,120
+               at_index(l)=record(l:l)
+               if (at_index(l) .ne. " ") then
+                  if (len(trim(act_number)) .lt. 1) then
+                     act_number=at_index(l)
+                  else
+                     act_number=trim(act_number) // at_index(l)
+                  end if
+               else
+                  if (len(trim(act_number)) .ge. 1) then
+                     read(act_number,*,iostat=istat) at_ed(1,k)
+                     if (istat .eq. 0) then
+                        k=k+1
+                     else
+                        at_ed(1,k)=0
+                     end if
+                  end if
+                  act_number=" "
+               end if
+            end do
+         else if (keyword(1:20) .eq. 'EDUCT2 ') then
+            read(record,*) names
+            k=1
+!
+!     Do the same for the second educt..
+!
+            act_number=" "
+            do l=1,120
+               at_index(l)=record(l:l)
+               if (at_index(l) .ne. " ") then
+                  if (len(trim(act_number)) .lt. 1) then
+                     act_number=at_index(l)
+                  else
+                     act_number=trim(act_number) // at_index(l)
+                  end if
+               else
+                  if (len(trim(act_number)) .ge. 1) then
+                     read(act_number,*,iostat=istat) at_ed(2,k)
+                     if (istat .eq. 0) then
+                        k=k+1
+                     else
+                        at_ed(2,k)=0
+                     end if
+                  end if
+                  act_number=" "
+               end if
+            end do
+         else if (keyword(1:20) .eq. 'EDUCT3 ') then
+            if (sum_eds .gt. 2) then
+               read(record,*) names
+               k=1
+!
+!     Do the same for the third educt..
+!
+               act_number=" "
+               do l=1,120
+                  at_index(l)=record(l:l)
+                  if (at_index(l) .ne. " ") then
+                     if (len(trim(act_number)) .lt. 1) then
+                        act_number=at_index(l)
+                     else
+                        act_number=trim(act_number) // at_index(l)
+                     end if
+                  else
+                     if (len(trim(act_number)) .ge. 1) then
+                        read(act_number,*,iostat=istat) at_ed(3,k)
+                        if (istat .eq. 0) then
+                           k=k+1
+                        else
+                           at_ed(3,k)=0
+                        end if
+                     end if
+                     act_number=" "
+                  end if
+               end do
+            end if
+         else if (keyword(1:20) .eq. 'EDUCT4 ') then
+            if (sum_eds .eq. 4) then
+               read(record,*) names
+               k=1
+!     
+!     Do the same for the fourth educt..
+!
+               act_number=" "
+               do l=1,120
+                  at_index(l)=record(l:l)
+                  if (at_index(l) .ne. " ") then
+                     if (len(trim(act_number)) .lt. 1) then
+                        act_number=at_index(l)
+                     else
+                        act_number=trim(act_number) // at_index(l)
+                     end if
+                  else
+                     if (len(trim(act_number)) .ge. 1) then
+                        read(act_number,*,iostat=istat) at_ed(4,k)
+                        if (istat .eq. 0) then
+                           k=k+1
+                        else
+                           at_ed(4,k)=0
+                        end if
+                     end if
+                     act_number=" "
+                  end if
+               end do
+            end if
+!    The infinite reactant separation for bimolecular reactions
+         else if (keyword(1:15) .eq. 'R_INF ') then
+            read(record,*,iostat=readstat) names,r_inf
+            if (readstat .ne. 0) then
+               write(*,*) "Correct format: R_INF [distance (Ang.)]"
+               call fatal
+            end if
+!    Convert the distance from Angstroms to bohr
+            r_inf = r_inf/bohr
+!    The number of equivalent reaction paths / symmetry number
+         else if (keyword(1:20) .eq. 'N_PATHS ') then
+            read(record,*,iostat=readstat) names,npaths
+            if (readstat .ne. 0) then
+               write(*,*) "Correct format: N_PATHS [number]"
+               call fatal
+            end if
+!    The list of formed bonds
+         else if (keyword(1:20) .eq. 'BOND_FORM ') then
+!
+!     Read all bonds with one command
+!
+            read(record,*) names,input_form
+            do m=1,form_num
+               l=1
+               act_bond=input_form(m)
+!
+!     Analyze each substring, extract the numbers of the two participating atoms
+!
+               act_number=" "
+               do k=1,20
+                  act_char=act_bond(k:k)
+                  if (act_char .ne. "-" .and. act_char .ne. " ") then
+                     act_number=trim(act_number) // act_char
+                  else
+                     if (len(trim(act_number)) .ne. 0) then
+                        read(act_number,*) bond_form(m,l)
+                        l=l+1
+                        act_number=" "
+                     end if
+                  end if
+!
+!     if both bonded parters are found, exit the inner loop
+!
+                  if (l .gt. 2) exit
+               end do
+            end do
+!    The list of broken bonds
+         else if (keyword(1:20) .eq. 'BOND_BREAK ') then
+            read(record,*) names,input_break
+            do m=1,break_num
+               l=1
+               act_bond=input_break(m)
+!
+!     Analyze each substring, extract the numbers of the two participating atoms
+!
+               act_number=" "
+               do k=1,20
+                  act_char=act_bond(k:k)
+                  if (act_char .ne. "-" .and. act_char .ne. " ") then
+                     act_number=trim(act_number) // act_char
+                  else
+                     if (len(trim(act_number)) .ne. 0) then
+                        read(act_number,*) bond_break(m,l)
+                        l=l+1
+                        act_number=" "
+                     end if
+                  end if
+!
+!     if both bonded parters are found, exit the inner loop
+!
+                  if (l .gt. 2) exit
+               end do
+            end do
+!
+!     Fpr unimolecular reactions, read in the structure of the educt as well
+!
+!
+!     For unimoleculae reactions: read in structure of educt molecule!
+!
+         else if (keyword(1:20) .eq. 'EDUCTS_STRUC ') then
+            if (sum_eds .eq. 1) then
+               fix_atoms=.true.
+               read(record,*) names,educts_file
+
+               open(unit=31,file=educts_file,status="old",iostat=readstat)
+               if (readstat .ne. 0) then
+                  if (rank .eq. 0) then
+                     write(*,*) "The file ",educts_file," with the educts structure &
+                                       &  could not been found!"
+                     call fatal
+                  end if
+               end if
+               allocate(ed_ref(3,natoms))
+               read(31,*) ; read(31,*)
+               do l=1,natoms
+                  read(31,*) names,ed_ref(:,l)
+                  end do
+               close(31)
+!
+!     convert educts structure to bohr 
+!
+               ed_ref=ed_ref/bohr
+            end if
+
+!
+!     If the special ATOM_SHIFT type is used, read in all needed info and go 
+!     directly to the end of this subsection
+!
+!     Index of the shifted atom
+         else if (keyword(1:20) .eq. 'SHIFT_ATOM') then 
+            if (umbr_type .eq. "ATOM_SHIFT") then
+               read(record,*) names,shift_atom
+               if (shift_atom .lt. 1 .or. shift_atom .gt. natoms) then
+                  write(*,*) "The atom listed in SHIFT_ATOM is not in the system!"
+               end if
+            end if
+!     Which cartesian coordinate (X,Y,Z) of the atom shift
+         else if (keyword(1:20) .eq. 'SHIFT_COORD') then
+            if (umbr_type .eq. "ATOM_SHIFT") then
+               read(record,*) names,names2
+               if (trim(names2) .eq. "X") then
+                  shift_coord=1
+               else if (trim(names2) .eq. "Y") then
+                  shift_coord=2
+               else if (trim(names2) .eq. "Z") then
+                  shift_coord=3
+               else
+                  write(*,*) "No valid coordinate (x, y or z) is given for SHIFT_COORD!"
+                  call fatal
+               end if
+            end if
+!     The interval of the atom shift
+         else if (keyword(1:20) .eq. 'SHIFT_INTERV') then
+            if (umbr_type .eq. "ATOM_SHIFT") then
+               read(record,*) names,shift_lo,shift_hi
+!
+!     convert coordinate borders to bohr
+!
+               shift_lo=shift_lo/bohr
+               shift_hi=shift_hi/bohr
+            end if
+         end if
+      end do
+   end if
+end do
+write(15,*) "... done!"
+
+! -------------------------------------------------------------------
+!     D) FOURTH, read in the UMBRELLA section!
+! -------------------------------------------------------------------
+
+section=.false.
+write(15,*) "D) The UMBRELLA section..."
+do i = 1, nkey
+   next = 1
+   record = keyline(i)
+   call gettext (record,keyword,next)
+   call upcase (keyword)
+   call upcase (record)
+   string = record(next:120)
+   if (trim(adjustl(record(1:15))) .eq. 'UMBRELLA {' .or. trim(adjustl(record(1:15))) &
+              &  .eq. 'UMBRELLA{') then
+      section=.true.
+      do j=1,nkey-i+1
+         next=1
+         record = keyline(i+j)
+         call gettext (record,keyword,next)
+         call upcase (keyword)
+!
+!     Now read in all other informaton of the MECHA section
+!
+!     The strength of the umbrella force constant
+         if (keyword(1:20) .eq. 'BIAS ') then
+            read(record,*,iostat=readstat) names,k_force
+            if (readstat .ne. 0) then
+               write(*,*) "Correct format: BIAS [force constant (a.u.)]"
+               call fatal
+            end if
+!     The interval of the reaction coordinate Xi where sampling shall happen
+         else if (keyword(1:20) .eq. 'BONDS ') then
+            read(record,*,iostat=readstat) names,umbr_lo,umbr_hi
+            if (readstat .ne. 0) then
+               write(*,*) "Correct format: BONDS [lower Xi-val, upper Xi-val]"
+               call fatal
+            end if
+!     Distance between two umbrella windows
+         else if (keyword(1:20) .eq. 'DIST ') then
+            read(record,*,iostat=readstat) names,umbr_dist
+            if (readstat .ne. 0) then
+               write(*,*) "Correct format: DIST [Xi-interval between two windows]"
+               call fatal
+            end if
+!     Number of MD steps per window for structure generation
+         else if (keyword(1:20) .eq. 'GEN_STEPS ') then
+            read(record,*,iostat=readstat) names,gen_step
+            if (readstat .ne. 0) then
+               write(*,*) "Correct format: GEN_STEPS [Number of MD steps]"
+               call fatal
+            end if
+!     Number of MD steps per window for umbrella equilibration
+         else if (keyword(1:20) .eq. 'EQUI_STEPS ') then
+            read(record,*,iostat=readstat) names,equi_step
+            if (readstat .ne. 0) then
+               write(*,*) "Correct format: EQUI_STEPS [Number of MD steps]"
+               call fatal
+            end if
+!     Number of MD steps per window for umbrella sampling
+         else if (keyword(1:20) .eq. 'SAMPLE_STEPS ') then
+            read(record,*,iostat=readstat) names,umbr_step
+            if (readstat .ne. 0) then
+               write(*,*) "Correct format: SAMPLE_STEPS [Number of MD steps]"
+               call fatal
+            end if
+!     Number of sampling trajectories per umbrella window
+         else if (keyword(1:20) .eq. 'SAMPLE_TRAJS ') then
+            read(record,*,iostat=readstat) names,umbr_traj
+            if (readstat .ne. 0) then
+               write(*,*) "Correct format: SAMPLE_TRAJS [Number of trajectories]"
+               call fatal
+            end if
+         end if
+      end do
+   end if
+end do
+if (.not. section) then
+   write(*,*) "Please add a UMBRELLA section with parameters to the keyfile!"
+   call fatal
+end if
+
+write(15,*) "... done!"
+
+! -------------------------------------------------------------------
+!     D) FIFTH, read in the PMF section!
+! -------------------------------------------------------------------
+
+section=.false.
+write(15,*) "D) The PMF section..."
+do i = 1, nkey
+   next = 1
+   record = keyline(i)
+   call gettext (record,keyword,next)
+   call upcase (keyword)
+   call upcase (record)
+   string = record(next:120)
+   if (trim(adjustl(record(1:15))) .eq. 'PMF {' .or. trim(adjustl(record(1:15))) &
+              &  .eq. 'PMF{') then
+      section=.true.
+      do j=1,nkey-i+1
+         next=1
+         record = keyline(i+j)
+         call gettext (record,keyword,next)
+         call upcase (keyword)
+!     Range along the reaction path variable for integration
+         if (keyword(1:20) .eq. 'XI_RANGE ') then
+            read(record,*,iostat=readstat) names,xi_min,xi_max
+            if (readstat .ne. 0) then
+               write(*,*) "Correct format: XI_RANGE [lower Xi-val, upper Xi-val]"
+               call fatal
+            end if
+!     Number of bins in which the PMF shall be calculated
+         else if (keyword(1:20) .eq. 'BINS ') then
+            read(record,*,iostat=readstat) names,nbins
+            if (readstat .ne. 0) then
+               write(*,*) "Correct format: BINS [number of PMF calculation bins]"
+               call fatal
+            end if
+!     Which PMF calculation method shall be used
+         else if (keyword(1:20) .eq. 'METHOD ') then
+            read(record,*,iostat=readstat) names,pmf_method
+            if (readstat .ne. 0) then
+               write(*,*) "Correct format: METHOD [method identifiert]"
+               call fatal
+            end if
+!     How the minimum along the PMF surface shall be located
+         else if (keyword(1:20) .eq. 'MINLOC ') then
+            read(record,*,iostat=readstat) names,pmf_minloc
+            if (readstat .ne. 0) then
+               write(*,*) "Correct format: MINLOC [method identifiert]"
+               call fatal
+            end if
+         end if
+      end do
+   end if
+end do
+if (.not. section) then
+   write(*,*) "Please add a PMF section with parameters to the keyfile!"
+   call fatal
+end if
+write(15,*) "... done!"
+
+! -------------------------------------------------------------------
+!     E) SIXTH, read in the RECROSS section!
+! -------------------------------------------------------------------
+
+section=.false.
+write(15,*) "E) The RECROSS section..."
+do i = 1, nkey
+   next = 1
+   record = keyline(i)
+   call gettext (record,keyword,next)
+   call upcase (keyword)
+   call upcase (record)
+   string = record(next:120)
+   if (trim(adjustl(record(1:15))) .eq. 'RECROSS {' .or. trim(adjustl(record(1:15))) &
+              &  .eq. 'RECROSS{') then
+      section=.true.
+      do j=1,nkey-i+1
+         next=1
+         record = keyline(i+j)
+         call gettext (record,keyword,next)
+         call upcase (keyword)
+!     Number of MD steps for equilibration trajectory
+         if (keyword(1:20) .eq. 'EQUI_STEPS ') then
+            read(record,*,iostat=readstat) names,recr_equi
+            if (readstat .ne. 0) then
+               write(*,*) "Correct format: EQUI_STEPS [Number of MD steps]"
+               call fatal
+            end if
+!     Total number of child trajectories
+         else if (keyword(1:20) .eq. 'CHILD_TOTAL ') then
+            read(record,*,iostat=readstat) names,child_tot
+            if (readstat .ne. 0) then
+               write(*,*) "Correct format: CHILD_TOTAL [Number of child trajs.]"
+               call fatal
+            end if
+!     Number of parent MD steps between child spawnings
+         else if (keyword(1:20) .eq. 'CHILD_INTERVAL ') then
+            read(record,*,iostat=readstat) names,child_interv
+            if (readstat .ne. 0) then
+               write(*,*) "Correct format: CHILD_INTERVAL [MD steps between childs]"
+               call fatal
+            end if
+!     Number of children trajectories per spawning
+         else if (keyword(1:20) .eq. 'CHILD_PERPOINT ') then
+            read(record,*,iostat=readstat) names,child_point
+            if (readstat .ne. 0) then
+               write(*,*) "Correct format: CHILD_PERPOINT [Number of children p.p.]"
+               call fatal
+            end if
+!     Number of MD steps for each child trajectory
+         else if (keyword(1:20) .eq. 'CHILD_STEPS ') then
+            read(record,*,iostat=readstat) names,child_evol
+            if (readstat .ne. 0) then
+               write(*,*) "Correct format: CHILD_STEPS [Number of MD steps per child]"
+               call fatal
+            end if
+!     If recrossing shall be calculated with MPI
+         else if (keyword(1:20) .eq. 'MPI ') then
+            recross_mpi = .true.
+!     If recrossing part shall not be checked for errors
+         else if (keyword(1:20) .eq. 'NO_CHECK ') then
+            recross_check = .false.
+         end if
+      end do
+   end if
+end do
+if (.not. section) then
+   write(*,*) "Please add a RECROSS section with parameters to the keyfile!"
+   call fatal
+end if
+
+
+write(15,*) "... done!"
+
+! -------------------------------------------------------------------
+!     F) SEVENTH, read in the FORCE section! (optional)
+! -------------------------------------------------------------------
+
+write(15,*) "F) The FORCE section..."
+add_force=.false.
+do i = 1, nkey
+   next = 1
+   record = keyline(i)
+   call gettext (record,keyword,next)
+   call upcase (keyword)
+   call upcase (record)
+   string = record(next:120)
+   if (trim(adjustl(record(1:11))) .eq. 'FORCE {' .or. trim(adjustl(record(1:11))) .eq. 'FORCE{') then
+      add_force=.true.
+      do j=1,nkey-i+1
+         next=1
+         record = keyline(i+j)
+         call gettext (record,keyword,next)
+         call upcase (keyword)
+!     First atom on which force is applied: index and force vector
+         if (keyword(1:11) .eq. 'VEC1 ') then
+            read(record,*) names,force1_at,force1_k,force1_v(1),force1_v(2),force1_v(3)
+!     Second atom on which force is applied: index and force vector
+         else if (keyword(1:11) .eq. 'VEC2 ') then
+            read(record,*) names,force2_at,force2_k,force2_v(1),force2_v(2),force2_v(3)
+         end if
+      end do
+   end if
+end do
+
+
 !
 !      Check if all read in parameters are valid.
 !      Abort the program if something is not valid
@@ -347,7 +1061,7 @@ if (rank .eq. 0) then
 !
 !      prevent usage of unimolecular reactions 
 !
-   if (umbr_type .eq. "UNIMOLECULAR") then
+   if (umbr_type .eq. "UNIMOLEC") then
       write(*,*) "Currently, this type is not implemented!"
       call fatal
    end if
@@ -430,345 +1144,44 @@ end if
 !      Read in dependent information (detailed subinformation of the one given
 !      above) or calculate dependent parameters 
 !
-!
-!     Define type of thermostat, if the GLE thermostat is used, read in the 
-!     A (and C) matrix
+!     Define type of thermostat
 !
 if (thermo .eq. "ANDERSEN") then
    thermostat=1
-!
-!     Determine the rate at which the thermostat random hits shall be applied:
-!     after each andersen_step MD steps (default: 80)
-!
-   andersen_step=80
-   do i = 1, nkey
-      next = 1
-      record = keyline(i)
-      call gettext (record,keyword,next)
-      call upcase (keyword)
-      string = record(next:120)
-      if (keyword(1:20) .eq. 'ANDERSEN_STEP') then
-         read(record,*) names,andersen_step
-      end if
-   end do
 else if (thermo .eq. "NOSE-HOOVER") then
-   nose_q = 100.0
-!
-!    convert the GLE matrix entries to atomic units of inverse time 
-!
    thermostat=2
+else 
+   write(*,*) "Only ANDERSEN or NOSE-HOOVER thermostats can be used!"
+   call fatal
 end if
 
 !
 !     Option for fixing of distinct atoms in order to make e.g. metal slab calculations 
 !     possible 
 !
-fix_atoms=.false.
-do i = 1, nkey
-    next = 1
-    record = keyline(i)
-    call gettext (record,keyword,next)
-    call upcase (keyword)
-    string = record(next:120)
-    if (keyword(1:20) .eq. 'FIX_ATOMS ') then
-       fix_atoms=.true.
-       read(record,*) names,fix_file
-    end if
-    if (fix_atoms) then
-       inquire(file=fix_file,exist=exist)
-       if (.not. exist) then
-          if (rank .eq. 0) then
-             write(*,*) "ERROR! The file ",fix_file," with the fixed atoms is not present!"
-          end if
-          call fatal
-       end if
-       allocate(fix_list(1000))
+if (fix_atoms) then
+   inquire(file=fix_file,exist=exist)
+   if (.not. exist) then
+      if (rank .eq. 0) then
+         write(*,*) "ERROR! The file ",fix_file," with the fixed atoms is not present!"
+      end if
+      call fatal
+   end if
+   allocate(fix_list(1000))
 !
 !     Read in list with fixed atoms 
 ! 
-       open(unit=213,file=fix_file,status="old")
-       k=1
-       do
-          read(213,*,iostat=readstat) fix_list(k)
-          if (readstat .ne. 0) exit
-          k=k+1
-       end do
-       fix_num=k-1
-       exit
-    end if
-end do
-
-
-!
-!    Read in the type of reaction and define the number of forming and breaking bonds
-!
-call upcase(umbr_type)
-if (umbr_type .eq. "UNIMOLECULAR") then
-   form_num=1
-   break_num=1
-   sum_eds=1
-else if (umbr_type .eq. "BIMOLEC") then
-   form_num=1
-   break_num=1
-   sum_eds=2
-else if (umbr_type .eq. "CYCLOADD") then
-   form_num=2
-   break_num=0
-   sum_eds=2
-else if (umbr_type .eq. "MERGING") then
-   form_num=1
-   break_num=0
-   sum_eds=2
-else if (umbr_type .eq. "ADDITION") then
-   form_num=2
-   break_num=1
-   sum_eds=2
-else if (umbr_type .eq. "ADDITION3") then
-   form_num=3
-   break_num=2
-   sum_eds=3
-else if (umbr_type .eq. "ADD3_SOLV") then
-   form_num=3
-   break_num=2
-   sum_eds=2
-else if (umbr_type .eq. "ADDITION4") then
-   form_num=4
-   break_num=3
-   sum_eds=4
-else if (umbr_type .eq. "ADD4_SOLV") then
-   form_num=4
-   break_num=3
-   sum_eds=2
-else if (umbr_type .eq. "ELIMINATION") then
-   form_num=1
-   break_num=2
-   sum_eds=1
-else if (umbr_type .eq. "CYCLOREVER") then
-   form_num=0
-   break_num=2
-   sum_eds=1
-else if (umbr_type .eq. "REARRANGE") then
-   form_num=1
-   break_num=1
-   sum_eds=1
-else if (umbr_type .eq. "DECOM_1BOND") then
-   form_num=0
-   break_num=1
-   sum_eds=1
-!
-!     If the special ATOM_SHIFT type is used, read in all needed info and go 
-!     directly to the end of this subsection
-!
-else if (umbr_type .eq. "ATOM_SHIFT") then
-   do i = 1, nkey
-      next = 1
-      record = keyline(i)
-      call gettext (record,keyword,next)
-      call upcase (keyword)
-      string = record(next:120)
-      if (keyword(1:20) .eq. 'SHIFT_ATOM') then
-         read(record,*) names,shift_atom
-         if (shift_atom .lt. 1 .or. shift_atom .gt. natoms) then
-            write(*,*) "The atom listed in SHIFT_ATOM is not in the system!"
-         end if
-      else if (keyword(1:20) .eq. 'SHIFT_COORD') then
-         read(record,*) names,names2
-         if (trim(names2) .eq. "X") then
-            shift_coord=1
-         else if (trim(names2) .eq. "Y") then
-            shift_coord=2
-         else if (trim(names2) .eq. "Z") then
-            shift_coord=3
-         else 
-            write(*,*) "No valid coordinate (x, y or z) is given for SHIFT_COORD!"
-            call fatal
-         end if
-      else if (keyword(1:20) .eq. 'SHIFT_INTERV') then
-         read(record,*) names,shift_lo,shift_hi
-!
-!     convert coordinate borders to bohr
-!
-         shift_lo=shift_lo/bohr
-         shift_hi=shift_hi/bohr
-      end if 
+   open(unit=213,file=fix_file,status="old")
+   k=1
+   do
+      read(213,*,iostat=readstat) fix_list(k)
+      if (readstat .ne. 0) exit
+      k=k+1
    end do
- 
-   goto 22
-else
-   if (rank .eq. 0) then
-      write(*,*) "This umbrella coordinate set is currently not supported!"
-      write(*,*) "Use one of the supported sets (look into the manual)"
-   end if
-   call fatal
+   fix_num=k-1
 end if
 
 
-
-!
-!     For unimoleculae reactions: read in structure of educt molecule!
-!
-do i = 1, nkey
-    next = 1
-    record = keyline(i)
-    call gettext (record,keyword,next)
-    call upcase (keyword)
-    string = record(next:120)
-    if (keyword(1:20) .eq. 'EDUCTS_STRUC ') then
-       fix_atoms=.true.
-       read(record,*) names,educts_file
-
-       open(unit=31,file=educts_file,status="old",iostat=readstat)
-       if (readstat .ne. 0) then
-          if (rank .eq. 0) then
-             write(*,*) "The file ",educts_file," with the educts structure could not been found!"
-             call fatal
-          end if
-       end if
-       allocate(ed_ref(3,natoms))
-       read(31,*) ; read(31,*)
-       do j=1,natoms
-          read(31,*) names,ed_ref(:,j)
-       end do
-       close(31)
-!
-!     convert educts structure to bohr 
-!
-       ed_ref=ed_ref/bohr
-    end if
-
-end do
-!
-!     Now read in more detailed information about the possible reaction
-!     coordinates and their settings
-!
-!
-!     if the bimolec type is chosen, read in the R_inf parameter as well as atoms of the 
-!     educts are read in
-!     if three or four educts are needed, read them in, too
-!
-allocate(at_ed(sum_eds,200),n_ed(sum_eds),mass_ed(sum_eds))
-at_ed=0
-n_ed=0
-do i = 1, nkey
-   next = 1
-   record = keyline(i)
-   call gettext (record,keyword,next)
-   call upcase (keyword)
-   string = record(next:140)
-   if (keyword(1:20) .eq. 'EDUCT1 ') then
-      read(record,*) names
-         k=1
-!
-!     Read in the atom indices of each single educt: quite complicated in fortran..
-!
-      act_number=" "
-      do j=1,120
-         at_index(j)=record(j:j)
-         if (at_index(j) .ne. " ") then
-            if (len(trim(act_number)) .lt. 1) then
-               act_number=at_index(j)
-            else
-               act_number=trim(act_number) // at_index(j)
-            end if
-         else
-            if (len(trim(act_number)) .ge. 1) then
-               read(act_number,*,iostat=istat) at_ed(1,k)
-               if (istat .eq. 0) then
-                  k=k+1
-               else
-                  at_ed(1,k)=0
-               end if
-            end if
-            act_number=" "
-         end if
-      end do
-   else if (keyword(1:20) .eq. 'EDUCT2 ') then
-      read(record,*) names
-      k=1
-!
-!     Do the same for the second educt..
-!
-      act_number=" "
-      do j=1,120
-         at_index(j)=record(j:j)
-         if (at_index(j) .ne. " ") then
-            if (len(trim(act_number)) .lt. 1) then
-               act_number=at_index(j)
-            else
-               act_number=trim(act_number) // at_index(j)
-            end if
-         else
-            if (len(trim(act_number)) .ge. 1) then
-               read(act_number,*,iostat=istat) at_ed(2,k)
-               if (istat .eq. 0) then
-                  k=k+1
-               else
-                  at_ed(2,k)=0
-               end if
-            end if
-            act_number=" "
-         end if
-      end do
-   else if (keyword(1:20) .eq. 'EDUCT3 ') then
-      if (sum_eds .gt. 2) then
-         read(record,*) names
-         k=1
-!
-!     Do the same for the third educt..
-!
-         act_number=" "
-         do j=1,120
-            at_index(j)=record(j:j)
-            if (at_index(j) .ne. " ") then
-               if (len(trim(act_number)) .lt. 1) then
-                  act_number=at_index(j)
-               else
-                  act_number=trim(act_number) // at_index(j)
-               end if
-            else
-               if (len(trim(act_number)) .ge. 1) then
-                  read(act_number,*,iostat=istat) at_ed(3,k)
-                  if (istat .eq. 0) then
-                     k=k+1
-                  else
-                     at_ed(3,k)=0
-                  end if
-               end if
-               act_number=" "
-            end if
-         end do
-      end if
-   else if (keyword(1:20) .eq. 'EDUCT4 ') then
-      if (sum_eds .eq. 4) then
-         read(record,*) names
-         k=1
-!     
-!     Do the same for the fourth educt..
-!
-         act_number=" "
-         do j=1,120
-            at_index(j)=record(j:j)
-            if (at_index(j) .ne. " ") then
-               if (len(trim(act_number)) .lt. 1) then
-                  act_number=at_index(j)
-               else
-                  act_number=trim(act_number) // at_index(j)
-               end if
-            else
-               if (len(trim(act_number)) .ge. 1) then
-                  read(act_number,*,iostat=istat) at_ed(4,k)
-                  if (istat .eq. 0) then
-                     k=k+1
-                  else
-                     at_ed(4,k)=0
-                  end if
-               end if
-               act_number=" "
-            end if
-         end do
-      end if
-   end if
-end do
 !
 !     Control if additional settings are correct/useful/appropriate
 !
@@ -781,6 +1194,7 @@ do i=1,sum_eds
       end if
    end if
 end do
+
 !
 !     Control the elements of the educts arrays for doublings, emptyness etc..
 !     for all educts in one loop!
@@ -825,147 +1239,11 @@ if (sum(n_ed) .ne. natoms) then
       call fatal
    end if
 end if
+!
 !     allocate arrays for breaking and forming bonds as well as for its 
 !     reading in
 !
 
-allocate(bond_form(form_num,2))
-allocate(bond_break(break_num,2))
-allocate(input_form(form_num))
-allocate(input_break(break_num))
-!
-!     Read in the forming and breaking bonds to define the reaction coordinate Xi
-!
-do i = 1, nkey
-   next = 1
-   record = keyline(i)
-   call gettext (record,keyword,next)
-   call upcase (keyword)
-   string = record(next:120)
-   if (keyword(1:20) .eq. 'BOND_FORM ') then
-!
-!     Read all bonds with one command
-!
-      read(record,*) names,input_form
-      do j=1,form_num
-         l=1
-         act_bond=input_form(j)
-!
-!     Analyze each substring, extract the numbers of the two participating atoms
-!
-         act_number=" "
-         do k=1,20
-            act_char=act_bond(k:k)
-            if (act_char .ne. "-" .and. act_char .ne. " ") then
-               act_number=trim(act_number) // act_char
-            else
-               if (len(trim(act_number)) .ne. 0) then
-                  read(act_number,*) bond_form(j,l)
-                  l=l+1
-                  act_number=" "
-               end if
-            end if
-!
-!     if both bonded parters are found, exit the inner loop
-!
-            if (l .gt. 2) exit
-         end do
-      end do
-   else if (keyword(1:20) .eq. 'BOND_BREAK ') then
-      read(record,*) names,input_break
-      do j=1,break_num
-         l=1
-         act_bond=input_break(j)
-!
-!     Analyze each substring, extract the numbers of the two participating atoms
-!
-         act_number=" "
-         do k=1,20
-            act_char=act_bond(k:k)
-            if (act_char .ne. "-" .and. act_char .ne. " ") then
-               act_number=trim(act_number) // act_char
-            else
-               if (len(trim(act_number)) .ne. 0) then
-                  read(act_number,*) bond_break(j,l)
-                  l=l+1
-                  act_number=" "
-               end if
-            end if
-!
-!     if both bonded parters are found, exit the inner loop
-!
-            if (l .gt. 2) exit
-         end do
-      end do
-   end if
-end do
-
-!
-!     Read in the forming and breaking bonds to define the reaction coordinate Xi
-!
-do i = 1, nkey
-   next = 1
-   record = keyline(i)
-   call gettext (record,keyword,next)
-   call upcase (keyword)
-   string = record(next:120)
-   if (keyword(1:20) .eq. 'BOND_FORM ') then
-!
-!     Read all bonds with one command
-!
-      read(record,*) names,input_form
-      do j=1,form_num
-         l=1
-         act_bond=input_form(j)
-!
-!     Analyze each substring, extract the numbers of the two participating atoms
-!
-         act_number=" "
-         do k=1,20
-            act_char=act_bond(k:k)
-            if (act_char .ne. "-" .and. act_char .ne. " ") then
-               act_number=trim(act_number) // act_char
-            else
-               if (len(trim(act_number)) .ne. 0) then
-                  read(act_number,*) bond_form(j,l)
-                  l=l+1
-                  act_number=" "
-               end if
-            end if
-!
-!     if both bonded parters are found, exit the inner loop
-!
-            if (l .gt. 2) exit
-         end do
-      end do
-   else if (keyword(1:20) .eq. 'BOND_BREAK ') then
-      read(record,*) names,input_break
-      do j=1,break_num
-         l=1
-         act_bond=input_break(j)
-!
-!     Analyze each substring, extract the numbers of the two participating atoms
-!
-         act_number=" "
-         do k=1,20
-            act_char=act_bond(k:k)
-            if (act_char .ne. "-" .and. act_char .ne. " ") then
-               act_number=trim(act_number) // act_char
-            else
-               if (len(trim(act_number)) .ne. 0) then
-                  read(act_number,*) bond_break(j,l)
-                  l=l+1
-                  act_number=" "
-               end if
-            end if
-!
-!     if both bonded parters are found, exit the inner loop
-!
-            if (l .gt. 2) exit
-         end do
-      end do
-   end if
-end do
 !
 !      Continue here for the ATOM_SHIFT coordinate
 !
@@ -1035,21 +1313,6 @@ end do
 !      vectors and strenghts for the applied forces 
 !
 if (add_force) then
-   do i = 1, nkey
-      next = 1
-      record = keyline(i)
-      call gettext (record,keyword,next)
-      call upcase (keyword)
-      string = record(next:120)
-!
-!     Ordering: [Atom index] [Force (N)] [Vector (x,y,z)]
-!
-      if (keyword(1:11) .eq. 'FORCE1 ') then
-         read(record,*) names,force1_at,force1_k,force1_v(1),force1_v(2),force1_v(3)
-      else if (keyword(1:11) .eq. 'FORCE2 ') then
-         read(record,*) names,force2_at,force2_k,force2_v(1),force2_v(2),force2_v(3)
-      end if
-   end do
 !
 !     normalize the force vectors
 !
