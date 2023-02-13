@@ -72,6 +72,10 @@ $ dynamic.x -h
 ```
 Now, general instructions how to use the program as well as a list of available keywords is shown.
 
+## Tutorials and Examples
+
+A detailed set of tutorials describing the different programs, including a set of different examples covering relevant application cases can be found in the [EVB-QMDFF Wiki](https://github.com/Trebonius91/EVB-QMDFF/wiki)
+
 ## Future improvements
 
 - A configure file for automatic detection of system requirements will be written.
