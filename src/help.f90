@@ -53,7 +53,6 @@ write(*,*) "--- dynamic.x ------ run unbiased dynamic trajectories -------------
 write(*,*) "--- calc_rate.x ---- Calculating rate constants with (RP)MD --------"
 write(*,*) "--- evb_kt_driver.x- Black box k(T) calculations (beta vers.!) -----" 
 write(*,*) "--- mult_qmdff.x---- QMDFF solvent box generation ------------------"
-write(*,*) "--- qmdffopt.x------ Subsequent optimization of QMDFF parameters ---"
 write(*,*) "--------------------------------------------------------------------"
 !
 !     Program QMDFFGEN: general infos and listing of QM reference commands
