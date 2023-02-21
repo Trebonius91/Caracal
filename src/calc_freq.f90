@@ -125,7 +125,7 @@ do i = 1, 3*nats
    W(i)=au2cm*sign(sqrt(abs(W(i))),W(i))/sqrt(amu2au)
 end do
 if (printfreq) then
-   write(15,*)"*The normal mode frequencies of the structure are:"
+   write(15,*)"*The normal mode frequencies (cm-1) of the structure are:"
    write(15,*)
    do i=1,3*nats
       write(15,*) i, W(i)

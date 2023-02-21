@@ -496,7 +496,8 @@ if (orca) then
    close(261)
    goto 678
 end if
-
+evb2=.false.
+evb3=.false.
 read_name=.false.
 do i = 1, nkey
    next = 1
@@ -526,11 +527,11 @@ do i = 1, nkey
                call fatal 
             end if
          else if (readstat .eq. 0) then
-            evb3=.true.
+            evb2=.true.
             qmdffnumber=2
          end if
       else if (readstat .eq. 0) then
-         evb2=.true.
+         evb3=.true.
          qmdffnumber=3
       end if
       read_name = .true.
@@ -540,7 +541,7 @@ if (.not. read_name) then
    write(*,*) "Please check the QMDFFNAMES keyword!"
    call fatal
 end if
-!write(*,*) evb2,evb3
+write(*,*) "ecvhhh", evb2,evb3
 do i = 1, nkey
    next = 1
    record = keyline(i)

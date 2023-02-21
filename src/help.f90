@@ -44,12 +44,11 @@ character(len=*)::progname
 !     Print general overview about program package and its parts
 !
 write(*,*) "-------------------- EVB-QMDFF HELP --------------------------------"
-write(*,*) "--- qmdffgen.x  -----generating QMDFFs from reference infos --------"
-write(*,*) "--- evbopt.x ------- optimizing EVB coupling terms -----------------"
+write(*,*) "--- qmdffgen.x  -----Generating QMDFFs from reference infos --------"
+write(*,*) "--- evbopt.x ------- Optimizing EVB coupling terms -----------------"
 write(*,*) "--- egrad.x -------- Calculating energies and gradients ------------"
-write(*,*) "--- evb_qmdff.x ---- Geoopts and frequency calculations ------------"
-write(*,*) "--- irc.x  --------- optimizing TS and IRC paths -------------------"
-write(*,*) "--- dynamic.x ------ run unbiased dynamic trajectories -------------"
+write(*,*) "--- explore.x ------ Pseudo QM package (geoopt, freq,...) ----------"
+write(*,*) "--- dynamic.x ------ Run molecular dynamics trajectories -----------"
 write(*,*) "--- calc_rate.x ---- Calculating rate constants with (RP)MD --------"
 write(*,*) "--- evb_kt_driver.x- Black box k(T) calculations (beta vers.!) -----" 
 write(*,*) "--- mult_qmdff.x---- QMDFF solvent box generation ------------------"
@@ -229,23 +228,21 @@ if (trim(progname) .eq. "egrad") then
    write(*,*) "    to the file 'wilson_deriv.dat'"
 end if
 !
-!     Program EVB_QMDFF: general infos and list of all keywords
+!     Program EXPLORE: general infos and list of all keywords
 !
-if (trim(progname) .eq. "evb_qmdff") then
+if (trim(progname) .eq. "explore") then
    write(*,*) "------------------------------------------------------------------"
-   write(*,*) "------ PROGRAM EVB_QMDFF.X : SHORT OVERVIEW AND HELP -------------"
+   write(*,*) "------ PROGRAM EXPLORE.X : SHORT OVERVIEW AND HELP ---------------"
    write(*,*) "------------------------------------------------------------------"
    write(*,*) "--- PART A: basic usage:------------------------------------------"
-   write(*,*) "This program does several basic calculations with EVB-QMDFF"
-   write(*,*) "fields, which would be done with usual quantum chemistry packages:"
-   write(*,*) "Energy, gradient and hessian calculations, geometry optimizations"
-   write(*,*) "for minima and printout of normal coordinates."
-   write(*,*) "The basic usage is: evb_qmdff.x qmdff.key"
+   write(*,*) "This program does several basic calculations with the available "
+   write(*,*) "PES descriptions, which would be done with usual quantum chemistry"
+   write(*,*) "packages: Energy, gradient and hessian/normal mode calculations, "
+   write(*,*) "optimizations of minima, transition states and IRC-reaction paths."
+   write(*,*) "The basic usage is: explore.x name.key"
    write(*,*) "It originates always at one structure; if you want to want to"
    write(*,*) "calculate energies and gradients at several structures, the"
    write(*,*) "program egrad.x should be prefered."
-   write(*,*) "First, the QMDFFs and the EVB coupling must be calculated with"
-   write(*,*) "with qmdffgen.x and evbopt.x, all output of these is used here."
 !
 !     General EVB infos (same for all programs)
 !
@@ -254,84 +251,53 @@ if (trim(progname) .eq. "evb_qmdff") then
 !     end of general section for EVB infos
 !     start with keywords for EVB_QMDFF subprogram
 !
-   write(*,*) " * XYZFILE [.xyz file with start structure (Angstrom)]: the input"
+   write(*,*) " * XYZSTART [.xyz file with start structure (Angstrom)]: the input"
    write(*,*) "    structure for the calculations."
-   write(*,*) " * OPT_MIN: activates geometry optimization. Else, only gradient"
-   write(*,*) "    and frequency calculations are done with input structure."
-   write(*,*) " * CALC_FRAG: only a part of the molecule will be calculated."
-   write(*,*) "    Can be useful to calculate separate educts. A file named "
-   write(*,*) "    fragment.inp with indices of atoms needs to be there."
-   write(*,*) " * OPT_MAXITER [number]: maximal number of geometry optimization"
-   write(*,*) "    steps. (def.: 500) "
-   write(*,*) " * OPT_STEPSIZE [value]: maximum length of single step (def.: 0.2)."
-   write(*,*) " * OPT_ETHR [value]: energy change convergence criterion"
-   write(*,*) "    (def.: 1D-7)"
-   write(*,*) " * OPT_GTHR [value]: gradient norm convergence criterion" 
-   write(*,*) "    (def.: 1D-7)"
-   write(*,*) " * OPT_DTHR [value]: geometry step norm convergence criterion" 
-   write(*,*) "    (def.: 1D-7)"
-   write(*,*) " * OPT_GMAXTHR [value]: largest component of gradient convergence " 
-   write(*,*) "    criterion (def.: 1D-7)"
-   write(*,*) " * OPT_DMAXTHR [value]: largest component of geometry step"
-   write(*,*) "    convergence criterion (def.: 1D-7)"
+   write(*,*) " * JOB [name]: Which kind of calculations shall be done:  "
+   write(*,*) "    -- OPT_MIN : Optimization towards a minimum "
+   write(*,*) "    -- OPT_TS: Optimization towards a TS (+ frequency calc.)"
+   write(*,*) "    -- IRC: Optimization of a reaction path (IRC algorithm)"
+   write(*,*) "    -- FREQ: Frequencies and normal modes are calculated."
+   write(*,*) "    -- OPTFREQ: Minimum optimization + frequency calculation."
+   write(*,*) " * OPT { \n [COMMANDS] \n}: Details for MIN/TS optimization."
+   write(*,*) "    - MAXITER [number]: maximal number of optimization"
+   write(*,*) "       steps. (def.: 500) "
+   write(*,*) "    - STEPSIZE [value]: max. length of single step (def.: 0.2)."
+   write(*,*) "    - ETHR [value]: energy change convergence criterion"
+   write(*,*) "       (def.: 1D-7)"
+   write(*,*) "    - GTHR [value]: gradient norm convergence criterion" 
+   write(*,*) "       (def.: 1D-7)"
+   write(*,*) "    - DTHR [value]: geometry step norm convergence criterion" 
+   write(*,*) "       (def.: 1D-7)"
+   write(*,*) "    - GMAXTHR [value]: largest component of gradient conv. " 
+   write(*,*) "       criterion (def.: 1D-7)"
+   write(*,*) "    - DMAXTHR [value]: largest component of geometry step"
+   write(*,*) "       convergence criterion (def.: 1D-7)"
+   write(*,*) "    - READ_COORD: (TS-opt): read set of manually defined internal"
+   write(*,*) "       coordinates from coord_def.inp. Else: automatic."
+   write(*,*) "    - NEWTON_RAPHSON: (TS-opt): activates NR, else, P-RFO is used."
+   write(*,*) " * IRC { \n [COMMANDS] \n}: Details for IRC optimization."
+   write(*,*) "    - MAXSTEP: maximum number of IRC steps in each direction."
+   write(*,*) "       (def.: 200)"
+   write(*,*) "    - STEPLEN: Desired length of an IRC step ((amu)^1/2*bohr)."
+   write(*,*) "       (def.: 0.1)"
+   write(*,*) "    - EULERLEN: Desired length of elementary Euler step in IRC "
+   write(*,*) "       calculations ((amu)^1/2*bohr). It should be much smaller "
+   write(*,*) "       than the IRC_STEPLEN! (def.: 0.005)"
+   write(*,*) "    - ETHR [value]: IRC energy change convergence criterion"
+   write(*,*) "       (def.: 1D-7)"
+   write(*,*) "    - GTHR [value]: IRC gradient norm convergence criterion"
+   write(*,*) "       (def.: 1D-7)"
+   write(*,*) "  * FREQ { \n [COMMANDS] \n}: Details for frequency calculation."
+   write(*,*) "    - CALC_FRAG: only a part of the molecule will be calculated."
+   write(*,*) "       Can be useful to calculate separate educts. A file named "
+   write(*,*) "       fragment.inp with indices of atoms needs to be there."
+   write(*,*) "    - ORCA_FAKE: An additional name.hess file with the orca "
+   write(*,*) "       hessian format will be written (e.g. for subsequent QMDFF" 
+   write(*,*) "       generations and benchmarks)."
+
 end if
 
-!
-!     Program IRC: general infos and list of all keywords
-!
-if (trim(progname) .eq. "irc") then
-   write(*,*) "------------------------------------------------------------------"
-   write(*,*) "------ PROGRAM IRC.X : SHORT OVERVIEW AND HELP -------------------"
-   write(*,*) "------------------------------------------------------------------"
-   write(*,*) "--- PART A: basic usage:------------------------------------------"
-   write(*,*) "This program does a transition state optimization, followed by a"
-   write(*,*) "calculation of the respective IRC, in both directions. Starting"
-   write(*,*) "point of the program is a TS guess structure. "
-   write(*,*) "The basic usage is: irc.x qmdff.key"
-   write(*,*) "It is important to give a good set of internal coordinates (in "
-   write(*,*) "file coord_def.inp) to ensure a useful TS optimization."
-   write(*,*) "The program might be used to compare EVB-QMDFF IRCs with the"
-   write(*,*) "reference ones used to generate the force fields and coupling."
-!
-!     General EVB infos (same for all programs)
-!
-   call help_evb()
-!
-!     end of general section for EVB infos
-!     start with keywords for IRC subprogram
-!
-   write(*,*) " * XYZFILE [.xyz file with start structure (Angstrom)]: the input"
-   write(*,*) "    structure for the calculations."
-   write(*,*) " * READ_COORD: read set of internal coordinates for TS optimization"
-   write(*,*) "    from file coord_def.inp. Else: automatic choice (maybe bad)."
-   write(*,*) " * OPT_MAXITER [number]: maximal number of geometry optimization"
-   write(*,*) "    steps for TS optimization. (def.: 200) "
-   write(*,*) " * OPT_STEPSIZE [value]: maximum length of single step (def.: 0.05)."
-   write(*,*) " * OPT_ETHR [value]: TS-opt energy change convergence criterion"
-   write(*,*) "    (def.: 1D-7)"
-   write(*,*) " * OPT_GTHR [value]: TS-opt gradient norm convergence criterion"
-   write(*,*) "    (def.: 1D-7)"
-   write(*,*) " * OPT_DTHR [value]: TS-opt geometry step norm convergence criterion"
-   write(*,*) "    (def.: 1D-7)"
-   write(*,*) " * OPT_GMAXTHR [value]: largest component of gradient convergence "
-   write(*,*) "    criterion in TS-opt (def.: 1D-7)"
-   write(*,*) " * OPT_DMAXTHR [value]: largest component of geometry step"
-   write(*,*) "    convergence criterion in TS-opt (def.: 1D-7)"
-   write(*,*) " * NEWTON_RAPHSON: activates this method for TS optimization, else"
-   write(*,*) "    the (usually) better P-RFO method will be used."
-   write(*,*) " * IRC_MAXSTEP: maximum number of IRC steps in each direction."
-   write(*,*) "    (def.: 200)"
-   write(*,*) " * IRC_STEPLEN: Desired length of an IRC step ((amu)^1/2*bohr)."
-   write(*,*) "    (def.: 0.1)"
-   write(*,*) " * IRC_STEPLEN: Desired length of an elementary Euler step in IRC "
-   write(*,*) "    calculations ((amu)^1/2*bohr). It should be much smaller than "
-   write(*,*) "    the IRC_STEPLEN! (def.: 0.005)"
-
-   write(*,*) " * IRC_ETHR [value]: IRC energy change convergence criterion"
-   write(*,*) "    (def.: 1D-7)"
-   write(*,*) " * IRC_GTHR [value]: IRC gradient norm convergence criterion"
-   write(*,*) "    (def.: 1D-7)"
-end if
 !
 !     Program DYNAMIC: general infos and list of all keywords
 !

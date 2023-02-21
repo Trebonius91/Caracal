@@ -136,7 +136,7 @@ bondlentol=1.2d0
 !     decide if Wilson matrix for conversion from/in internal coordinates shall
 !     be calculated numerically or analytically
 !
-num_wilson=.false.
+num_wilson=.true.
 do i = 1, nkey
    next = 1
    record = keyline(i)

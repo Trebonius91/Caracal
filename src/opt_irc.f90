@@ -90,11 +90,8 @@ do i=1,natoms
    xyz2(2,i)=y(i)/bohr
    xyz2(3,i)=z(i)/bohr
 end do
-write(*,*) "STEP2: Starting the IRC optimization..."
-write(*,*)
-write(15,*) " --- PART (B): IRC-OPTIMIZATION: --- "
+write(15,*) " --- IRC-OPTIMIZATION: --- "
 write(15,*)
-
 !
 !     calculate actual cartesian hessian as starting point 
 !
@@ -107,6 +104,7 @@ call calc_freq(hess,eigval_cart,eigvecs,.false.)
 !
 !     FIRST POSSIBILITY: use the simple Euler method!
 !
+irc_method="euler"
 if (irc_method .eq. "euler") then
    write(15,*) "The simple Euler method will be used for numerical integration."
 !

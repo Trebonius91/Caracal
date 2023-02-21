@@ -85,7 +85,7 @@ do i=1,natoms
    xyz2(2,i)=y(i)/bohr
    xyz2(3,i)=z(i)/bohr
 end do
-allocate(indi(natoms))
+!allocate(indi(natoms))
 !
 !     allocate optional indices for fractionated optimization
 ! 
@@ -114,14 +114,12 @@ open(unit=23,file="ts_traj.xyz",status="unknown")
 !
 !     Write start structure to trajectory file
 !
-write(*,*) "STEP1: Starting the TS optimization..."
-write(*,*) 
 write(23,*) natoms 
 write(23,*) "TS-optimization, initial structure "
 do i=1,natoms
    write(23,*) name(i),xyz2(:,i)*bohr
 end do
-write(15,*) " --- PART (A): TS-OPTIMIZATION: --- "
+write(15,*) " --- TS-OPTIMIZATION: --- "
 write(15,*) 
 if (newton_raphson) then
    write(15,*) " The simple Newton-Raphson optimization method will be used."
@@ -429,6 +427,17 @@ write(23,*) "TS-optimization: Final structure, converged!"
 do i=1,natoms
    write(23,*) name(i),xyz2(:,i)*bohr
 end do
+
+write(*,*) "Optimized TS structure written to file 'ts_opt.xyz'."
+open(unit=39,file="ts_opt.xyz",status="replace")
+
+write(39,*) natoms
+write(39,*) "TS-optimization: Final structure, converged!"
+do i=1,natoms
+   write(39,*) name(i),xyz2(:,i)*bohr
+end do
+
+close(39)
 
 !
 !     Overwrite global xyz coordinate array with optimized structure 

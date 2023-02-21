@@ -55,7 +55,7 @@ real(kind=8) ,allocatable :: xvar(:),gvar(:),xparam(:),xlast(:),gg(:)
 real(kind=8) alpha,eold,f,emin,alp,el,xyz2(3,n),yhy,sy,ang,pnorm
 real(kind=8) ggi,xvari,ddot,gnorm,alp0
 character(len=2) asym
-
+logical::converged
 !
 !     max. # of steps
 !
@@ -91,7 +91,6 @@ do i=1,np
    hesinv(ii)=1./h(i,i)
 enddo
 
-
 epot=0
 g4  =0
 xparam=0
@@ -101,6 +100,7 @@ open(unit=47,file="geoopt.xyz",status="unknown")
 !
 !     Enter the optimization loop
 !
+converged=.false.
 write(15,*) "Do the geometry optimization with the BFGS algorithm!"
 write(15,*) "Enter loop till convergence.."
 do icycle=1,nmax
@@ -126,21 +126,23 @@ do icycle=1,nmax
   !       write(85,'(1x,a2,3F12.4)')asym(at(i)),coord(1:3,i)*0.52917726
   !    end do
   ! end if
-
    gnorm=sum(abs(grd))
 !
 !     normal exit if convergence was reached
 !
    if (abs(eold-epot).lt.ethr .and. gnorm.lt.gthr &
-         &  .and. sqrt(yhy).lt.dthr) exit
-
+         &  .and. sqrt(yhy).lt.dthr) then
+      converged=.true.
+      exit
+   end if
 !
 !     absolutely no progress (optimization stagnates)
 !
    if(sqrt(yhy).lt.1.d-6) then
-       write(*,*) "The geometry optimization seems to be stagnating!"
-       write(*,*) "Since no further progress can be made, the optimization"
-       write(*,*) "will be ended here..."
+       write(15,*) "The geometry optimization seems to be stagnating!"
+       write(15,*) "Since no further progress can be made, the optimization"
+       write(15,*) "will be ended here..."
+       converged=.true.
        exit
    endif
 
@@ -242,10 +244,18 @@ do icycle=1,nmax
    yhy=ddot(nvar,d4,1,d4,1)
 
 end do
+if (.not. converged) then
+   write(*,*) "WARNING: The geometry optimization did not reached convergence" 
+   write(*,*) " in the given steps! Increase MAXITER!"
+   write(15,*) "WARNING: The geometry optimization did not reached convergence"
+   write(15,*) " in the given steps! Increase MAXITER!"
+   
+else 
+   write(15,*) "The geometry optimization has converged!"
+end if
 !
 !     last printout after the optimization is done 
 !
-write(15,*) "The geometry optimization has converged!"
 write(15,'('' iteration : '',i4,''  E='',F14.8, &
       &    ''  Gnorm='',F8.5, &
       &    ''  displacement='',f8.5, &
@@ -255,6 +265,15 @@ write(15,'('' iteration : '',i4,''  E='',F14.8, &
 close(85)
 
 deallocate(d4,g4,gold,xparam,hesinv,xvar,gvar,xlast,gg)
+
+open(unit=49,file="opt_final.xyz",status="replace")
+write(49,*) nats
+write(49,*)
+do i=1,nats
+   write(49,*) name(indi(i)),coord(:,(indi(i)))*bohr
+end do
+close(49)
+
 
 end subroutine geoopt
 
