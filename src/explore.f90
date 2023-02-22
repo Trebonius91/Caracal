@@ -290,14 +290,15 @@ if (trim(jobtype) .eq. "OPT_MIN" .or. trim(jobtype) .eq. "OPT_TS" &
                   call fatal
                end if
 !     If newton raphson shall be used (else: the better P-RFO method)
-            else if (keyword(1:20) .eq. 'NEWTON_RAPHSON ') then
-               if (.not. newton_raphson) then
-                  write(*,*) "The simple Newton-Raphson method for PES searching &
-                               &will be used."
-                  write(15,*) "The simple Newton-Raphson method for PES searching &
-                               &will be used."
-               end if
-               newton_raphson=.true.
+!      ---> Currently: always Newton-Raphson!
+!            else if (keyword(1:20) .eq. 'NEWTON_RAPHSON ') then
+!               if (.not. newton_raphson) then
+!                  write(*,*) "The simple Newton-Raphson method for PES searching &
+!                               &will be used."
+!                  write(15,*) "The simple Newton-Raphson method for PES searching &
+!                               &will be used."
+!               end if
+!               newton_raphson=.true.
 !     If internal coordinates shall be defined manually
             else if (keyword(1:16) .eq. 'READ_COORD ') then
                read_coord=.true.
@@ -306,7 +307,7 @@ if (trim(jobtype) .eq. "OPT_MIN" .or. trim(jobtype) .eq. "OPT_TS" &
       end if
    end do
 end if
-
+newton_raphson=.true.
 !
 !    B: The IRC jobs
 !
@@ -362,7 +363,11 @@ if (trim(jobtype) .eq. "IRC") then
                   write(*,*) "Correct format GTHR [gradient (Ht/A]"
                   call fatal
                end if
+!     If internal coordinates shall be defined manually
+            else if (keyword(1:16) .eq. 'READ_COORD ') then
+               read_coord=.true.
             end if
+
          end do
       end if
    end do
@@ -703,6 +708,28 @@ if (ts_opt) then
    if (rank .eq. 0) then
       call opt_ts
    end if
+!
+!     Energy/gradient calculation of the optimized structure
+!
+   if (grad) then
+      call gradient(coord,e_evb,g_evb,1)
+      write(15,*)"*The optimized structure has the coordinates:"
+      do i=1,nats
+         write(15,*) i,coord(:,indi(i))
+      end do
+      write(15,*)
+      write(15,*)"*The energy (Hartree) of the structure is:"
+      write(15,*) e_evb
+      write(15,*)
+      write(15,*)"*The gradient (Hartree/bohr) of the structure is:"
+      write(15,*)
+      do i=1,nats
+         write(15,*) i, g_evb(:,indi(i))
+      end do
+      write(15,*)
+   end if
+
+
    write(*,*) "Finished!"
 end if
 !

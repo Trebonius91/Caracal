@@ -340,7 +340,9 @@ if (irc_method .eq. "euler") then
 end if
 write(15,*)
 write(15,*) "IRC calculation FINISHED!"
+write(15,*) "IRC structures written to 'irc.xyz', energies written to 'irc_ens.dat'."
 write(*,*) "IRC calculation FINISHED!"
+write(*,*) "IRC structures written to 'irc.xyz', energies written to 'irc_ens.dat'."
 
 !
 !     finally, write all IRC structures with TS in one coordinate file!
@@ -385,28 +387,23 @@ write(15,*) "IRC structures written to irc.xyz"
 !
 
 open(unit=24,file="irc_ens.dat",status="unknown")
-open(unit=25,file="irc_parens.dat",status="unknown")
 !
 !     first, all negative s values
 !
 do i=steps_backward,1,-1
-   write(24,*) ens_backward(i)
-   write(25,*) s_backward(i),ens_backward(i)
+   write(24,*) s_backward(i),ens_backward(i)
 end do
 !
 !     then the TS itself
 !
-write(24,*) e_ts
-write(25,*) 0.d0,e_ts
+write(24,*) 0.d0,e_ts
 !
 !     last, all positive s values
 !
 do i=1,steps_forward
-   write(24,*) ens_forward(i)
-   write(25,*) s_forward(i),ens_forward(i)
+   write(24,*) s_forward(i),ens_forward(i)
 end do
 close(24)
-close(25)
 !
 !     Info message in logfile
 !

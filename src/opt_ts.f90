@@ -411,12 +411,12 @@ end do
 !     Write a molden file for inspectation of normal modes 
 !
 call calc_freq(hess,eigval_cart,eigvecs,.false.)
-call g98fake("ts_molden.out",natoms,atind,xyz2,eigval_cart,eigvecs,eigvecs)
+call g98fake("ts_opt.molden",natoms,atind,xyz2,eigval_cart,eigvecs,eigvecs)
 write(*,*) "File with normal mode vibrations and IR spectrum was written to"
-write(*,*) "ts_molden.out. Open it with molden to inspect the normal modes!"
+write(*,*) "ts_opt.molden. Open it with molden to inspect the normal modes!"
 write(*,*)
 write(15,*) "File with normal mode vibrations and IR spectrum was written to"
-write(15,*) "ts_molden.out. Open it with molden to inspect the normal modes!"
+write(15,*) "ts_opt.molden. Open it with molden to inspect the normal modes!"
 write(15,*) 
 
 !
@@ -428,6 +428,7 @@ do i=1,natoms
    write(23,*) name(i),xyz2(:,i)*bohr
 end do
 
+write(*,*) "Succession of optimized structures written to 'ts_traj.xyz'"
 write(*,*) "Optimized TS structure written to file 'ts_opt.xyz'."
 open(unit=39,file="ts_opt.xyz",status="replace")
 
