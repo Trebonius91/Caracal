@@ -372,7 +372,7 @@ end if
 !     If no bond orders were calculated (i.e. all are zero), 
 !     activate the EHT calculation of them!
 !
-if (sum(wbo) .le. 0.1d0) then
+if (sum(wbo) .le. 0.1d0 .and. software .ne. "C") then
    ex=.false.
 
 end if
@@ -563,7 +563,6 @@ write(10,*) 'Enci(electrostatics)      (Re)=',enci(2)
 write(10,*) 'Enci(dispersion)          (Re)=',enci(1)
 write(10,*) 'Enci(repulsion)           (Re)=',enci(3)
 
- 
 if(echo) stop
 !
 !     Morst important part:

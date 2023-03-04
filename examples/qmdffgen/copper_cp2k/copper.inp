@@ -1,0 +1,132 @@
+&GLOBAL
+  ! the project name is made part of most output files... useful to keep order 
+  PROJECT min1
+  ! various runtypes (energy, geo_opt, etc.) available.
+  RUN_TYPE VIBRATIONAL_ANALYSIS      
+&END GLOBAL
+
+&FORCE_EVAL
+  ! the electronic structure part of CP2K is named Quickstep
+  METHOD Quickstep
+  &DFT
+    ! basis sets and pseudopotential files can be found in cp2k/data
+    BASIS_SET_FILE_NAME BASIS_MOLOPT
+    POTENTIAL_FILE_NAME GTH_POTENTIALS            
+
+    ! Charge and multiplicity
+    CHARGE 0
+    LSD
+    MULTIPLICITY 4
+
+    &MGRID
+       ! PW cutoff ... depends on the element (basis) too small cutoffs lead to the eggbox effect.
+       ! certain calculations (e.g. geometry optimization, vibrational frequencies,
+       ! NPT and cell optimizations, need higher cutoffs)
+       CUTOFF [Ry] 400 
+    &END
+
+    &QS
+       ! use the GPW method (i.e. pseudopotential based calculations with the Gaussian and Plane Waves scheme).
+       METHOD GPW 
+       ! default threshold for numerics ~ roughly numerical accuracy of the total energy per electron,
+       ! sets reasonable values for all other thresholds.
+       EPS_DEFAULT 1.0E-10 
+       ! used for MD, the method used to generate the initial guess.
+       EXTRAPOLATION ASPC 
+    &END
+
+    &POISSON
+       PERIODIC XYZ ! the default, gas phase systems should have 'NONE' and a wavelet solver
+    &END
+
+    &PRINT
+       ! at the end of the SCF procedure generate cube files of the density
+       &E_DENSITY_CUBE OFF
+       &END E_DENSITY_CUBE
+    &END
+
+    ! use the OT METHOD for robust and efficient SCF, suitable for all non-metallic systems.
+    &SCF                              
+      SCF_GUESS ATOMIC ! can be used to RESTART an interrupted calculation
+      MAX_SCF 30
+      EPS_SCF 1.0E-6 ! accuracy of the SCF procedure typically 1.0E-6 - 1.0E-7 --> higher for frequencies!
+      &OT
+        ! an accurate preconditioner suitable also for larger systems
+        PRECONDITIONER FULL_SINGLE_INVERSE
+        ! the most robust choice (DIIS might sometimes be faster, but not as stable).
+        MINIMIZER CG
+      &END OT
+      &OUTER_SCF ! repeat the inner SCF cycle 10 times
+        MAX_SCF 10
+        EPS_SCF 1.0E-6 ! must match the above
+      &END
+    &END SCF
+
+    ! specify the exchange and correlation treatment
+    &XC
+      ! use a PBE functional 
+      &XC_FUNCTIONAL 
+         &PBE
+         &END
+      &END XC_FUNCTIONAL
+      ! adding Grimme's D3 correction (by default without C9 terms) 
+      &VDW_POTENTIAL
+         POTENTIAL_TYPE PAIR_POTENTIAL 
+         &PAIR_POTENTIAL
+            PARAMETER_FILE_NAME dftd3.dat
+            TYPE DFTD3
+            REFERENCE_FUNCTIONAL PBE
+            R_CUTOFF [angstrom] 16
+         &END
+      &END VDW_POTENTIAL
+    &END XC
+  &END DFT
+ 
+  ! description of the system
+  &SUBSYS
+    &CELL 
+      ! unit cells that are orthorhombic are more efficient with CP2K
+      ABC [angstrom] 12.7808 10.2247 30.000
+   !   SYMMETRY MONOCLINIC
+    &END CELL
+
+    ! atom coordinates can be in the &COORD section,
+    ! or provided as an external file.
+    &TOPOLOGY
+      COORD_FILE_NAME min1.xyz
+      COORD_FILE_FORMAT XYZ
+    &END
+
+    ! MOLOPT basis sets are fairly costly,
+    ! but in the 'DZVP-MOLOPT-SR-GTH' available for all elements
+    ! their contracted nature makes them suitable
+    ! for condensed and gas phase systems alike.
+    &KIND Cu
+      BASIS_SET SZV-MOLOPT-SR-GTH
+      POTENTIAL GTH-PBE-q11
+    &END KIND
+
+    &KIND H
+      BASIS_SET TZV2PX-MOLOPT-GTH-q1
+      POTENTIAL GTH-PBE-q1
+    &END KIND
+
+
+  &END SUBSYS
+&END FORCE_EVAL
+
+! calculation of hessian and frequencies for QMDFF generation!
+&VIBRATIONAL_ANALYSIS
+  ! increment for finite difference method
+  DX 1.0E-02
+  ! Avoid to clean rotations from Hessian matrix
+  FULLY_PERIODIC .FALSE.
+  ! Turn on calculation of IR intensities 
+  ! --> Calculation of dipoles needs to be specified explicitly!
+  INTENSITIES .FALSE.
+  ! Numer of processors used per replica environment (?)
+  NPROC_REP 1
+&END VIBRATIONAL_ANALYSIS
+
+
+

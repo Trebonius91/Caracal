@@ -81,8 +81,13 @@ else if (software .eq. "C") then
       if(index(a80,'Hirshfeld Charges').ne.0) then
          read(142,*) header
          do i=1,n
-            read(142,*,iostat=readstat) numi,attype,idum,fdum,fdum,chir(i)
- !          read(142,*,iostat=readstat) numi,attype,idum,fdum,fdum,fdum,fdum,chir(i)
+!
+!    Two different formats possible (?)
+!
+            read(142,*,iostat=readstat) numi,attype,idum,fdum,fdum,fdum,fdum,chir(i)
+            if (readstat .ne. 0) then 
+               read(142,*,iostat=readstat) numi,attype,idum,fdum,fdum,chir(i)
+            end if
             if (readstat .ne. 0) then
                write(*,*) "ERROR! The CP2K charge section has a wrong formate!"
                write(*,*) " Presumably you have used the wrong CP2K version, this program"
