@@ -721,6 +721,11 @@ do i = 1, nkey
                shift_hi=shift_hi/bohr
             end if
          end if
+         if (keyword(1:13) .eq. '}') exit
+         if (j .eq. nkey-i) then
+            write(*,*) "The MECHA section has no second delimiter! (})"
+            call fatal
+         end if
       end do
    end if
 end do
@@ -800,6 +805,12 @@ do i = 1, nkey
                call fatal
             end if
          end if
+         if (keyword(1:13) .eq. '}') exit
+         if (j .eq. nkey-i) then
+            write(*,*) "The UMBRELLA section has no second delimiter! (})"
+            call fatal
+         end if
+
       end do
    end if
 end do
@@ -859,6 +870,11 @@ do i = 1, nkey
                write(*,*) "Correct format: MINLOC [method identifiert]"
                call fatal
             end if
+         end if
+         if (keyword(1:13) .eq. '}') exit
+         if (j .eq. nkey-i) then
+            write(*,*) "The PMF section has no second delimiter! (})"
+            call fatal
          end if
       end do
    end if
@@ -932,6 +948,11 @@ do i = 1, nkey
          else if (keyword(1:20) .eq. 'NO_CHECK ') then
             recross_check = .false.
          end if
+         if (keyword(1:13) .eq. '}') exit
+         if (j .eq. nkey-i) then
+            write(*,*) "The RECROSS section has no second delimiter! (})"
+            call fatal
+         end if
       end do
    end if
 end do
@@ -969,6 +990,11 @@ do i = 1, nkey
 !     Second atom on which force is applied: index and force vector
          else if (keyword(1:11) .eq. 'VEC2 ') then
             read(record,*) names,force2_at,force2_k,force2_v(1),force2_v(2),force2_v(3)
+         end if
+         if (keyword(1:13) .eq. '}') exit
+         if (j .eq. nkey-i) then
+            write(*,*) "The FORCE section has no second delimiter! (})"
+            call fatal
          end if
       end do
    end if
@@ -1033,16 +1059,16 @@ if (rank .eq. 0) then
 !     specific umbrella sampling settings 
 !
    if (k_force .eq. -1.0) then
-      write(*,*) "No umbrella force constant defined! Add the keyword UMBRELLA_BIAS!"
+      write(*,*) "No umbrella force constant defined! Add the keyword BIAS (UMBRELLA{)!"
       call fatal
    else if ((umbr_lo .eq. -5.0) .or. (umbr_hi .eq. -5.0)) then
-      write(*,*) "No range for umbrella samplings defined! Add the keyword UMBRELLA_BONDS!"
+      write(*,*) "No range for umbrella samplings defined! Add the keyword BONDS (UMBRELLA{)!"
       call fatal
    else if (umbr_dist .eq. -1.0) then
-      write(*,*) "No distance between umbrella samplings defined! Add the keyword UMBRELLA_DIST!"
+      write(*,*) "No distance between umbrella samplings defined! Add the keyword DIST (UMBRELLA{)!"
       call fatal
    else if (umbr_type .eq. "none") then
-      write(*,*) "No type of biased coordinate system is given! Add the keyword UMBRELLA_TYPE!"
+      write(*,*) "No type of biased coordinate system is given! Add the keyword TYPE (MECHA{)!"
       write(*,*) "Coordinate systems currently supported:"
 !      write(*,*) "UNIMOLECULAR: A unimolecular reaction: one bond is built, one broken (one molecule)"
       write(*,*) "BIMOLEC: A bimolecular reaction: one bond is built, the other broken."

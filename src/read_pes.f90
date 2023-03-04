@@ -156,24 +156,24 @@ else if (method .eq. "DE_EVB")  then
    if (rank .eq. 0) then
    end if
 else if (method .eq. "DQ_EVB")  then
+   evb_dq=.true.
    if (rank .eq. 0) then
-      evb_dq=.true.
       write(15,*) "The dQ-EVB (coordinate) coupling term will be used!"
       write(15,*)
       write(*,*) "The dQ-EVB (coordinate) coupling term will be used!"
       write(*,*)
    end if
 else if (method .eq. "DG_EVB") then
+   dg_evb=.true.
    if (rank .eq. 0) then
-      dg_evb=.true.
       write(15,*) "The DG-EVB (distributed Gaussian) coupling term will be used!"
       write(15,*)
       write(*,*) "The DG-EVB (distributed Gaussian) coupling term will be used!"
       write(*,*)
    end if
 else if (method .eq. "TREQ") then
+   treq=.true.
    if (rank .eq. 0) then
-      treq=.true.
       write(15,*) "The TREQ potential energy function will be used!"
       write(15,*)
       write(*,*) "The TREQ potential energy function will be used!"
@@ -183,16 +183,16 @@ else if (method .eq. "TREQ") then
 !     If the SPC water model shall be used (only for water, of course...)
 !
 else if (method .eq. "WATER_SPC") then
+   water_spc=.true.
    if (rank .eq. 0) then
-      water_spc=.true.
    end if
 
 !
 !     If the gradient shall be calculated on the fly with orca
 !
 else if (method .eq. "ORCA") then
+   orca=.true.
    if (rank .eq. 0) then
-      orca=.true.
       write(*,*) "The keyword orca was found!"
       write(*,*) "Ab-initio MD will be conducted!"
       write(*,*) "Input commands will be read in from 'orca_com.dat'"
@@ -541,7 +541,6 @@ if (.not. read_name) then
    write(*,*) "Please check the QMDFFNAMES keyword!"
    call fatal
 end if
-write(*,*) "ecvhhh", evb2,evb3
 do i = 1, nkey
    next = 1
    record = keyline(i)
@@ -871,6 +870,7 @@ if (qmdffnumber.eq.2) then
       rp_mid_trans=0.1d0  ! transition region between energies and EVB-QMDFF, inside rp_mid_tot
       pre_exp=4.d0  ! pre factor for exponential damping of RP-EVB
       pareta=20.d0  ! shape parameter for damping function
+      path_dist_limit=100.d0
 !      corr_max=1.0d0  ! maximal derivative of the QMDFF correction (Emax)
 !      deltp=0.40  ! interval in which the QMDFF correction is applied
 !      ddeltp=0.10d0  ! how much shorter the interval for correcting QMDFF hessians is 
@@ -895,8 +895,10 @@ if (qmdffnumber.eq.2) then
          record = keyline(i)
          call gettext (record,keyword,next)
          call upcase (keyword)
+         call upcase (record)
          string = record(next:120)
-         if (keyword(1:11) .eq. 'TREQ { ' .or. keyword(1:11) .eq. 'TREQ{ ') then
+         if (trim(adjustl(record(1:11))) .eq. 'TREQ { ' .or. & 
+                     & trim(adjustl(record(1:11))) .eq. 'TREQ{ ') then
             do j=1,nkey-i+1
                next=1
                record = keyline(i+j)
@@ -1116,7 +1118,7 @@ if (qmdffnumber.eq.2) then
                   end if
                end if
 
-               if (record .eq. '}') exit
+               if (keyword(1:13) .eq. '}') exit
                if (j .eq. nkey-i) then
                   write(*,*) "The TREQ section has no second delimiter! (})"
                   call fatal
@@ -1124,7 +1126,6 @@ if (qmdffnumber.eq.2) then
             end do
          end if
       end do
-
 
 !
 !     If manual borders of areas along IRC were read in, determine QMDFF damping area
