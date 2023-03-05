@@ -1226,7 +1226,12 @@ if (qmdffnumber.eq.2) then
 !     Read them from the evb_pars.dat file obtained from EVB optimization
 !  
 
-      open (unit=443,file="evb_pars.dat",status="old")
+      open (unit=443,file="evb_pars.dat",status="old",iostat=readstat)
+      if (readstat .ne. 0) then
+         write(*,*) "The file evb_pars.dat containing the parameters for the EVB"
+         write(*,*) " coupling term is not there! Please generate it using evbobt.x!"
+         call fatal
+      end if
       read(443,*,iostat=readstat) names
       read(443,*,iostat=readstat) offa
       read(443,*,iostat=readstat) offb

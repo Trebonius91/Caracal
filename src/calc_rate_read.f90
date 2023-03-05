@@ -660,7 +660,7 @@ do i = 1, nkey
 !
          else if (keyword(1:20) .eq. 'EDUCTS_STRUC ') then
             if (sum_eds .eq. 1) then
-               fix_atoms=.true.
+              ! fix_atoms=.true.
                read(record,*) names,educts_file
 
                open(unit=31,file=educts_file,status="old",iostat=readstat)
@@ -698,7 +698,8 @@ do i = 1, nkey
 !     Which cartesian coordinate (X,Y,Z) of the atom shift
          else if (keyword(1:20) .eq. 'SHIFT_COORD') then
             if (umbr_type .eq. "ATOM_SHIFT") then
-               read(record,*) names,names2
+               read(record,*) names,names2 
+               call upcase(names2)
                if (trim(names2) .eq. "X") then
                   shift_coord=1
                else if (trim(names2) .eq. "Y") then
@@ -1259,7 +1260,7 @@ do l=1,sum_eds
    end if
    n_ed(l)=i-1
 end do
-if (sum(n_ed) .ne. natoms) then
+if (sum(n_ed) .ne. natoms .and. umbr_type .ne. "ATOM_SHIFT") then
    if (rank .eq. 0) then
       write(*,*) "The sum of educt atoms isn´t equal to the total number of atoms!"
       call fatal

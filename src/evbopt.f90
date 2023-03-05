@@ -470,8 +470,10 @@ if (evb_de) then
       record = keyline(i)
       call gettext (record,keyword,next)
       call upcase (keyword)
+      call upcase (record)
       string = record(next:120)
-      if (keyword(1:11) .eq. 'DE_EVB { ' .or. keyword(1:11) .eq. 'DE_EVB{ ') then
+      if (trim(adjustl(record(1:15))) .eq. 'DE_EVB { ' .or. &
+                  & trim(adjustl(record(1:15))) .eq. 'DE_EVB{ ') then
          do j=1,nkey-i+1
             next=1
             record = keyline(i+j)
@@ -479,7 +481,7 @@ if (evb_de) then
             call upcase (keyword)
             if (keyword(1:11) .eq. 'COUPLING ') then
                read(record,*) names,off_basis
-
+               write(*,*) "HGupgupg",off_basis
                if (off_basis .eq. "1g" .or. off_basis.eq."2g" & 
                    & .or. off_basis.eq."3g" &
                    & .or.off_basis.eq."sp" .or. off_basis.eq."sd" &
@@ -521,8 +523,10 @@ if (dg_evb) then
       record = keyline(i)
       call gettext (record,keyword,next)
       call upcase (keyword)
+      call upcase (record)
       string = record(next:120)
-      if (keyword(1:11) .eq. 'DG_EVB { ' .or. keyword(1:11) .eq. 'DG_EVB{ ') then
+      if (trim(adjustl(record(1:15))) .eq. 'DG_EVB { ' .or. &
+                  &  trim(adjustl(record(1:15))) .eq. 'DG_EVB{ ') then
          do j=1,nkey-i+1
             next=1
             record = keyline(i+j)

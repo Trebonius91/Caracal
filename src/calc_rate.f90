@@ -211,7 +211,7 @@ call initial(rank)
 if (rank .eq. 0) then
    call get_command_argument(1, commarg)
    if (trim(commarg) .eq. "-help" .or. trim(commarg) .eq. "-h") then
-      call help("rpmd")
+      call help("calc_rate")
       stop
    else
       write(*,*) "To show some basic infos about the program and a list of all"
