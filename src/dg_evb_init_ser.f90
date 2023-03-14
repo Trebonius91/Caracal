@@ -178,7 +178,7 @@ allocate(d_mat(mat_size,mat_size))
 allocate(alph_opt(dg_evb_points+add_alph))
 allocate(b_opt(mat_size))
 !
-!  open the ref.input file with informations about the reference points
+!  open the grad_hess.dat file with informations about the reference points
 !  read in the lines and convert geometries, gradients and hessians to 
 !  internal coordinates
 !

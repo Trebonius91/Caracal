@@ -27,7 +27,7 @@
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 !
-!     subroutine read_grad: Read in cartesian gradient from ref.input 
+!     subroutine read_grad: Read in cartesian gradient from grad_hess.dat 
 !     file and convert to internals
 !
 !     part of EVB

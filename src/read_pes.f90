@@ -664,7 +664,7 @@ if (qmdffnumber.eq.2) then
 !
       dg_evb_mode=0
       dg_evb_points=0
-      dg_ref_file="ref.input"
+      dg_ref_file="grad_hess.dat"
       g_thres=1E-10
       do i = 1, nkey
          next = 1
@@ -884,7 +884,7 @@ if (qmdffnumber.eq.2) then
       trans_r_hi=0.d0
       int_grad_plot=.false.
       int_coord_plot=.false.
-      dg_ref_file="ref.input"
+      dg_ref_file="grad_hess.dat"
       file_irc_struc=""
       file_irc_ens=""
       irc_local=5

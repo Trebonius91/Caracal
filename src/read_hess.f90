@@ -27,7 +27,7 @@
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 !
-!     subroutine read_hess: Read in cartesian hessian from ref.input 
+!     subroutine read_hess: Read in cartesian hessian from grad_hess.dat
 !     file and convert to internals
 !
 !     part of EVB

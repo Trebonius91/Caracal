@@ -182,7 +182,7 @@ mess_len=4+dg_evb_points+add_alph+mat_size
 allocate(act_vec(mat_size),message(mess_len))
 
 !
-!  open the ref.input file with informations about the reference points
+!  open the grad_hess.dat file with informations about the reference points
 !  read in the lines and convert geometries, gradients and hessians to 
 !  internal coordinates
 !

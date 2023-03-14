@@ -31,7 +31,7 @@
 !     energies, gradients and hessians 
 !     and convert to internal coordinates
 !     It is used for the dg_evb initialization procedure
-!     All infos are read in from ref.input
+!     All infos are read in from grad_hess.dat (or customized name)
 !     
 !     part of EVB
 !

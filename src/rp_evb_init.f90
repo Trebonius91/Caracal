@@ -140,7 +140,7 @@ allocate(rp_point_v12(rp_evb_points))
 !   mass(i)=1.0079d0
 !end do
 !
-!    open the ref.input file with informations about the reference points
+!    open the grad_hess.dat file with informations about the reference points
 !    read in the lines and convert geometries, gradients and hessians to 
 !    internal coordinates  --> dummy DG-EVB mode = 3
 !
@@ -423,12 +423,12 @@ spline_all=.false.
 if (rp_point_s(1) .gt. 1D-5) then
    write(*,*) "OOPS, the first gradient/hessian reference structure for RP-EVB"
    write(*,*) "has to be also the first structure on the whole reference IRC!"
-   write(*,*) "Please change the ref.input file!"
+   write(*,*) "Please change the grad_hess.dat file!"
    call fatal
 else if (rp_point_s(rp_evb_points) .lt. 0.9999d0) then
    write(*,*) "OOPS, the last gradient/hessian reference structure for RP-EVB"
    write(*,*) "has to be also the last structure on the whole reference IRC!"
-   write(*,*) "Please change the ref.input file!"
+   write(*,*) "Please change the grad_hess.dat file!"
    call fatal
 end if
 !

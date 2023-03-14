@@ -2662,7 +2662,7 @@ write(*,*)
 !
 !     Read in the results of the RP-EVB reference calculations!
 !     They will be given for the EVB-QMDFF optimization in compressed formate 
-!     Write simultaneously the big reference file "ref.input"
+!     Write simultaneously the big reference file "grad_hess.dat"
 !   
 nat3=3*natoms
 allocate(grad(3,natoms))
@@ -2837,9 +2837,9 @@ do i=1,n_rp_pts
 
 !
 !     Now write reference informations for actual RP-EVB point to file 
-!     ref.input !
+!     grad_hess.dat !
 !
-   write(*,*) "Write reference informations to file ref.input ..."
+   write(*,*) "Write reference informations to file grad_hess.dat ..."
 !
 !     1) The energy (either from the extra theory level or the actual level)
 !
@@ -3365,7 +3365,7 @@ do i=1,temp_num
 !     Copy input data to file 
 !
       if (kt_avg .eq. 1) then
-         call system("cp ../../rp_ref/ref.input .")
+         call system("cp ../../rp_ref/grad_hess.dat .")
          call system("cp ../../evb_qmdff/educts.qmdff .")
          call system("cp ../../evb_qmdff/products.qmdff .")
          call system("cp ../../mep_irc/irc.xyz .")
@@ -3374,7 +3374,7 @@ do i=1,temp_num
             call system("cp ../../" // trim(coord_file) // " coord_def.inp")
          end if
       else 
-         call system("cp ../../../rp_ref/ref.input .")
+         call system("cp ../../../rp_ref/grad_hess.dat .")
          call system("cp ../../../evb_qmdff/educts.qmdff .")
          call system("cp ../../../evb_qmdff/products.qmdff .")
          call system("cp ../../../mep_irc/irc.xyz .")

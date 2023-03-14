@@ -88,7 +88,7 @@ do i=1,n-1
    if (s(i+1)-s(i) .lt. 1E-8) then
       write(*,*) "The parameter curve values of two reference points are"
       write(*,*) "(nearly) identical! This should not happen!"
-      write(*,*) "Check the file ref.input and restart the calculation."
+      write(*,*) "Check the file grad_hess.dat and restart the calculation."
       call fatal
    end if
 end do

@@ -127,7 +127,7 @@ real(kind=8),dimension(:,:,:),allocatable::all_hess,allf1_hess,allf2_hess
 logical::dg_evb_opt_multi,diff_ana ! if the alpha values should be optimized separately or at once
 integer::maxstart !maximal number of local starts for optimization 
 integer::dg_mode       ! for DG-EVB (1,2 or 3)
-integer::ref_input_unit  ! unit for the ref.input file in DG-EVB calculations
+integer::ref_input_unit  ! unit for the grad_hess.dat file in DG-EVB calculations
 real(kind=8),dimension(:),allocatable::alph_opt,b_opt
 ! start interval for random number
 real(kind=8)::lower_bond,upper_bond

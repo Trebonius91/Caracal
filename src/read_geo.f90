@@ -27,7 +27,7 @@
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 !
-!     subroutine read_geo: Read in cartesian geometry from ref.input 
+!     subroutine read_geo: Read in cartesian geometry from grad_hess.dat
 !     file and convert to internals. The erngies of the actual structure 
 !     is also read.
 !

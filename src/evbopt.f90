@@ -516,7 +516,7 @@ if (dg_evb) then
 !
    dg_evb_mode=0
    dg_evb_points=0
-   dg_ref_file="ref.input"
+   dg_ref_file="grad_hess.dat"
    g_thres=1E-10
    do i = 1, nkey
       next = 1
@@ -593,7 +593,7 @@ do i = 1, nkey
    if (keyword(1:11) .eq. 'TREQ ') then
       read(record,*) names,rp_evb_points
       treq=.true.
-      names="ref.input"
+      names="grad_hess.dat"
       inquire(file=names,exist=exist)
       if (rank .eq. 0) then
          if (.not. exist) then
