@@ -29,18 +29,18 @@
 !
 !     #################################################################
 !     ##                                                             ##
-!     ##  program evb_kt_driver  --  automatization utility tool     ##
+!     ##  program black_box  --  automatization utility tool         ##
 !     ##                                                             ##
 !     #################################################################
 !
-!     "evb_kt_driver" is an on-top program for automatization of force 
+!     "black_box" is an on-top program for automatization of force 
 !     field generation and upfollowing k(T) calculation.
-!     It assumes that you want to use the RP-EVB coupling term.
+!     It assumes that you want to use the TREQ coupling term.
 !     A bunch of variables are predefined on standard values unless
 !     you change them explicitly in the qmdff.key file.
 !
 
-program evb_kt_driver 
+program black_box 
 use general  !  general parameters
 use qmdff    !  module with QMDFF global variables
 use evb_mod  !  EVB coupling parameters
@@ -3895,6 +3895,6 @@ write(*,*) "for more details and several plots."
 write(*,*) 
 
 sys_stat=chdir("..")
-end program evb_kt_driver
+end program black_box
 
     

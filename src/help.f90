@@ -50,7 +50,7 @@ write(*,*) "--- egrad.x -------- Calculating energies and gradients ------------
 write(*,*) "--- explore.x ------ Pseudo QM package (geoopt, freq,...) ----------"
 write(*,*) "--- dynamic.x ------ Run molecular dynamics trajectories -----------"
 write(*,*) "--- calc_rate.x ---- Calculating rate constants with (RP)MD --------"
-write(*,*) "--- evb_kt_driver.x- Black box k(T) calculations (beta vers.!) -----" 
+write(*,*) "--- black_box.x----- Black box k(T) calculations (beta vers.!) -----" 
 write(*,*) "--- mult_qmdff.x---- QMDFF solvent box generation ------------------"
 write(*,*) "--------------------------------------------------------------------"
 !

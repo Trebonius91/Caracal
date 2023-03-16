@@ -97,10 +97,10 @@ OBJS = general.o evb_mod.o qmdff.o lm_module.o debug.o \
        egrad_nh3oh.o util_nh3oh.o \
        \
        qmdffgen.o evbopt.o egrad.o dynamic.o explore.o calc_rate.o \
-       evb_kt_driver.o mult_qmdff.o #qmdffopt.o
+       black_box.o mult_qmdff.o #qmdffopt.o
  
 EXES = qmdffgen.x dynamic.x egrad.x evbopt.x explore.x calc_rate.x \
-       evb_kt_driver.x mult_qmdff.x #qmdffopt.x
+       black_box.x mult_qmdff.x #qmdffopt.x
 
 all: $(OBJS)  $(EXES)
 
