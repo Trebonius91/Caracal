@@ -752,7 +752,7 @@ if (qmdffnumber.eq.2) then
       read_coord=.true. 
       num_struc=1 ! dummy variable for number of structures for init_int; never used there
       int_mode=2
-      if (read_coord) int_mode=1 
+      if (read_coord) int_mode=1
       call init_int(filegeo,num_struc,rank,int_mode)
 !
 !   allocate needed arrays

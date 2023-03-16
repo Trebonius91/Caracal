@@ -81,6 +81,7 @@ real(kind=8),dimension(:),allocatable::int_curr
 real(kind=8)::xi_val   ! the (ideal) xi value for this umbrella window
 real(kind=8)::xi_real  ! the actual sampled xi value in the verlet algorithm
 integer::n_all ! total number of sampling windows
+character(len=50)::temp_name,bead_name
 character(len=50)::foldername,subfname,subsubfname
 logical::oldfolder,dont_del,dont_equi,dont_umbr
 real(kind=8),dimension(:),allocatable::xi_wins ! auxiliary array for all xi ref values
@@ -459,14 +460,28 @@ traj_error=0    ! if trajectories give errors, abort them..
 !     Create a folder named with simulation temperature, else, 
 !
 if (kelvin .lt. 10.0) then
-   write(foldername,"(i1)") int(kelvin)
+   write(temp_name,"(i1)") int(kelvin)
 else if (kelvin .lt. 100.0) then
-   write(foldername,"(i2)") int(kelvin)
+   write(temp_name,"(i2)") int(kelvin)
 else if (kelvin .lt. 1000.0) then
-   write(foldername,"(i3)") int(kelvin)
+   write(temp_name,"(i3)") int(kelvin)
 else 
-   write(foldername,"(i4)") int(kelvin)
+   write(temp_name,"(i4)") int(kelvin)
 end if
+
+if (nbeads_store .lt. 10) then
+   write(bead_name,"(i1)") nbeads_store
+else if (nbeads_store .lt. 100) then
+   write(bead_name,"(i2)") nbeads_store
+else if (nbeads_store .lt. 1000) then
+   write(bead_name,"(i3)") nbeads_store
+else
+   write(bead_name,"(i4)") nbeads_store
+end if
+
+
+foldername=trim(temp_name)//"K_"//trim(bead_name)//"bead"
+
 inquire(file=trim(foldername), exist=oldfolder)
 !
 !     set this to false, else errors appear in the -02 and -03 options

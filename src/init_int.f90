@@ -177,7 +177,7 @@ if (mode.eq.1) then
 !   Up to five integers: 2 for bonds, 3 for angles, 5 for torsions and out-of-plane 
 !    (4 atoms plus one specifier of coordinate type)
 !
-   allocate(coord_types(1000000))
+   allocate(coord_types(50000))
    do
       read(165,"(A)",iostat=readstat) coord_line
       if (readstat .ne. 0)  exit
@@ -303,7 +303,7 @@ else if (mode .eq. 2) then
 !
 !     calculate bondlengths (max. 6 bohr)
 !
-   allocate(coord_tmp(1000000,4))
+   allocate(coord_tmp(50000,4))
    do i=1,natoms
       do j=1,i-1
          if (dist(i,j,coord_test) .lt. 6.0) then
