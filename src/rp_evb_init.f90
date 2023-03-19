@@ -89,7 +89,6 @@ if (read_coord) then
 else if (dist_matrix) then 
    int_mode=4   ! generation of simple but expensive distance matrix coordinates
 end if
-write(*,*) "ggu"
 call init_int(filegeo,points,rank,int_mode)
 !     short forms for variables
 nat=natoms
@@ -133,7 +132,6 @@ allocate(int_dum(nat6+2))
 allocate(rp_point_s(rp_evb_points))
 allocate(rp_point_v12(rp_evb_points))
 
-write(*,*) "GFuzpfzpuo"
 !
 !    TEST: Arrays for frequency corrections of hessians
 !
@@ -147,9 +145,7 @@ write(*,*) "GFuzpfzpuo"
 !    read in the lines and convert geometries, gradients and hessians to 
 !    internal coordinates  --> dummy DG-EVB mode = 3
 !
-write(*,*) "gufg before"
 call read2int(3)
-write(*,*) "Gugpu afrter"
 open (unit=126,file=fileenergy,status="old")
 open (unit=127,file=filegeo,status='old')
 e_diff=0
@@ -506,6 +502,5 @@ end if
 inter_old=0.d0
 i_best_old=0
 
-write(*,*) "end_rp"
 return
 end subroutine rp_evb_init
