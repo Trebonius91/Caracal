@@ -169,7 +169,6 @@ do i=1,points
    end if
    call next_geo(coord,natoms,127,has_next)
    call eqmdff(coord,str_e1,str_e2)
- !  stop "HUphpu"
    xyz_path(:,:,i)=coord
    ff_e1(i)=str_e1
    ff_e2(i)=str_e2
@@ -181,7 +180,6 @@ do i=1,points
 end do
 close(126)
 
-write(*,*) "Gupgpu"
 !
 !    Correct energies of QMDFF in order to reproduce end points of the IRC
 !    exactly   --> can be deactivated with shift_manual

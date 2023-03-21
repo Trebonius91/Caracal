@@ -111,7 +111,7 @@ nat=natoms
 !
 !     OPTION 1: Calculate the numerical Wilson matrix
 !
-!if (num_wilson .eqv. .true.) then
+if (num_wilson .eqv. .true.) then
 !
 !     Save the input structure 
 !
@@ -120,7 +120,7 @@ nat=natoms
 !     Fill the matrix with zeros
 !
    B_mat=0.d0
-   shift=0.00001d0
+   shift=0.001d0
    do i=1,nat6
       l=0
 !
@@ -179,8 +179,9 @@ nat=natoms
 !   do i=1,3*natoms
 !      write(*,*) b_mat(:,i)
 !   end do
+!   write(*,*) sum(b_mat)
 !   stop "GUOgou"
-!else 
+else 
 !
 !    OPTION 2: calculate it analytically!
 !
@@ -619,7 +620,7 @@ nat=natoms
 !end if
 !write(*,*) internal(7)
 
-!end if
+end if
 
 !stop "In wilseon!"
 return

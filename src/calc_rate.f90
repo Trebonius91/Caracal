@@ -1933,7 +1933,7 @@ if (rank .eq. 0) then
    call timestamp ()
 
    write(*,*) ".. .----. -- -.. --- -. . "
-   write(*,*) "Informations printed to rpmd.log!"
+   write(*,*) "Informations printed to calc_rate.log!"
    write(*,*) "Other results are stored into folder ",foldername
    write(*,*) "Rate constant calculation successfully finished!"
    write(*,*) 

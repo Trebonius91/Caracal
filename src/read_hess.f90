@@ -89,7 +89,7 @@ call hess2int(geo_xyz1,geo_int,hess_int,hess_xyz,grad_int)
 !   imaginary frequencies; remove them
 !
 if (treq) then
-   call project_hess(hess_int)
+!   call project_hess(hess_int)
 end if
 
 return

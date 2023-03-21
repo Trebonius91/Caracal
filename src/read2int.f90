@@ -83,7 +83,7 @@ do i=1,dg_evb_points
 !  
    if (dg_evb_mode .eq. 3) then
       call read_hess(natoms,hess_int,geo_int,geo_xyz,grad_int)
-      call project_hess(hess_int)
+   !   call project_hess(hess_int)
       all_hess(:,:,i)=hess_int(:,:)
    end if
 end do
