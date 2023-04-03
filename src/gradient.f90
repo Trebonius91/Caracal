@@ -186,6 +186,8 @@ if (pot_ana) then
       call egrad_clnh3(pot_geo,natoms,1,e_evb,pot_grad,info)
    else if (pot_type .eq. "oh3") then
       call egrad_oh3(pot_geo,natoms,1,e_evb,pot_grad,info)
+   else if (pot_type .eq. "h2co") then
+      call egrad_h2co(xyz2,natoms,e_evb,pot_grad,info)
    else if (pot_type .eq. "geh4oh") then
       call egrad_geh4oh(pot_geo,natoms,1,e_evb,pot_grad,info)
    else if (pot_type .eq. "c2h7") then

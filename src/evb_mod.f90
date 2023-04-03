@@ -297,6 +297,7 @@ logical::calc_ekin
 integer::ekin_num
 integer::ekin_atoms(100000)
 
+
 !    change mass of one element/isotope
 logical::change_mass
 real(kind=8)::newmass

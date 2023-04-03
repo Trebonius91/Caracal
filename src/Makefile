@@ -31,7 +31,7 @@ LINKFLAGS = -static-libgcc -fopenmp -llapack -lblas -lfftw3 -fno-align-commons #
 # - EVB subroutines
 # - Other analytic PES
 # - program files
-OBJS = general.o evb_mod.o qmdff.o lm_module.o debug.o \
+OBJS = general.o evb_mod.o qmdff.o lm_module.o debug.o h2co_mod.o \
        \
        moment.o ff_e.o eabh0.o thermo.o axis.o thermocal.o heat.o \
        bonde.o gethirsh.o docm5.o cm5mod.o copyc6.o limit.o rsp.o \
@@ -94,7 +94,7 @@ OBJS = general.o evb_mod.o qmdff.o lm_module.o debug.o \
        util_ch4h.o egrad_brh2.o egrad_oh3.o util_oh3.o egrad_geh4oh.o\
        util_geh4oh.o egrad_c2h7.o egrad_clnh3.o util_clnh3.o \
        egrad_mueller.o egrad_o3.o egrad_ch4cn.o util_ch4cn.o  \
-       egrad_nh3oh.o util_nh3oh.o \
+       egrad_nh3oh.o util_nh3oh.o main_h2co.o util_h2co.o \
        \
        qmdffgen.o evbopt.o egrad.o dynamic.o explore.o calc_rate.o \
        black_box.o mult_qmdff.o #qmdffopt.o

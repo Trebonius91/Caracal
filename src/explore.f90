@@ -694,6 +694,11 @@ end if
 !     unless read in of internal coordinates is ordered explicitly
 !
 if (ts_opt .or. calc_irc) then
+   if (.not. read_coord) then
+      write(*,*) "Automatic generation of coordinates is unstable at the moment."
+      write(*,*) "Please add the READ_COORD keyword!"
+      call fatal
+   end if
    if (.not. dg_evb .and. .not. treq) then
       int_mode=3
       if (read_coord) int_mode=1

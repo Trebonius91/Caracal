@@ -785,7 +785,6 @@ end if
 !      end do
 !   end do
 !end do
-!write(*,*) "q_i",q_i
 !write(*,*) "p_i",p_i
 !write(*,*) "derivs",derivs
 !

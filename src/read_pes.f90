@@ -282,7 +282,26 @@ else if (method .eq. "ANA_OH3") then
    call initialize_oh3
    natoms=4  ! store number of atoms..
    pot_ana=.true.
-   
+else if (method .eq. "ANA_H2CO") then
+   if (rank .eq. 0) then
+      open(unit=16,file="pot_info.out",status="unknown")
+      write(16,*) "Informational output about the used analytical PES:"
+      if (rank .eq. 0) then
+         write(*,*) "----------"
+      end if
+      write(15,*) "The H2CO unimolecular potential energy surface is used"
+      write(15,*) "References:  X. Wang, P. L. Houston and J. M. Bowman"
+      write(15,*) "             Phil. Trans. R. Soc. A 375, 20160194 (2016)"
+      write(15,*)
+      write(*,*) "The H2CO unimolecular potential energy surface is used"
+      write(*,*) "References:  X. Wang, P. L. Houston and J. M. Bowman"
+      write(*,*) "             Phil. Trans. R. Soc. A 375, 20160194 (2016) "
+      write(*,*)
+   end if
+   pot_type="h2co"
+   call initialize_h2co
+   natoms=4  ! store number of atoms..
+   pot_ana=.true.
 else if (method .eq. "ANA_CLNH3") then
    if (rank .eq. 0) then
       open(unit=16,file="pot_info.out",status="unknown")
@@ -440,13 +459,14 @@ if (pot_ana) then
       write(*,*) "2)   BrH + H   (BrH2)    (3 atoms: H, Br, H)"
       write(*,*) "3)   O2 + O    (OH3)     (3 atoms: O, O, O)"
       write(*,*) "4)   OH2 + H   (OH3)     (4 atoms: O, H, H, H)"
-      write(*,*) "5)   NH2 + HCl (ClNH2)   (5 atoms: H, N, H, H, Cl)"
-      write(*,*) "6)   CH4 + H   (CH4H)    (6 atoms: H, C, H, H, H, H)"
-      write(*,*) "7)   NH3 + OH  (NH3OH)   (6 atoms: H, N, H, H, O, H)"
-      write(*,*) "8)   CH4 + OH  (CH4OH)   (7 atoms: H, C, H, H, H, O, H)"
-      write(*,*) "9)   CH4 + CN  (CH4CN)   (7 atoms: H, C, H, H, H, C, N)"
-      write(*,*) "10)   GeH4 + OH (GeH4OH)  (7 atoms: H, Ge, H, H, H, O, H)"
-      write(*,*) "11)   C2H6 + H  (C2H7)    (9 atoms: C, H, H, H, C, H, H, H, H)"
+      write(*,*) "5)   H2CO      (H2CO)    (4 atoms: C, O, H, H)"
+      write(*,*) "6)   NH2 + HCl (ClNH2)   (5 atoms: H, N, H, H, Cl)"
+      write(*,*) "7)   CH4 + H   (CH4H)    (6 atoms: H, C, H, H, H, H)"
+      write(*,*) "8)   NH3 + OH  (NH3OH)   (6 atoms: H, N, H, H, O, H)"
+      write(*,*) "9)   CH4 + OH  (CH4OH)   (7 atoms: H, C, H, H, H, O, H)"
+      write(*,*) "10)   CH4 + CN  (CH4CN)   (7 atoms: H, C, H, H, H, C, N)"
+      write(*,*) "11)   GeH4 + OH (GeH4OH)  (7 atoms: H, Ge, H, H, H, O, H)"
+      write(*,*) "12)   C2H6 + H  (C2H7)    (9 atoms: C, H, H, H, C, H, H, H, H)"
       write(*,*)
       write(15,*) "Infos about potential initialization written to file pot_info.out."
       write(15,*)
