@@ -130,6 +130,8 @@ real(kind=8),allocatable::grad(:,:),hess(:,:)   ! input arrays for gradients and
 real(kind=8),allocatable::grad1d(:),hess1d(:),hess1d2(:)  ! intermediate low dim arrays
 real(kind=8),allocatable::xyz_out(:),g_out(:),h_out(:)  ! arrays for write out
 logical::snforca
+character(len=40)::names
+logical::section
 character(len=1)::software_ens ! used software if the energies shall be corrected 
 !   For additional calculation of energies 
 integer::njobs_round  ! number of calculations to be done in this round
@@ -178,7 +180,7 @@ rank=0
 !
 if (rank .eq. 0) then
    call promo
-   write(*,*) "PROGRAM EVB_KT_DRIVER: AUTOMATED EVB-QMDFF GENERATION AND KT CALCULATION"
+   write(*,*) "PROGRAM BLACK_BOX: AUTOMATED EVB-QMDFF GENERATION AND KT CALCULATION"
 end if
 
 !
@@ -188,12 +190,12 @@ end if
 if (rank .eq. 0) then
    call get_command_argument(1, commarg)
    if (trim(commarg) .eq. "-help" .or. trim(commarg) .eq. "-h") then
-      call help("evb_kt_driver")
+      call help("black_box")
       stop
    else
       write(*,*) 
       write(*,*) "To show some basic infos about the program and a list of all"
-      write(*,*) "used keywords in it, type 'evb_kt_driver.x -help' or 'evb_kt_driver.x -h'."
+      write(*,*) "used keywords in it, type 'black_box.x -help' or 'black_box.x -h'."
       write(*,*) 
    end if
 end if
@@ -201,36 +203,38 @@ end if
 
 call getkey(rank) 
 
-write(*,*) "---- TASK 0: read in mandatory informations from file or cmd ----------"
+write(*,*) "---- TASK 0: read in mandatory informations from file ----------"
 write(*,*) 
 !
 !     Read the reference program/software from input file
-!
+!     --> currently, only Gaussian IRCs can be read! (18.04.2023)
 
-do i = 1, nkey
-   next = 1
-   record = keyline(i)
-   call gettext (record,keyword,next)
-   call upcase (keyword)
-   string = record(next:120)
-   if (keyword(1:11) .eq. 'SOFTWARE ') then
-      read(record,*) prefix,software
+!do i = 1, nkey
+!   next = 1
+!   record = keyline(i)
+!   call gettext (record,keyword,next)
+!   call upcase (keyword)
+!   string = record(next:120)
+!   if (keyword(1:11) .eq. 'SOFTWARE ') then
+!      read(record,*) prefix,software
 !     possible options: O (orca), G (gaussian), T (turbomole), C (CP2K)
-      read_software=.true.
-      select case (software)
-         case("O")
-            write(*,*) "* Reference IRC is read in from ORCA output"
-         case("G")
-            write(*,*) "* Reference IRC is read in from GAUSSIAN output"
-         case("T")
-            write(*,*) "* Reference IRC is read in from TURBOMOLE output"
-         case("C")
-            write(*,*) "* Reference IRC is read in from CP2K output"
-         case default
-            read_software=.false.
-         end select
-   end if
-end do
+!      read_software=.true.
+!      select case (software)
+!         case("O")
+!            write(*,*) "* Reference IRC is read in from ORCA output"
+!         case("G")
+!            write(*,*) "* Reference IRC is read in from GAUSSIAN output"
+!         case("T")
+!            write(*,*) "* Reference IRC is read in from TURBOMOLE output"
+!         case("C")
+!            write(*,*) "* Reference IRC is read in from CP2K output"
+!         case default
+!            read_software=.false.
+!         end select
+!   end if
+!end do
+read_software=.true.
+software="G"
 !
 !     If the software wasn't defined in the qmdff.key file, read it in manually!
 !
@@ -271,18 +275,18 @@ do i = 1, nkey
    call gettext (record,keyword,next)
    call upcase (keyword)
    string = record(next:120)
-   if (keyword(1:13) .eq. 'ENERGY_EXTRA ') then
-      write(*,*) "* The keyword ENERGY_EXTRA is present, therefore energies"
+   if (keyword(1:13) .eq. 'SEPARATE_ENERGY ') then
+      write(*,*) "* The keyword SEPARATE_ENERGY is present, therefore energies"
       write(*,*) "   along the IRC path will be calculated separately."
-      read(record,*,iostat=readstat) prefix,software_ens
-      if (software_ens .eq. "G") then
-         write(*,*) "  -> Gaussian will be used for these calculations."
-      else if (software_ens .eq. "O") then
-         write(*,*) "  -> orca will be used for these calculations."
-      else
-         write(*,*) "ERROR! No valid software has been chosen here!"
-         call fatal
-      end if
+!      read(record,*,iostat=readstat) prefix,software_ens
+!      if (software_ens .eq. "G") then
+!         write(*,*) "  -> Gaussian will be used for these calculations."
+!      else if (software_ens .eq. "O") then
+!         write(*,*) "  -> orca will be used for these calculations."
+!      else
+!         write(*,*) "ERROR! No valid software has been chosen here!"
+!         call fatal
+!      end if
       ens_extra=.true.
    end if
 end do
@@ -297,30 +301,48 @@ link_orca="orca"
 link_qmdffgen="qmdffgen.x"
 link_rpmd="rpmd"
 link_mpi="mpirun"
+
 do i = 1, nkey
    next = 1
    record = keyline(i)
    call gettext (record,keyword,next)
    call upcase (keyword)
+   call upcase (record)
    string = record(next:120)
-   if (keyword(1:16) .eq. 'LINK_GAUSSIAN ') then
-      read(record(15:120),'(a)') link_gaussian
-      write(*,*) "* The Gaussian executable will be invoked with: ",trim(link_gaussian)
-   else if (keyword(1:16) .eq. 'LINK_ORCA ') then
-      read(record(10:120),'(a)') link_orca
-      write(*,*) "* The orca executable will be invoked with: ",trim(link_orca)
-   else if (keyword(1:16) .eq. 'LINK_QMDFFGEN ') then
-      read(record(14:120),'(a)') link_qmdffgen
-      write(*,*) "* The qmdffgen executable will be invoked with: ",trim(link_qmdffgen)
-   else if (keyword(1:16) .eq. 'LINK_RPMD ') then
-      read(record(10:120),'(a)') link_rpmd
-      write(*,*) "* The rpmd executable will be invoked with: ",trim(link_rpmd)
-   else if (keyword(1:16) .eq. 'LINK_MPI ') then
-      read(record(9:120),'(a)') link_mpi
-      write(*,*) "* MPI runs will be started with: ",trim(link_qmdffgen)
+   if (trim(adjustl(record(1:14))) .eq. 'SYMLINKS {' .or. trim(adjustl(record(1:14))) &
+              &  .eq. 'SYMLINKS{') then
+
+      do j=1,nkey-i+1
+         next=1
+         record = keyline(i+j)
+         call gettext (record,keyword,next)
+         call upcase (keyword)
+
+         if (keyword(1:16) .eq. 'GAUSSIAN ') then
+            read(record(12:120),'(a)') link_gaussian
+            write(*,*) "* The Gaussian executable will be invoked with: ",trim(link_gaussian)
+         else if (keyword(1:16) .eq. 'ORCA ') then
+            read(record(10:120),'(a)') link_orca
+            write(*,*) "* The orca executable will be invoked with: ",trim(link_orca)
+         else if (keyword(1:16) .eq. 'QMDFFGEN ') then
+            read(record(14:120),'(a)') link_qmdffgen
+            write(*,*) "* The qmdffgen executable will be invoked with: ",trim(link_qmdffgen)
+         else if (keyword(1:16) .eq. 'CALC_RATE ') then
+            read(record(10:120),'(a)') link_rpmd
+            write(*,*) "* The rpmd executable will be invoked with: ",trim(link_rpmd)
+         else if (keyword(1:16) .eq. 'MPI ') then
+            read(record(9:120),'(a)') link_mpi
+            write(*,*) "* MPI runs will be started with: ",trim(link_qmdffgen)
+         end if
+         if (keyword(1:13) .eq. '}') exit
+         if (j .eq. nkey-i) then
+            write(*,*) "The SYMLINKS section has no second delimiter! (})"
+            call fatal
+         end if
+      end do
+      exit
    end if
 end do
-
 !
 !    If needed, check if executables are really in the stated links 
 !
@@ -328,7 +350,7 @@ if ((software .eq. "G") .or. (software_ens .eq. "G")) then
    sys_stat=system("command -v " // trim(link_gaussian) // " > sys.log")
    if (sys_stat .ne. 0) then
       write(*,*) "ERROR! Gaussian executable could not been found at ",trim(link_gaussian)," !"
-      write(*,*) " Please add or alter the LINK_GAUSSIAN keyword!"
+      write(*,*) " Please add or alter the GAUSSIAN keyword (SYMLINKS section)!"
       call fatal
    end if
 end if 
@@ -337,7 +359,7 @@ if ((software .eq. "O") .or. (software_ens .eq. "O")) then
    sys_stat=system("command -v " // trim(link_orca) // " > sys.log")
    if (sys_stat .ne. 0) then
       write(*,*) "ERROR! orca executable could not been found at ",trim(link_gaussian)," !"
-      write(*,*) " Please add or alter the LINK_ORCA keyword!"
+      write(*,*) " Please add or alter the ORCA keyword (SYMLINKS section)!"
       call fatal
    end if
 end if
@@ -346,14 +368,14 @@ end if
 sys_stat=system("command -v " // trim(link_qmdffgen) // " > sys.log")
 if (sys_stat .ne. 0) then
    write(*,*) "ERROR! qmdffgen.x executable could not been found at ",trim(link_qmdffgen)," !"
-   write(*,*) " Please add or alter the LINK_QMDFFGEN keyword!"
+   write(*,*) " Please add or alter the QMDFFGEN keyword (SYMLINKS section)!"
    call fatal
 end if
 
 sys_stat=system("command -v " // trim(link_rpmd) // " > sys.log")
 if (sys_stat .ne. 0) then
-   write(*,*) "ERROR! rpmd.x executable could not been found at ",trim(link_rpmd)," !"
-   write(*,*) " Please add or alter the LINK_QMDFFGEN keyword!"
+   write(*,*) "ERROR! calc_rate.x executable could not been found at ",trim(link_rpmd)," !"
+   write(*,*) " Please add or alter the CALC_RATE keyword (SYMLINKS section)!"
    call fatal
 end if
 
@@ -386,7 +408,7 @@ if (nprocs_tot .lt. 2) then
    end do
 end if
 
-write(*,'(a,i2,a)') " * In total, ",nprocs_tot," processors will be availiable."
+write(*,'(a,i2,a)') " * In total, ",nprocs_tot," processors will be available."
 !
 !    Read in the direction of the IRC!
 !    Two possibilities: If the reaction from left to right (first to last structure)
@@ -509,11 +531,12 @@ end if
 
 !
 !    Read in number of processors and memory amount for minimizations 
+!    Default: equal to total number of processors
 !
-ens_procs=1
-min_procs=1
-rp_procs=1
-min_mem=4
+ens_procs=nprocs_tot
+min_procs=nprocs_tot
+rp_procs=nprocs_tot
+min_mem=nprocs_tot
 do i = 1, nkey
    next = 1
    record = keyline(i)
@@ -578,53 +601,58 @@ gf_method="NN"
 gf_basis="NN"
 gf_met_words=0
 gf_bas_words=0
+
+section = .false.
 do i = 1, nkey
    next = 1
    record = keyline(i)
    call gettext (record,keyword,next)
    call upcase (keyword)
+   call upcase (record)
    string = record(next:120)
-   if (keyword(1:13) .eq. 'GF_METHOD ') then
-      read(record,*,iostat=readstat) prefix,gf_method
-      do j=1,40
-         if (trim(gf_method(j)) .ne. "NN")  gf_met_words=gf_met_words+1
+   if (trim(adjustl(record(1:14))) .eq. 'GRAD_FREQ {' .or. trim(adjustl(record(1:14))) &
+              &  .eq. 'GRAD_FREQ{') then
+      section=.true.
+      do j=1,nkey-i+1
+         next=1
+         record = keyline(i+j)
+         call gettext (record,keyword,next)
+         call upcase (keyword)
+
+         if (keyword(1:13) .eq. 'SOFTWARE ') then 
+            read(record,*,iostat=readstat) prefix,software
+            if (software .eq. "G") then
+               write(*,*) "  -> Gaussian will be used for gradient+frequency calculations."
+            else if (software .eq. "O") then
+               write(*,*) "  -> orca will be used for gradient+frequency calculations."
+            else
+               write(*,*) "ERROR! No valid software has been chosen for gradient+frequency calculations!"
+               call fatal
+            end if
+         else if (keyword(1:13) .eq. 'METHOD ') then
+            read(record,*,iostat=readstat) prefix,gf_method
+            do k=1,40
+               if (trim(gf_method(k)) .ne. "NN")  gf_met_words=gf_met_words+1
+            end do
+         else if (keyword(1:13) .eq. 'BASIS ') then
+            read(record(10:120),'(a)') gf_basis
+            gf_bas_words=1
+         end if
+         if (keyword(1:13) .eq. '}') exit
+         if (j .eq. nkey-i) then
+            write(*,*) "The GRAD_FREQ section has no second delimiter! (})"
+            call fatal
+         end if
       end do
-   else if (keyword(1:13) .eq. 'GF_BASIS ') then
-      read(record(10:120),'(a)') gf_basis
-      gf_bas_words=1
+      exit
    end if
-end do    
-  
-!
-!     If no reference method keyword was there, read keywords from command line 
-!
-if (gf_met_words .eq. 0) then
-   exist=.false.
-   do while (.not. exist)
-      write(*,*) "Give the reference method to be used for all QM calculations!"
-      write(*,*) "Ideally the same as used for the IRC..."
-      read(*,'(a)') adum
-      exist=.true.
-   end do
-   read(adum,*,iostat=readstat) gf_method
-   do j=1,40
-      if (trim(gf_method(j)) .ne. "NN") gf_met_words=gf_met_words+1
-   end do
+end do
+if (.not. section) then
+   write(*,*) "Please add a GRAD_FREQ section with settings for the gradient+frequency"
+   write(*,*) " reference calculations!"
+   call fatal
 end if
-!
-!     If no reference basis keyword was there, read basis from command line 
-!
-if (gf_bas_words .eq. 0) then
-   exist=.false.
-   do while (.not. exist)
-      write(*,*) "Give the reference basis set to be used for all QM calculations!"
-      write(*,*) "If no basis shall be used (e.g. semiempirics), write 'none'."
-      write(*,*) "Ideally the same as used for the IRC..."
-      read(*,'(a)') adum
-      exist=.true.
-   end do
-   read(adum,'(a)') gf_basis
-end if
+
 !
 !    Write out info about reference basis set and reference method
 !
@@ -647,41 +675,57 @@ if (ens_extra) then
    e_basis="NN"
    e_met_words=0
    e_bas_words=0
+
+   section = .false.
    do i = 1, nkey
       next = 1
       record = keyline(i)
       call gettext (record,keyword,next)
       call upcase (keyword)
+      call upcase (record)
       string = record(next:120)
-      if (keyword(1:13) .eq. 'E_METHOD ') then
-         read(record,*,iostat=readstat) prefix,e_method
-         do j=1,40
-            if (trim(e_method(j)) .ne. "NN")  e_met_words=e_met_words+1
+      if (trim(adjustl(record(1:18))) .eq. 'ENERGY_EXTRA {' .or. trim(adjustl(record(1:18))) &
+              &  .eq. 'ENERGY_EXTRA{') then
+         section=.true.
+         do j=1,nkey-i+1
+            next=1
+            record = keyline(i+j)
+            call gettext (record,keyword,next)
+            call upcase (keyword)
+
+            if (keyword(1:13) .eq. 'SOFTWARE ') then
+               read(record,*,iostat=readstat) prefix,software_ens
+               if (software_ens .eq. "G") then
+                  write(*,*) "  -> Gaussian will be used for extra energy calculations."
+               else if (software_ens .eq. "O") then
+                  write(*,*) "  -> orca will be used for extra energy calculations."
+               else
+                  write(*,*) "ERROR! No valid software has been chosen for extra energy calculations!"
+                  call fatal
+               end if
+            else if (keyword(1:13) .eq. 'METHOD ') then
+               read(record,*,iostat=readstat) prefix,e_method
+               do k=1,40
+                  if (trim(gf_method(k)) .ne. "NN")  e_met_words=e_met_words+1
+               end do
+            else if (keyword(1:13) .eq. 'BASIS ') then
+               read(record(10:120),'(a)') e_basis
+               e_bas_words=1
+            end if
+            if (keyword(1:13) .eq. '}') exit
+            if (j .eq. nkey-i) then
+               write(*,*) "The ENERGY_EXTRA section has no second delimiter! (})"
+               call fatal
+            end if
          end do
-      else if (keyword(1:13) .eq. 'E_BASIS ') then
-         read(record(9:120),'(a)') e_basis
+         exit
       end if
    end do
-
-!
-!     If no energy reference method keyword was there, read keywords from command line 
-!
-   if (e_met_words .eq. 0) then
-      exist=.false.
-      do while (.not. exist)
-         write(*,*) "Give the reference method to be used for all QM calculations!"
-         write(*,*) "Ideally the same as used for the IRC..."
-         read(*,'(a)') adum
-         exist=.true.
-      end do
-      read(adum,*,iostat=readstat) e_method
-      do j=1,40
-         if (trim(e_method(j)) .ne. "NN") e_met_words=e_met_words+1
-      end do
+   if (.not. section) then
+      write(*,*) "Please add a ENERGY_EXTRA section with settings for the extra energy"
+      write(*,*) " reference calculations!"
+      call fatal
    end if
-!
-!    Write out info about energy reference basis set and reference method
-!
 
    write(*,'(a)',advance="no") " * The add. energy reference method is: "
    do i=1,e_met_words
@@ -691,7 +735,6 @@ if (ens_extra) then
    write(*,'(a)',advance="no") " * The add. energy reference basis set is: "
    write(*,'(a)') trim(e_basis)
 end if
-
 !
 !    If the automatically generated coordinate set for RPMD fails, a manual
 !    alignment might be needed
@@ -724,7 +767,7 @@ end do
 
 
 !
-!    Read in the temperatures for RPMD calculations
+!    Read in the temperatures for CALC_RATE calculations
 !
 temps=-10
 temp_num=0
@@ -734,7 +777,7 @@ do i = 1, nkey
    call gettext (record,keyword,next)
    call upcase (keyword)
    string = record(next:120)
-   if (keyword(1:13) .eq. 'RPMD_TEMPS ') then
+   if (keyword(1:13) .eq. 'RATE_TEMPS ') then
       read(record,*,iostat=readstat) prefix,temps 
       do j=1,20
          if (temps(j) .gt. 0.d0) temp_num=temp_num+1
@@ -786,7 +829,7 @@ else
 end if
 
 !
-!    Read in all needed RPMD.x keywords! 
+!    Read in all needed CALC_RATE.x keywords! 
 !    Default values will be given for all of them; unless no keyword
 !    is given into the qmdff.key file, these values will be used 
 !
@@ -809,6 +852,9 @@ xi_min=-0.02
 xi_max=1.02
 nbins=5000
 pmf_method="integration"
+thermo="andersen"
+andersen_step=60
+nose_q=100.0
 recr_equi=10000
 child_tot=2000
 child_interv=2000
@@ -819,7 +865,9 @@ err_max=1000
 recross_nocheck=.false.
 recross_mpi=.false.
 scan_path=.false. ! if a scan instead of an IRC was calculated
-
+!
+!    0) General dynamical parameters
+!
 
 do i = 1, nkey
    next = 1
@@ -829,61 +877,308 @@ do i = 1, nkey
    string = record(next:120)
    if (keyword(1:15) .eq. 'BEAD_NUMBER ') then
       read(record,*,iostat=readstat) prefix,nbeads
-   else if (keyword(1:13) .eq. 'NPATHS ') then
-      read(record,*,iostat=readstat) prefix,npaths
-   else if (keyword(1:18) .eq. 'RP_EXP_COEFF ') then
-      read(record,*,iostat=readstat) prefix,pre_exp
-   else if (keyword(1:18) .eq. 'RP_EVB_MID ') then
-      read(record,*,iostat=readstat) prefix,rp_mid_tot,rp_mid_trans
    else if (keyword(1:13) .eq. 'DELTAT ') then
       read(record,*,iostat=readstat) prefix,dt
-   else if (keyword(1:13) .eq. 'R_INF ') then
-      read(record,*,iostat=readstat) prefix,r_inf
-   else if (keyword(1:18) .eq. 'UMBRELLA_BIAS ') then
-      read(record,*,iostat=readstat) prefix,k_force
-   else if (keyword(1:18) .eq. 'UMBRELLA_BONDS ') then
-      read(record,*,iostat=readstat) prefix,umbr_lo,umbr_hi
-   else if (keyword(1:18) .eq. 'UMBRELLA_DIST ') then
-      read(record,*,iostat=readstat) prefix,umbr_dist
-   else if (keyword(1:18) .eq. 'GENERATE_STEPS ') then
-      read(record,*,iostat=readstat) prefix,gen_step
-   else if (keyword(1:18) .eq. 'EQUILIBR_STEPS ') then
-      read(record,*,iostat=readstat) prefix,equi_step
-   else if (keyword(1:18) .eq. 'UMBRELLA_STEPS ') then
-      read(record,*,iostat=readstat) prefix,umbr_step
-   else if (keyword(1:18) .eq. 'UMBRELLA_TRAJS ') then
-      read(record,*,iostat=readstat) prefix,umbr_traj
-   else if (keyword(1:18) .eq. 'PMF_XI_RANGE ') then
-      read(record,*,iostat=readstat) prefix,xi_min,xi_max
-   else if (keyword(1:18) .eq. 'PMF_BINS ') then
-      read(record,*,iostat=readstat) prefix,nbins
-   else if (keyword(1:18) .eq. 'PMF_METHOD ') then
-      read(record,*,iostat=readstat) prefix,pmf_method
-   else if (keyword(1:18) .eq. 'RECROSS_EQUI ') then
-      read(record,*,iostat=readstat) prefix,recr_equi
-   else if (keyword(1:18) .eq. 'CHILD_TOTAL ') then
-      read(record,*,iostat=readstat) prefix,child_tot
-   else if (keyword(1:18) .eq. 'CHILD_INTERVAL ') then
-      read(record,*,iostat=readstat) prefix,child_interv
-   else if (keyword(1:18) .eq. 'CHILD_PERPOINT ') then
-      read(record,*,iostat=readstat) prefix,child_point
-   else if (keyword(1:18) .eq. 'CHILD_EVOL ') then
-      read(record,*,iostat=readstat) prefix,child_evol
    else if (keyword(1:18) .eq. 'RPMD_EN_TOL ') then
       read(record,*,iostat=readstat) prefix,energy_tol
    else if (keyword(1:13) .eq. 'MAX_ERROR ') then
       read(record,*,iostat=readstat) prefix,err_max
    else if (keyword(1:13) .eq. 'SCAN_PATH ') then
       scan_path=.true.
-   else if (keyword(1:20) .eq. 'RECROSS_NOCHECK ') then
-      recross_nocheck=.true.
-   else if (keyword(1:17) .eq. 'RECROSS_MPI ') then
-      recross_mpi=.true.
-   else if (keyword(1:17) .eq. 'PMF_MINLOC ') then
-      call upcase(record)
-      read(record,*,iostat=readstat) prefix,pmf_minloc
    end if
 end do
+
+!
+!   A) The NVT section
+!
+do i = 1, nkey
+   next = 1
+   record = keyline(i)
+   call gettext (record,keyword,next)
+   call upcase (keyword)
+   call upcase (record)
+   string = record(next:120)
+   if (trim(adjustl(record(1:11))) .eq. 'NVT {' .or. trim(adjustl(record(1:11))) &
+              &  .eq. 'NVT{') then
+      section=.true.
+      do j=1,nkey-i+1
+         next=1
+         record = keyline(i+j)
+         call gettext (record,keyword,next)
+         call upcase (keyword)
+!    The thermostat 
+         if (keyword(1:20) .eq. 'THERMOSTAT ') then
+            read(record,*,iostat=readstat) names,thermo
+            if (readstat .ne. 0) then
+               write(*,*) "Correct format: THERMOSTAT [thermostat]"
+               call fatal
+            end if
+            call upcase(thermo)
+!    How often the Andersen thermostat velocity rescaling is applied
+         else if (keyword(1:16) .eq. 'ANDERSEN_STEP ') then
+            read(record,*,iostat=readstat) names,andersen_step
+            if (readstat .ne. 0) then
+               write(*,*) "Correct format: ANDERSEN_STEP [No. of steps]"
+               call fatal
+            end if
+!    The damping factor for the Nose-Hoover thermostat
+         else if (keyword(1:13) .eq. 'NOSE_DAMP ') then
+            read(record,*,iostat=readstat) names,nose_q
+            if (readstat .ne. 0) then
+               write(*,*) "Correct format: NOSE_DAMP [integer (>1)]"
+               call fatal
+            end if
+         end if
+         if (keyword(1:13) .eq. '}') exit
+         if (j .eq. nkey-i) then
+            write(*,*) "The NVT section has no second delimiter! (})"
+            call fatal
+         end if
+      end do
+      exit
+   end if
+end do
+
+
+!
+!   A) The MECHA section
+!
+
+do i = 1, nkey
+   next = 1
+   record = keyline(i)
+   call gettext (record,keyword,next)
+   call upcase (keyword)
+   call upcase (record)
+   string = record(next:120)
+   if (trim(adjustl(record(1:11))) .eq. 'MECHA {' .or. trim(adjustl(record(1:11))) &
+              &  .eq. 'MECHA{') then
+      do j=1,nkey-i+1
+         next=1
+         record = keyline(i+j)
+         call gettext (record,keyword,next)
+         call upcase (keyword)
+         if (keyword(1:20) .eq. 'N_PATHS ') then
+            read(record,*,iostat=readstat) prefix,npaths
+         else if (keyword(1:13) .eq. 'R_INF ') then
+            read(record,*,iostat=readstat) prefix,r_inf
+         end if
+         if (keyword(1:13) .eq. '}') exit
+         if (j .eq. nkey-i) then
+            write(*,*) "The MECHA section has no second delimiter! (})"
+            call fatal
+         end if
+      end do
+   end if
+end do
+
+!
+!    B) The UMBRELLA section
+!
+
+do i = 1, nkey
+   next = 1
+   record = keyline(i)
+   call gettext (record,keyword,next)
+   call upcase (keyword)
+   call upcase (record)
+   string = record(next:120)
+   if (trim(adjustl(record(1:15))) .eq. 'UMBRELLA {' .or. trim(adjustl(record(1:15))) &
+              &  .eq. 'UMBRELLA{') then
+      section=.true.
+      do j=1,nkey-i+1
+         next=1
+         record = keyline(i+j)
+         call gettext (record,keyword,next)
+         call upcase (keyword)
+!
+!     Now read in all other informaton of the MECHA section
+!
+!     The strength of the umbrella force constant
+         if (keyword(1:20) .eq. 'BIAS ') then
+            read(record,*,iostat=readstat) names,k_force
+            if (readstat .ne. 0) then
+               write(*,*) "Correct format: BIAS [force constant (a.u.)]"
+               call fatal
+            end if
+!     The interval of the reaction coordinate Xi where sampling shall happen
+         else if (keyword(1:20) .eq. 'BONDS ') then
+            read(record,*,iostat=readstat) names,umbr_lo,umbr_hi
+            if (readstat .ne. 0) then
+               write(*,*) "Correct format: BONDS [lower Xi-val, upper Xi-val]"
+               call fatal
+            end if
+!     Distance between two umbrella windows
+         else if (keyword(1:20) .eq. 'DIST ') then
+            read(record,*,iostat=readstat) names,umbr_dist
+            if (readstat .ne. 0) then
+               write(*,*) "Correct format: DIST [Xi-interval between two windows]"
+               call fatal
+            end if
+!     Number of MD steps per window for structure generation
+         else if (keyword(1:20) .eq. 'GEN_STEPS ') then
+            read(record,*,iostat=readstat) names,gen_step
+            if (readstat .ne. 0) then
+               write(*,*) "Correct format: GEN_STEPS [Number of MD steps]"
+               call fatal
+            end if
+!     Number of MD steps per window for umbrella equilibration
+         else if (keyword(1:20) .eq. 'EQUI_STEPS ') then
+            read(record,*,iostat=readstat) names,equi_step
+            if (readstat .ne. 0) then
+               write(*,*) "Correct format: EQUI_STEPS [Number of MD steps]"
+               call fatal
+            end if
+!     Number of MD steps per window for umbrella sampling
+         else if (keyword(1:20) .eq. 'SAMPLE_STEPS ') then
+            read(record,*,iostat=readstat) names,umbr_step
+            if (readstat .ne. 0) then
+               write(*,*) "Correct format: SAMPLE_STEPS [Number of MD steps]"
+               call fatal
+            end if
+!     Number of sampling trajectories per umbrella window
+         else if (keyword(1:20) .eq. 'SAMPLE_TRAJS ') then
+            read(record,*,iostat=readstat) names,umbr_traj
+            if (readstat .ne. 0) then
+               write(*,*) "Correct format: SAMPLE_TRAJS [Number of trajectories]"
+               call fatal
+            end if
+         end if
+         if (keyword(1:13) .eq. '}') exit
+         if (j .eq. nkey-i) then
+            write(*,*) "The UMBRELLA section has no second delimiter! (})"
+            call fatal
+         end if
+
+      end do
+   end if
+end do
+
+!
+!     C) The PMF section
+!
+do i = 1, nkey
+   next = 1
+   record = keyline(i)
+   call gettext (record,keyword,next)
+   call upcase (keyword)
+   call upcase (record)
+   string = record(next:120)
+   if (trim(adjustl(record(1:15))) .eq. 'PMF {' .or. trim(adjustl(record(1:15))) &
+              &  .eq. 'PMF{') then
+      section=.true.
+      do j=1,nkey-i+1
+         next=1
+         record = keyline(i+j)
+         call gettext (record,keyword,next)
+         call upcase (keyword)
+!     Range along the reaction path variable for integration
+         if (keyword(1:20) .eq. 'XI_RANGE ') then
+            read(record,*,iostat=readstat) names,xi_min,xi_max
+            if (readstat .ne. 0) then
+               write(*,*) "Correct format: XI_RANGE [lower Xi-val, upper Xi-val]"
+               call fatal
+            end if
+!     Number of bins in which the PMF shall be calculated
+         else if (keyword(1:20) .eq. 'BINS ') then
+            read(record,*,iostat=readstat) names,nbins
+            if (readstat .ne. 0) then
+               write(*,*) "Correct format: BINS [number of PMF calculation bins]"
+               call fatal
+            end if
+!     Which PMF calculation method shall be used
+         else if (keyword(1:20) .eq. 'METHOD ') then
+            read(record,*,iostat=readstat) names,pmf_method
+            if (readstat .ne. 0) then
+               write(*,*) "Correct format: METHOD [method identifiert]"
+               call fatal
+            end if
+!     How the minimum along the PMF surface shall be located
+         else if (keyword(1:20) .eq. 'MINLOC ') then
+            read(record,*,iostat=readstat) names,pmf_minloc
+            if (readstat .ne. 0) then
+               write(*,*) "Correct format: MINLOC [method identifiert]"
+               call fatal
+            end if
+         end if
+         if (keyword(1:13) .eq. '}') exit
+         if (j .eq. nkey-i) then
+            write(*,*) "The PMF section has no second delimiter! (})"
+            call fatal
+         end if
+      end do
+   end if
+end do
+
+!
+!    D) The RECROSS section
+!
+do i = 1, nkey
+   next = 1
+   record = keyline(i)
+   call gettext (record,keyword,next)
+   call upcase (keyword)
+   call upcase (record)
+   string = record(next:120)
+   if (trim(adjustl(record(1:15))) .eq. 'RECROSS {' .or. trim(adjustl(record(1:15))) &
+              &  .eq. 'RECROSS{') then
+      section=.true.
+      do j=1,nkey-i+1
+         next=1
+         record = keyline(i+j)
+         call gettext (record,keyword,next)
+         call upcase (keyword)
+!     Number of MD steps for equilibration trajectory
+         if (keyword(1:20) .eq. 'EQUI_STEPS ') then
+            read(record,*,iostat=readstat) names,recr_equi
+            if (readstat .ne. 0) then
+               write(*,*) "Correct format: EQUI_STEPS [Number of MD steps]"
+               call fatal
+            end if
+!     Total number of child trajectories
+         else if (keyword(1:20) .eq. 'CHILD_TOTAL ') then
+            read(record,*,iostat=readstat) names,child_tot
+            if (readstat .ne. 0) then
+               write(*,*) "Correct format: CHILD_TOTAL [Number of child trajs.]"
+               call fatal
+            end if
+!     Number of parent MD steps between child spawnings
+         else if (keyword(1:20) .eq. 'CHILD_INTERVAL ') then
+            read(record,*,iostat=readstat) names,child_interv
+            if (readstat .ne. 0) then
+               write(*,*) "Correct format: CHILD_INTERVAL [MD steps between childs]"
+               call fatal
+            end if
+!     Number of children trajectories per spawning
+         else if (keyword(1:20) .eq. 'CHILD_PERPOINT ') then
+            read(record,*,iostat=readstat) names,child_point
+            if (readstat .ne. 0) then
+               write(*,*) "Correct format: CHILD_PERPOINT [Number of children p.p.]"
+               call fatal
+            end if
+!     Number of MD steps for each child trajectory
+         else if (keyword(1:20) .eq. 'CHILD_STEPS ') then
+            read(record,*,iostat=readstat) names,child_evol
+            if (readstat .ne. 0) then
+               write(*,*) "Correct format: CHILD_STEPS [Number of MD steps per child]"
+               call fatal
+            end if
+!     If recrossing shall be calculated with MPI
+         else if (keyword(1:20) .eq. 'MPI ') then
+            recross_mpi = .true.
+!     If recrossing part shall not be checked for errors
+         else if (keyword(1:20) .eq. 'NO_CHECK ') then
+            recross_check = .false.
+         end if
+         if (keyword(1:13) .eq. '}') exit
+         if (j .eq. nkey-i) then
+            write(*,*) "The RECROSS section has no second delimiter! (})"
+            call fatal
+         end if
+      end do
+   end if
+end do
+
 !
 !    print further informations about RPMD settings:
 !
@@ -2970,7 +3265,7 @@ open(unit=15,file="qmdff.key",status="old")
 do 
    read(15,'(a)',iostat=lastline) a80
    if (lastline .ne. 0) exit
-   if (index(a80,' 2EVB ') .ne. 0) then
+   if (index(a80,' ESHIFT ') .ne. 0) then
       qmdff_en_line=a80
    end if
 end do
@@ -3421,21 +3716,20 @@ do i=1,temp_num
       write(15,'(a)') "    ts_struc ts.xyz"
       write(15,'(a)') "# number of ring polymer beads in the system:"
       write(15,'(a,i4)') "    bead_number ",nbeads 
-      write(15,'(a)') "# number of equivalent reaction paths:"
-      write(15,'(a,i3)') "    npaths ",npaths
       write(15,'(a)') "##################################"
       write(15,'(a)') "# PES settings"
       write(15,'(a)') "##################################"
       write(15,'(a)') "# names of the QMDFF files 1 and 2:"
-      write(15,'(a)') "    ffname educts.qmdff products.qmdff"
+      write(15,'(a)') "    qmdffnames educts.qmdff products.qmdff"
       write(15,'(a)') "# QMDFF energy shifts for both minima:"
       write(15,'(a,a)') "   ",qmdff_en_line 
+      write(15,'(a)') " treq { "
       write(15,'(a)') "# file with xyz structures of the IRC:"
       write(15,'(a)') "    irc_struc irc.xyz"
       write(15,'(a)') "# file with reference energies of the IRC:"
       write(15,'(a)') "    irc_ens irc_ens.dat"
       write(15,'(a)') "# number of TREQ G+H reference points:"
-      write(15,'(a,i5)') "    treq ",n_rp_pts
+      write(15,'(a,i5)') "    points ",n_rp_pts
       write(15,'(a)') "# RP-EVB damping coefficient for the coupling:"
       write(15,'(a,f14.7)') "    rp_exp_coeff ",pre_exp
       write(15,'(a)') "# borders of the RP direct interpolation region:"
@@ -3444,20 +3738,28 @@ do i=1,temp_num
          write(15,'(a)') "# The set of internal coordinates will be read in from file!:"
          write(15,'(a)') "    read_coord"
       end if 
+      write(15,'(a)') " } "
       write(15,'(a)') "##################################"
       write(15,'(a)') "# Global dynamics settings"
       write(15,'(a)') "##################################" 
       write(15,'(a)') "# MD timestep (fs):"  
       write(15,'(a,f12.7)') "    deltat ",dt
+      write(15,'(a)') " nvt {"
       write(15,'(a)') "# temperature of the simulations (K):"
-      write(15,'(a,20i8)') "    temp ",temps(i)
+      write(15,'(a,f20.8)') "    temp ",temps(i)
       write(15,'(a)') "# the termostat to be used:"
-      write(15,'(a)') "    thermostat andersen"
+      write(15,'(a,a)') "    thermostat ",thermo
+      write(15,'(a)') "# the andersen frequency (if used):"
+      write(15,'(a,i8)') "     andersen_step", andersen_step
+      write(15,'(a)') "# the Nose-hoover damping factor (if used):"
+      write(15,'(a,f20.8)') "     nose_damp",nose_q
+      write(15,'(a)') " }"
       write(15,'(a)') "##################################"
       write(15,'(a)') "# Reactive system settings"
       write(15,'(a)') "##################################" 
+      write(15,'(a)') " mecha {"
       write(15,'(a)') "# species of the reaction mechanism:"  
-      write(15,'(a,a)') "    umbrella_type ", umbr_type  
+      write(15,'(a,a)') "    type ", umbr_type  
       write(15,'(a)') "# list of all educts with atom numbers:"
       do j=1,num_eds
          if (j .eq. 1) then
@@ -3484,6 +3786,9 @@ do i=1,temp_num
       do j=1,n_break
          write(15,'(a,a)',advance="no") " ",trim(print_break(j))
       end do
+      write(15,'(a)') "# number of equivalent reaction paths:"
+      write(15,'(a,i3)') "    n_paths ",npaths
+      write(15,'(a)') " }"
       if ((umbr_type .eq. "CYCLOREVER") .or. (umbr_type .eq. "REARRANGE") .or.&
             &  (umbr_type .eq. "DECOM_1BOND")) then
          write(15,'(a)') " "
@@ -3494,38 +3799,43 @@ do i=1,temp_num
       write(15,'(a)') "###################################"
       write(15,'(a)') "# Umbrella sampling settings"
       write(15,'(a)') "###################################"
+      write(15,'(a)') " umbrella {"
       write(15,'(a)') "# umbrella force constant (a.u.):"
-      write(15,'(a,f14.7)') "    umbrella_bias",k_force
+      write(15,'(a,f14.7)') "    bias",k_force
       write(15,'(a)') "# borders of the umbrella samplings (xi):"
-      write(15,'(a,2f13.7)') "    umbrella_bonds",umbr_lo,umbr_hi
+      write(15,'(a,2f13.7)') "    bonds",umbr_lo,umbr_hi
       write(15,'(a)') "# distance between two umbrella windows(xi):"
-      write(15,'(a,f13.7)') "    umbrella_dist",umbr_dist
+      write(15,'(a,f13.7)') "    dist",umbr_dist
       write(15,'(a)') "# number of MD timesteps for structure generation:"
-      write(15,'(a,i9)') "    generate_steps",gen_step
+      write(15,'(a,i9)') "    gen_steps",gen_step
       write(15,'(a)') "# number of MD timesteps for umbrella equilibration:"
-      write(15,'(a,i9)') "    equilibr_steps",equi_step
+      write(15,'(a,i9)') "    equi_steps",equi_step
       write(15,'(a)') "# number of MD timesteps per umbrella sampling:"
-      write(15,'(a,i9)') "    umbrella_steps",umbr_step
+      write(15,'(a,i9)') "    sample_steps",umbr_step
       write(15,'(a)') "# number of umbrella trajectories per window:"
-      write(15,'(a,i9)') "    umbrella_trajs",umbr_traj
+      write(15,'(a,i9)') "    sample_trajs",umbr_traj
+      write(15,'(a)') " }"
       write(15,'(a)') "###################################"
       write(15,'(a)') "# PMF calculation settings"
       write(15,'(a)') "###################################"
+      write(15,'(a)') " pmf { "
       write(15,'(a)') "# borders of integragion for PMF (xi):"
-      write(15,'(a,2f13.7)') "    pmf_xi_range ",xi_min,xi_max
+      write(15,'(a,2f13.7)') "    xi_range ",xi_min,xi_max
       write(15,'(a)') "# number of integration gridpoints for PMF:"
-      write(15,'(a,i9)') "    pmf_bins ",nbins
+      write(15,'(a,i9)') "    bins ",nbins
       write(15,'(a)') "# reaction mechanism category:"
-      write(15,'(a,a)') "    pmf_method ",pmf_method
+      write(15,'(a,a)') "    method ",pmf_method
       if ((pmf_minloc .eq. 'ZERO') .or. (pmf_minloc .eq. 'PMF_MIN')) then
          write(15,'(a)') "# method for calculation of lower free energy:"
-         write(15,'(a,a)') "    pmf_minloc ",pmf_minloc
+         write(15,'(a,a)') "    minloc ",pmf_minloc
       end if
+      write(15,'(a)') " } "
       write(15,'(a)') "###################################"
       write(15,'(a)') "# Recrossing calculation settings"
       write(15,'(a)') "###################################"
+      write(15,'(a)') " recross { "
       write(15,'(a)') "# number of MD timesteps for parent sampling:"
-      write(15,'(a,i9)') "    recross_equi",recr_equi
+      write(15,'(a,i9)') "    equi_steps",recr_equi
       write(15,'(a)') "# total number of child trajectories:"
       write(15,'(a,i10)') "    child_total",child_tot
       write(15,'(a)') "# number of MD timesteps between two child spawnings:"
@@ -3533,15 +3843,16 @@ do i=1,temp_num
       write(15,'(a)') "# number of child trajectories per spawning point:"
       write(15,'(a,i9)') "    child_perpoint" ,child_point
       write(15,'(a)') "# number of evolution timesteps for each child:"
-      write(15,'(a,i9)') "    child_evol",child_evol
+      write(15,'(a,i9)') "    child_steps",child_evol
       if (recross_nocheck) then
          write(15,'(a)') "# no error checking will be done for the recrossing part.."
-         write(15,'(a)') "    recross_nocheck"
+         write(15,'(a)') "    nocheck"
       end if
       if (recross_mpi) then
          write(15,'(a)') "# The recrossing calculation will be parallelized"
-         write(15,'(a)') "    recross_mpi"
+         write(15,'(a)') "    mpi"
       end if
+      write(15,'(a)') " }"
       write(15,'(a)') "###################################"
       write(15,'(a)') "# miscellaneous"
       write(15,'(a)') "###################################"
