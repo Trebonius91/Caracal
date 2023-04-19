@@ -1,9 +1,9 @@
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !
-!   EVB-QMDFF - RPMD molecular dynamics and rate constant calculations on
-!               black-box generated potential energy surfaces
+!   CARACAL - Ring polymer molecular dynamics and rate constant calculations
+!             on black-box generated potential energy surfaces
 !
-!   Copyright (c) 2021 by Julien Steffen (steffen@pctc.uni-kiel.de)
+!   Copyright (c) 2023 by Julien Steffen (mail@j-steffen.org)
 !                         Stefan Grimme (grimme@thch.uni-bonn.de) (QMDFF code)
 !
 !   Permission is hereby granted, free of charge, to any person obtaining a
@@ -121,7 +121,21 @@ end if
 !
 !     set the integer to tell the subroutine that qmdffgen is executed
 !
-whichprog=1
+!     Check if command line arguments were submitted
+!
+i = 0
+do
+  call get_command_argument(i, commarg)
+  if (len_trim(commarg) == 0) exit
+  i = i+1
+end do
+
+if (i .lt. 2) then
+   whichprog = 1
+else 
+   whichprog = 2
+end if
+
 prefix_key = .false.
 read_software = .false.
 !

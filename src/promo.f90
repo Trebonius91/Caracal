@@ -1,9 +1,9 @@
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !
-!   EVB-QMDFF - RPMD molecular dynamics and rate constant calculations on
-!               black-box generated potential energy surfaces
+!   CARACAL - Ring polymer molecular dynamics and rate constant calculations
+!             on black-box generated potential energy surfaces
 !
-!   Copyright (c) 2021 by Julien Steffen (steffen@pctc.uni-kiel.de)
+!   Copyright (c) 2023 by Julien Steffen (mail@j-steffen.org)
 !                         Stefan Grimme (grimme@thch.uni-bonn.de) (QMDFF code)
 !
 !   Permission is hereby granted, free of charge, to any person obtaining a
@@ -40,8 +40,8 @@ implicit none
 write(*,10)
 10 format (/,4x,45('#'), &
    &       /,2x,'###',43x,'###', &
-   &       /,1x,'##',19x,'EVB-QMDFF',19x,'##', &
-   &       /,1x,'##',10x,'Version 1.1   September 2021',9x,'##', &
+   &       /,1x,'##',20x,'CARACAL',20x,'##', &
+   &       /,1x,'##',13x,'Version 1.1   May 2023',12x,'##', &
    &       /,2x,'###',43x,'###', &
    &       /,4x,45('#'),/)
 

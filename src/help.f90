@@ -1,9 +1,9 @@
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !
-!   EVB-QMDFF - RPMD molecular dynamics and rate constant calculations on
-!               black-box generated potential energy surfaces
+!   CARACAL - Ring polymer molecular dynamics and rate constant calculations
+!             on black-box generated potential energy surfaces
 !
-!   Copyright (c) 2021 by Julien Steffen (steffen@pctc.uni-kiel.de)
+!   Copyright (c) 2023 by Julien Steffen (mail@j-steffen.org)
 !                         Stefan Grimme (grimme@thch.uni-bonn.de) (QMDFF code)
 !
 !   Permission is hereby granted, free of charge, to any person obtaining a
@@ -28,7 +28,7 @@
 
 !
 !     subroutine help: print helping informations about used 
-!        programs in the EVB-QMDFF program package: short 
+!        programs in the CARACAL program package: short 
 !        introduction, basic calculations and list of all 
 !        keywords
 !        after this subroutine, the code for help_evb follows
@@ -43,14 +43,14 @@ character(len=*)::progname
 !
 !     Print general overview about program package and its parts
 !
-write(*,*) "-------------------- EVB-QMDFF HELP --------------------------------"
+write(*,*) "-------------------- CARACAL HELP ----------------------------------"
 write(*,*) "--- qmdffgen.x  -----Generating QMDFFs from reference infos --------"
 write(*,*) "--- evbopt.x ------- Optimizing EVB coupling terms -----------------"
 write(*,*) "--- egrad.x -------- Calculating energies and gradients ------------"
 write(*,*) "--- explore.x ------ Pseudo QM package (geoopt, freq,...) ----------"
 write(*,*) "--- dynamic.x ------ Run molecular dynamics trajectories -----------"
 write(*,*) "--- calc_rate.x ---- Calculating rate constants with (RP)MD --------"
-write(*,*) "--- black_box.x----- Black box k(T) calculations (beta vers.!) -----" 
+write(*,*) "--- black_box.x----- Black box rate constants with TREQ-RPMD -------" 
 write(*,*) "--- mult_qmdff.x---- QMDFF solvent box generation ------------------"
 write(*,*) "--------------------------------------------------------------------"
 !

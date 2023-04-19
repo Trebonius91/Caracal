@@ -1,9 +1,9 @@
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !
-!   EVB-QMDFF - RPMD molecular dynamics and rate constant calculations on
-!               black-box generated potential energy surfaces
+!   CARACAL - Ring polymer molecular dynamics and rate constant calculations
+!             on black-box generated potential energy surfaces
 !
-!   Copyright (c) 2021 by Julien Steffen (steffen@pctc.uni-kiel.de)
+!   Copyright (c) 2023 by Julien Steffen (mail@j-steffen.org)
 !                         Stefan Grimme (grimme@thch.uni-bonn.de) (QMDFF code)
 !
 !   Permission is hereby granted, free of charge, to any person obtaining a
@@ -31,7 +31,7 @@
 !
 !     part of QMDFF
 !
-subroutine gethirsh(n,chir,ok,fname2)
+subroutine gethirsh(n,chir,ok,fname2,fname3)
 use qmdff
 implicit none
 integer::n,intsum,numi,idum
@@ -40,7 +40,7 @@ real(kind=8)::chir(n)
 real(kind=8)::csum
 logical::ok
 
-character(len=80)::a,a80,header,attype,fname2
+character(len=80)::a,a80,header,attype,fname2,fname3
 real(kind=8)::xx(20)
 integer::nn,i
 integer::readstat
@@ -53,11 +53,11 @@ ok=.false.
 !     If the Hirshfeld-section appears more than once in the file
 !     the latest appearing is printed out.
 !
-open(unit=142,file=fname2)
 !
 !     for orca output
 !
 if (software .eq. "O") then
+   open(unit=142,file=fname2)
    chir=0.d0
    do
       read(142,'(a)',end=99) a80
@@ -75,6 +75,7 @@ if (software .eq. "O") then
 !     for CP2K output
 !
 else if (software .eq. "C") then
+   open(unit=142,file=fname2)
    chir=0.d0
    do
       read(142,'(a)',end=99) a80
@@ -103,7 +104,21 @@ else if (software .eq. "C") then
 !     for Gaussian output
 !
 else if (software .eq. "G") then
-   
+   open(unit=142,file=fname3)
+   chir=0
+   do
+      read(142,'(a)',end=99) a80
+      if(index(a80,'Hirshfeld charges, spin densities').ne.0) then
+         do i=1,1
+            read(142,*) header
+         end do
+         do i=1,n
+            read(142,*) numi,attype,chir(i)
+            csum=csum+chir(i)
+         end do
+      end if
+   end do
+ 
 
 end if
 !     (never executed...)

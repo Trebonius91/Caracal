@@ -1,9 +1,9 @@
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !
-!   EVB-QMDFF - RPMD molecular dynamics and rate constant calculations on
-!               black-box generated potential energy surfaces
+!   CARACAL - Ring polymer molecular dynamics and rate constant calculations
+!             on black-box generated potential energy surfaces
 !
-!   Copyright (c) 2021 by Julien Steffen (steffen@pctc.uni-kiel.de)
+!   Copyright (c) 2023 by Julien Steffen (mail@j-steffen.org)
 !                         Stefan Grimme (grimme@thch.uni-bonn.de) (QMDFF code)
 !
 !   Permission is hereby granted, free of charge, to any person obtaining a
@@ -308,7 +308,7 @@ if (n.eq.2.and.at(1).eq.9.and.at(2).eq.1) qscal=1.6
 fname2=fname_pre//'.out'
 fname3=fname_pre//'.log'
 if (index(fname_pre,'.out' ).eq.0) then
-   call gethirsh(n,chir,ex,fname2)  !modificated
+   call gethirsh(n,chir,ex,fname2,fname3)  !modificated
    ! ex is set true if read in was successfull
 else
    ex=.true.

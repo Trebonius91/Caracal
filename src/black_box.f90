@@ -1,9 +1,9 @@
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !
-!   EVB-QMDFF - RPMD molecular dynamics and rate constant calculations on
-!               black-box generated potential energy surfaces
+!   CARACAL - Ring polymer molecular dynamics and rate constant calculations
+!             on black-box generated potential energy surfaces
 !
-!   Copyright (c) 2021 by Julien Steffen (steffen@pctc.uni-kiel.de)
+!   Copyright (c) 2023 by Julien Steffen (mail@j-steffen.org)
 !                         Stefan Grimme (grimme@thch.uni-bonn.de) (QMDFF code)
 !
 !   Permission is hereby granted, free of charge, to any person obtaining a
@@ -37,7 +37,7 @@
 !     field generation and upfollowing k(T) calculation.
 !     It assumes that you want to use the TREQ coupling term.
 !     A bunch of variables are predefined on standard values unless
-!     you change them explicitly in the qmdff.key file.
+!     you change them explicitly in the caracal.key file.
 !
 
 program black_box 
@@ -236,7 +236,7 @@ write(*,*)
 read_software=.true.
 software="G"
 !
-!     If the software wasn't defined in the qmdff.key file, read it in manually!
+!     If the software wasn't defined in the caracal.key file, read it in manually!
 !
 if (.not. read_software) then
    exist=.false.
@@ -275,7 +275,7 @@ do i = 1, nkey
    call gettext (record,keyword,next)
    call upcase (keyword)
    string = record(next:120)
-   if (keyword(1:13) .eq. 'SEPARATE_ENERGY ') then
+   if (keyword(1:20) .eq. 'SEPARATE_ENERGY ') then
       write(*,*) "* The keyword SEPARATE_ENERGY is present, therefore energies"
       write(*,*) "   along the IRC path will be calculated separately."
 !      read(record,*,iostat=readstat) prefix,software_ens
@@ -317,21 +317,21 @@ do i = 1, nkey
          record = keyline(i+j)
          call gettext (record,keyword,next)
          call upcase (keyword)
-
-         if (keyword(1:16) .eq. 'GAUSSIAN ') then
-            read(record(12:120),'(a)') link_gaussian
+         record=adjustl(record)
+         if (keyword(1:10) .eq. 'GAUSSIAN ') then
+            read(record(9:120),'(a)') link_gaussian
             write(*,*) "* The Gaussian executable will be invoked with: ",trim(link_gaussian)
          else if (keyword(1:16) .eq. 'ORCA ') then
-            read(record(10:120),'(a)') link_orca
+            read(record(5:120),'(a)') link_orca
             write(*,*) "* The orca executable will be invoked with: ",trim(link_orca)
-         else if (keyword(1:16) .eq. 'QMDFFGEN ') then
-            read(record(14:120),'(a)') link_qmdffgen
+         else if (keyword(1:10) .eq. 'QMDFFGEN ') then
+            read(record(9:120),'(a)') link_qmdffgen
             write(*,*) "* The qmdffgen executable will be invoked with: ",trim(link_qmdffgen)
-         else if (keyword(1:16) .eq. 'CALC_RATE ') then
+         else if (keyword(1:10) .eq. 'CALC_RATE ') then
             read(record(10:120),'(a)') link_rpmd
             write(*,*) "* The rpmd executable will be invoked with: ",trim(link_rpmd)
-         else if (keyword(1:16) .eq. 'MPI ') then
-            read(record(9:120),'(a)') link_mpi
+         else if (keyword(1:5) .eq. 'MPI ') then
+            read(record(4:120),'(a)') link_mpi
             write(*,*) "* MPI runs will be started with: ",trim(link_qmdffgen)
          end if
          if (keyword(1:13) .eq. '}') exit
@@ -343,6 +343,7 @@ do i = 1, nkey
       exit
    end if
 end do
+
 !
 !    If needed, check if executables are really in the stated links 
 !
@@ -430,7 +431,7 @@ do i = 1, nkey
    end if
 end do
 !
-!    If the IRC direction wasn't defined in the qmdff.key file, read it in manually!
+!    If the IRC direction wasn't defined in the caracal.key file, read it in manually!
 !
 if (irc_direct .eq. "NN") then
    exist=.false.
@@ -459,7 +460,7 @@ end if
 if (software .eq. "G") then
    exist=.false.
 !
-!    Try to read IRC filename keyword from qmdff.key file!
+!    Try to read IRC filename keyword from caracal.key file!
 !   
    do i = 1, nkey
       next = 1
@@ -831,7 +832,7 @@ end if
 !
 !    Read in all needed CALC_RATE.x keywords! 
 !    Default values will be given for all of them; unless no keyword
-!    is given into the qmdff.key file, these values will be used 
+!    is given into the caracal.key file, these values will be used 
 !
 nbeads=1
 npaths=1
@@ -1653,7 +1654,7 @@ end if
 write(*,*)
 write(*,*) "---- TASK 2: calculate QMDFF reference data of minima ----------"
 write(*,*) 
-write(*,*) "Gaussian is quite a silly program, therefore geometry optimizations"
+write(*,*) "Due to different printout formates, therefore geometry optimizations"
 write(*,*) "and QMDFF reference calculations need to be done in different runs!"
 write(*,*) 
 !
@@ -2161,7 +2162,7 @@ end if
 
 if (ens_extra) then
    write(*,*)
-   write(*,*) "---- TASK 2: calculate QMDFF reference energy with extra reference ----------"
+   write(*,*) "---- TASK 2-B: calculate QMDFF reference energy with extra reference -------"
    write(*,*)
    write(*,*) 
    ens_educts=0.d0
@@ -2289,7 +2290,7 @@ if (sys_stat .ne. 0) then
 end if
 
 
-open(unit=15,file="evb_qmdff/qmdff.key",status="replace")
+open(unit=15,file="evb_qmdff/qmdffgen.key",status="replace")
 write(15,*) "software ",software
 write(15,*) "2qmdff educts products"
 close(15)
@@ -2314,7 +2315,7 @@ if (ens_extra) then
    close(16) 
 end if 
 
-sys_stat=system(trim(link_qmdffgen) // " qmdff.key > qmdffgen.log")
+sys_stat=system(trim(link_qmdffgen) // " qmdffgen.key > qmdffgen.log")
 if (sys_stat .ne. 0) then
    write(*,*) "ERROR! Application of qmdffgen.x failed! Look into qmdff.log!"
    call fatal
@@ -2966,7 +2967,7 @@ allocate(hess(nat3,nat3))
 allocate(hess1d(((3*natoms)*(3*natoms+1))/2))
 allocate(hess1d2((3*natoms)*(3*natoms)))
 allocate(g_out(nat3),xyz_out(nat3),h_out(nat3*nat3))
-
+dg_ref_file="grad_hess.dat"
 open(unit=15,file=dg_ref_file,status="unknown")
 write(15,'(A)') "# This is an input file for DG-EVB-QMDFF, "
 write(15,'(A)') "# generated by gen_dg_evb."
@@ -3250,7 +3251,7 @@ write(*,*) "---- TASK 6: Generate input folder for dynamic calculations  -------
 write(*,*)
 sys_stat=chdir("..")
 inquire(file="rpmd", exist=exist)
-if (.not. exist) sys_stat=system("mkdir rpmd")
+if (.not. exist) sys_stat=system("mkdir calc_rate")
 
 !
 !     First, read in the QMDFFs, from their arrays informations about 
@@ -3617,10 +3618,10 @@ else
 end if
 
 sys_stat=chdir("..")
-sys_stat=chdir("rpmd")
+sys_stat=chdir("calc_rate")
 !
 !     Generate input folders for RPMD calculations and generate needed 
-!     input files (copy structure/energy info and write qmdff.key file)
+!     input files (copy structure/energy info and write caracal.key file)
 !
 
 do i=1,temp_num
@@ -3700,13 +3701,13 @@ do i=1,temp_num
       close(15)
 
 !
-!     Write the qmdff.key file 
+!     Write the caracal.key file 
 !
-      open(unit=15,file="qmdff.key",status="unknown")
+      open(unit=15,file="calc_rate.key",status="unknown")
       write(15,'(a)') "####################################"
-      write(15,'(a)') "#    This is the keyfile for       #"
-      write(15,'(a)') "#  a k(T) calculation with rpmd.x  #"
-      write(15,'(a)') "#   Generated by evb_kt_driver.x   #"
+      write(15,'(a)') "#  This is the keyfile for a k(T)  #"
+      write(15,'(a)') "#  calculation with calc_rate.x    #"
+      write(15,'(a)') "#   Generated by black_box.x       #"
       write(15,'(a)') "####################################"
       write(15,*)    
       write(15,'(a)') "##################################"
@@ -3723,6 +3724,9 @@ do i=1,temp_num
       write(15,'(a)') "    qmdffnames educts.qmdff products.qmdff"
       write(15,'(a)') "# QMDFF energy shifts for both minima:"
       write(15,'(a,a)') "   ",qmdff_en_line 
+      write(15,'(a)') "# Speficy the TREQ method as PES description."
+      write(15,'(a)') " pes treq "
+      write(15,*)
       write(15,'(a)') " treq { "
       write(15,'(a)') "# file with xyz structures of the IRC:"
       write(15,'(a)') "    irc_struc irc.xyz"
@@ -3744,9 +3748,10 @@ do i=1,temp_num
       write(15,'(a)') "##################################" 
       write(15,'(a)') "# MD timestep (fs):"  
       write(15,'(a,f12.7)') "    deltat ",dt
+      write(15,*)  
       write(15,'(a)') " nvt {"
       write(15,'(a)') "# temperature of the simulations (K):"
-      write(15,'(a,f20.8)') "    temp ",temps(i)
+      write(15,'(a,i10)') "    temp ",temps(i)
       write(15,'(a)') "# the termostat to be used:"
       write(15,'(a,a)') "    thermostat ",thermo
       write(15,'(a)') "# the andersen frequency (if used):"
@@ -3786,6 +3791,7 @@ do i=1,temp_num
       do j=1,n_break
          write(15,'(a,a)',advance="no") " ",trim(print_break(j))
       end do
+      write(15,'(a)') " "
       write(15,'(a)') "# number of equivalent reaction paths:"
       write(15,'(a,i3)') "    n_paths ",npaths
       write(15,'(a)') " }"
@@ -3924,25 +3930,25 @@ do i=1,temp_num
       inquire(file="done", exist=exist)
       if (.not. exist) then
          if (kt_avg .eq. 1) then
-            write(*,'(a,i4,a)') " RPMD k(T) calculation started for T= ",temps(i)," Kelvin!"
+            write(*,'(a,i4,a)') " Black box k(T) calculation started for T= ",temps(i)," Kelvin!"
          else 
-            write(*,'(a,i4,a,i2,a,i2)') " RPMD k(T) calculation started for T= ",temps(i), &
+            write(*,'(a,i4,a,i2,a,i2)') " Black box k(T) calculation started for T= ",temps(i), &
                     &" Kelvin! (run ",k," of ",kt_avg,")"
          end if
          sys_stat=system(trim(link_mpi) // trim(adum_nprocs) // " " &
-                         & //trim(link_rpmd)// " qmdff.key > qmdff.log")
+                         & //trim(link_rpmd)// " calc_rate.key > calc_rate.log")
          write(*,'(a)') " ---> calculation finished!"
          call system("touch done")
          if (sys_stat .ne. 0) then
-            write(*,'(a,i4,a)') " ERROR! The RPMD calculation at T= ",temps(i)," K failed!"
-            write(*,*) "Nevertheless we will go to the next calculation..."
+            write(*,'(a,i4,a)') " ERROR! The Black box k(T) calculation at T= ",temps(i)," K failed!"
+            call fatal
          end if
       else
          if (kt_avg .eq. 1) then
-            write(*,'(a,i4,a)') " RPMD k(T) calculation already done for T= ",temps(i), &
+            write(*,'(a,i4,a)') " Black box k(T) calculation already done for T= ",temps(i), &
                     & " K ..."
          else 
-            write(*,'(a,i4,a,a,a)') " RPMD k(T) calculation already done for T= ",temps(i), &
+            write(*,'(a,i4,a,a,a)') " Black box k(T) calculation already done for T= ",temps(i), &
                     & " K ,",trim(adum2)," ..."            
          end if
       end if
@@ -4029,7 +4035,7 @@ do i=1,temp_num
 !     rate constants       
 !  
 
-      open(unit=16,file="rpmd.log",status="old")
+      open(unit=16,file="calc_rate.log",status="old")
       do 
          read(16,'(a)',iostat=lastline) a80
          if (lastline .ne. 0) exit
