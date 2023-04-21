@@ -70,7 +70,7 @@ If the build is successful, the different programs of the package are located in
 
 ## Executing the programs
 
-In order to understand the handling of the different programs in EVB-QMDFF, type the help option, e.g. 
+In order to understand the handling of the different programs in Caracal, type the help option, e.g. 
 ```
 $ dynamic.x -h
 ```
@@ -82,8 +82,7 @@ A detailed set of tutorials describing the different programs, including a set o
 
 ## Future improvements
 
-- A configure file for automatic detection of system requirements will be written.
-- A manual (PDF and HTML) with detailed handling and background information will be made available.
-- A number of test jobs for ensuring correct functionality of the program will be provided.
-- A number of example calculations serving as templates for your applications on the several topics that is EVB-QMDFF able to handle will be added. 
-
+- Implementing a periodic version of Grimme's GFN-FF as alternative to QMDFF, for an even simpler generation of (diabatic) force field descriptions
+- Development of local versions of TREQ, enabling the calculation of larger systems without complicated and error-prone sets of internal coordinates
+- Exact unimolecular rate constants: implementing theoretically stringent prefactors for the different unimolecular mechanisms
+- Reactions in solvents: Implementing a "QM/MM" scheme, with the reactive part described by TREQ and sampled with RPMD and the solvent described by GFN-FF and classical dynamics
