@@ -1,23 +1,27 @@
-# EVB-QMDFF
-RPMD and rate constant calculations on black-box potential energy surfaces
+# CARACAL
+Ring polymer molecular dynamics and rate constant calculations on black-box potential energy surfaces
 
-## About EVB-QMDFF
+## About Caracal
 
-EVB-QMDFF is a free open-source software package that enables a wide variety of molecular dynamics applications.
+Caracal is a free open-source software package that enables a wide variety of molecular dynamics applications.
+Unbiased and biased molecular dynamics trajectories can be sampled, unperiodic as well as periodic (NVE, NVT, NpT) setups are possible.
+A central feature is the automized setup of potential energy surfaces for gas phase reactions using the EVB-QMDFF methodology.
 Quantum mechanical derived force fields (QMDFFs) can be generated in black box fashion for arbitrary chemical systems, two QMDFFs can be coupled by 
-different EVB (Empirical Valence Bond) coupling methods as well as reaction-path based methods such as TREQ.
-Based on the EVB-QMDFF potential energy surfaces, Ring Polymer Molecular Dynamics (RPMD) can be run for several MD applications such as molecular force
-simulations or high-quality chemical reaction rate constant calculations.
+different EVB (Empirical Valence Bond) coupling methods.
+Simple energy difference coupling methods as well as more sophisticated methods like distributed gaussian (DG)-EVB or transition region corrected reaction path EVB-QMDFF (TREQ) are availabe for that purpose.
+Especially the TREQ method allows for black-box generation of high quality PES descriptions, the whole process of PES setup and rate constant calculation with ring polymer molecular dynamics (ROMD) is realized in the black-box program within Caracal.
+Further, a number of analytical PES representations of gas phase reaction systems are integrated, they can directly be called for MD or rate constant calculations on them.
+
 
 ## License
 
-EVB-QMDFF is distributed unter the terms of the [MIT license](https://opensource.org/licenses/mit-license):
+Caracal is distributed unter the terms of the [MIT license](https://opensource.org/licenses/mit-license):
 
 ```
-   EVB-QMDFF - RPMD molecular dynamics and rate constant calculations on
-               black-box generated potential energy surfaces
+   CARACAL - Ring polymer molecular dynamics and rate constant calculations
+             on black-box generated potential energy surfaces
 
-   Copyright (c) 2021 by Julien Steffen (steffen@pctc.uni-kiel.de)
+   Copyright (c) 2023 by Julien Steffen (mail@j-steffen.org)
                          Stefan Grimme (grimme@thch.uni-bonn.de) (QMDFF code)
 
    Permission is hereby granted, free of charge, to any person obtaining a
@@ -39,15 +43,15 @@ EVB-QMDFF is distributed unter the terms of the [MIT license](https://opensource
    DEALINGS IN THE SOFTWARE.
 ``` 
 
-## Obtaining EVB-QMDFF
+## Obtaining Caracal
 
 The program package can be obtained by getting a copy of this repository using git:
 ```
-git clone git://github.com/Trebonius91/EVB-QMDFF.git
+git clone git://github.com/Trebonius91/CARACAL.git
 ```
 ## Installation:
 
-EVB-QMDFF is written in Fortran 90, with some minor parts in Fortran 77.
+Caracal is written in Fortran 90, with some minor parts in Fortran 77.
 For compilation, the following dependencies are required:
 
 - Standard Fortran 90 compiler (gfortran, ifort, etc.)
@@ -74,7 +78,7 @@ Now, general instructions how to use the program as well as a list of available 
 
 ## Tutorials and Examples
 
-A detailed set of tutorials describing the different programs, including a set of different examples covering relevant application cases can be found in the [EVB-QMDFF Wiki](https://github.com/Trebonius91/EVB-QMDFF/wiki)
+A detailed set of tutorials describing the different programs, including a set of different examples covering relevant application cases can be found in the [Caracal Wiki](https://github.com/Trebonius91/CARACAL/wiki)
 
 ## Future improvements
 
