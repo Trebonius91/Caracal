@@ -30,7 +30,7 @@
 !     subroutine interpolate: For tri- and tetramolecular reactions:
 !     first, take the TS structure as starting point, then determine 
 !     the center of mass of the whole system, then, extrapolate the center
-!     of masses of the single educts that they have a distance of R_inf to
+!     of masses of the single reactants that they have a distance of R_inf to
 !     each other. 
 !
 !     part of EVB
@@ -52,9 +52,9 @@ real(kind=8)::dxi_act(3,natoms)   ! derivative of the reaction coordinate (dummy
 real(kind=8)::coords(3,natoms),coord_save(3,natoms) ! the actual coordinates (TS)
 real(kind=8)::derivs(3,natoms)   ! the derivative of the potential energy
 real(kind=8)::pre_equi(n_all+1,3,natoms)
-real(kind=8)::Red(3,sum_eds,sum_eds)  ! all possible educt-educt distances
-real(kind=8)::r_eds(sum_eds,sum_eds) ! the actual distane between two educts
-real(kind=8)::com(3,sum_eds)   ! array with center of mass coordinates
+real(kind=8)::Red(3,sum_reacs,sum_reacs)  ! all possible reactant-reactant distances
+real(kind=8)::r_eds(sum_reacs,sum_reacs) ! the actual distane between two reactants
+real(kind=8)::com(3,sum_reacs)   ! array with center of mass coordinates
 character(len=50)::subfname  ! name of the current xi value
 
 !
@@ -68,21 +68,21 @@ coord_save=coords
 if (rank .eq. 0) then
    write(*,*)
    write(*,*) "-------------------PART   0-------------------"
-   write(*,*) " Presampling the structures to geat educts with"
+   write(*,*) " Presampling the structures to get reactants with"
    write(*,*) " correct distances between their COMs."
    write(*,*) "----------------------------------------------"
    write(15,*)
    write(15,*) "-------------------PART   0-------------------"
-   write(15,*) " Presampling the structures to geat educts with"
+   write(15,*) " Presampling the structures to get reactants with"
    write(15,*) " correct distances between their COMs."
    write(15,*) "----------------------------------------------"
 end if
 
-allocate(r_refs(sum_eds,sum_eds))
+allocate(r_refs(sum_reacs,sum_reacs))
 
 call calc_com(coords,com)
-do i=1,sum_eds
-   do j=i+1,sum_eds
+do i=1,sum_reacs
+   do j=i+1,sum_reacs
       Red(1,i,j)=com(j,1)-com(i,1)
       Red(2,i,j)=com(j,2)-com(i,2)
       Red(3,i,j)=com(j,3)-com(i,3)
@@ -106,8 +106,8 @@ do i=1,n_all+1
 !
    call mdinit_bias(xi_val,dxi_act,derivs,1,1)
 
-   do j=1,sum_eds
-      do k=j+1,sum_eds
+   do j=1,sum_reacs
+      do k=j+1,sum_reacs
          r_refs(j,k)=xi_val*r_eds(j,k)+(1-xi_val)*r_inf 
       end do
    end do

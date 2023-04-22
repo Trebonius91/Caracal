@@ -1,23 +1,27 @@
-# EVB-QMDFF
-RPMD and rate constant calculations on black-box potential energy surfaces
+# CARACAL
+Ring polymer molecular dynamics and rate constant calculations on black-box potential energy surfaces
 
-## About EVB-QMDFF
+## About Caracal
 
-EVB-QMDFF is a free open-source software package that enables a wide variety of molecular dynamics applications.
-Quantum mechanical derived force fields (QMDFFs) can be generated in black box fashion for arbitrary chemical systems, two QMDFFs can be coupled by 
-different EVB (Empirical Valence Bond) coupling methods as well as reaction-path based methods such as TREQ.
-Based on the EVB-QMDFF potential energy surfaces, Ring Polymer Molecular Dynamics (RPMD) can be run for several MD applications such as molecular force
-simulations or high-quality chemical reaction rate constant calculations.
+Caracal is a free open-source software package that enables a wide variety of molecular dynamics applications.
+Unbiased and biased molecular dynamics trajectories can be sampled, unperiodic as well as periodic (NVE, NVT, NpT) setups are possible.
+A central feature is the automized setup of potential energy surfaces for gas phase reactions using the EVB-QMDFF methodology.
+Quantum mechanical derived force fields (QMDFFs) can be generated in black box fashion for arbitrary chemical systems, two QMDFFs can be coupled by
+different EVB (Empirical Valence Bond) coupling methods.
+Simple energy difference coupling methods as well as more sophisticated methods like distributed gaussian (DG)-EVB or transition region corrected reaction path EVB-QMDFF (TREQ) are availabe for that purpose.
+Especially the TREQ method allows for black-box generation of high quality PES descriptions, the whole process of PES setup and rate constant calculation with ring polymer molecular dynamics (ROMD) is realized in the black-box program within Caracal.
+Further, a number of analytical PES representations of gas phase reaction systems are integrated, they can directly be called for MD or rate constant calculations on them.
+
 
 ## License
 
-EVB-QMDFF is distributed unter the terms of the [MIT license](https://opensource.org/licenses/mit-license):
+Caracal is distributed unter the terms of the [MIT license](https://opensource.org/licenses/mit-license):
 
 ```
-   EVB-QMDFF - RPMD molecular dynamics and rate constant calculations on
-               black-box generated potential energy surfaces
+   CARACAL - Ring polymer molecular dynamics and rate constant calculations
+             on black-box generated potential energy surfaces
 
-   Copyright (c) 2021 by Julien Steffen (steffen@pctc.uni-kiel.de)
+   Copyright (c) 2023 by Julien Steffen (mail@j-steffen.org)
                          Stefan Grimme (grimme@thch.uni-bonn.de) (QMDFF code)
 
    Permission is hereby granted, free of charge, to any person obtaining a
@@ -37,36 +41,36 @@ EVB-QMDFF is distributed unter the terms of the [MIT license](https://opensource
    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
    DEALINGS IN THE SOFTWARE.
-``` 
+```
 
-## Obtaining EVB-QMDFF
+## Obtaining Caracal
 
 The program package can be obtained by getting a copy of this repository using git:
 ```
-git clone git://github.com/Trebonius91/EVB-QMDFF.git
+git clone git://github.com/Trebonius91/CARACAL.git
 ```
 ## Installation:
 
-EVB-QMDFF is written in Fortran 90, with some minor parts in Fortran 77.
+Caracal is written in Fortran 90, with some minor parts in Fortran 77.
 For compilation, the following dependencies are required:
 
 - Standard Fortran 90 compiler (gfortran, ifort, etc.)
-- Lapack and BLAS  
-- FFTW 
+- Lapack and BLAS
+- FFTW
 - MPI
 
 ## Compiling from Source
 
-The Makefile, which is located in the main directory, should be modified to meet your sytem requirements 
+The Makefile, which is located in the main directory, should be modified to meet your sytem requirements
 (a separate configure file will be added in the future). After, this, copy ot tp the src directory and run
 ```
-$ make 
+$ make
 ```
-If the build is successful, the different programs of the package are located in the bin directory. 
+If the build is successful, the different programs of the package are located in the bin directory.
 
 ## Executing the programs
 
-In order to understand the handling of the different programs in EVB-QMDFF, type the help option, e.g. 
+In order to understand the handling of the different programs in Caracal, type the help option, e.g.
 ```
 $ dynamic.x -h
 ```
@@ -74,12 +78,12 @@ Now, general instructions how to use the program as well as a list of available 
 
 ## Tutorials and Examples
 
-A detailed set of tutorials describing the different programs, including a set of different examples covering relevant application cases can be found in the [EVB-QMDFF Wiki](https://github.com/Trebonius91/EVB-QMDFF/wiki)
+A detailed set of tutorials describing the different programs, including a set of different examples covering relevant application cases can be found in the [Caracal Wiki](https://github.com/Trebonius91/CARACAL/wiki)
 
 ## Future improvements
 
-- A configure file for automatic detection of system requirements will be written.
-- A manual (PDF and HTML) with detailed handling and background information will be made available.
-- A number of test jobs for ensuring correct functionality of the program will be provided.
-- A number of example calculations serving as templates for your applications on the several topics that is EVB-QMDFF able to handle will be added. 
+- Implementing a periodic version of Grimme's GFN-FF as alternative to QMDFF, for an even simpler generation of (diabatic) force field descriptions
+- Development of local versions of TREQ, enabling the calculation of larger systems without complicated and error-prone sets of internal coordinates
+- Exact unimolecular rate constants: implementing theoretically stringent prefactors for the different unimolecular mechanisms
+- Reactions in solvents: Implementing a "QM/MM" scheme, with the reactive part described by TREQ and sampled with RPMD and the solvent described by GFN-FF and classical dynamics
 

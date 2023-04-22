@@ -59,8 +59,8 @@ character(len=10), intent (out) ::pmf_minloc
 real(kind=8), intent (out) :: print_poly
 !     filename of the ts structure (the starting point!)
 character(len=80), intent (out) ::ts_file
-!     filename of the educts structure (for unimolecular)
-character(len=80)::educts_file
+!     filename of the reactants structure (for unimolecular)
+character(len=80)::reactants_file
 character(len=50)::fix_file ! file with numbers of fixed atoms
 !     if recrossing shall be parallelized
 logical, intent (out)::recross_mpi
@@ -73,7 +73,7 @@ character(len=140) record
 character(len=140) string
 !     local arrays for breaking/forming bonds 
 character(len=20),dimension(:),allocatable::input_form,input_break
-!     for read in of educt atoms
+!     for read in of reactant atoms
 character(len=1)::at_index(200)
 !     auxiliary characters for read in of bonds 
 character(len=1)::act_char
@@ -124,7 +124,7 @@ umbr_hi = -5.d0
 umbr_dist = -1.d0
 !     The reaction class with respect to force constant etc.
 umbr_type = "none"
-!     The asymptotic educts separation for umbrella samplings 
+!     The asymptotic reactants separation for umbrella samplings
 r_inf = 0.d0
 !     The file in which the startign TS trajectory shall be stored 
 ts_file = " "
@@ -373,55 +373,55 @@ call upcase(umbr_type)
 if (umbr_type .eq. "UNIMOLEC") then
    form_num=1
    break_num=1
-   sum_eds=1
+   sum_reacs=1
 else if (umbr_type .eq. "BIMOLEC") then
    form_num=1
    break_num=1
-   sum_eds=2
+   sum_reacs=2
 else if (umbr_type .eq. "CYCLOADD") then
    form_num=2
    break_num=0
-   sum_eds=2
+   sum_reacs=2
 else if (umbr_type .eq. "MERGING") then
    form_num=1
    break_num=0
-   sum_eds=2
+   sum_reacs=2
 else if (umbr_type .eq. "ADDITION") then
    form_num=2
    break_num=1
-   sum_eds=2
+   sum_reacs=2
 else if (umbr_type .eq. "ADDITION3") then
    form_num=3
    break_num=2
-   sum_eds=3
+   sum_reacs=3
 else if (umbr_type .eq. "ADD3_SOLV") then
    form_num=3
    break_num=2
-   sum_eds=2
+   sum_reacs=2
 else if (umbr_type .eq. "ADDITION4") then
    form_num=4
    break_num=3
-   sum_eds=4
+   sum_reacs=4
 else if (umbr_type .eq. "ADD4_SOLV") then
    form_num=4
    break_num=3
-   sum_eds=2
+   sum_reacs=2
 else if (umbr_type .eq. "ELIMINATION") then
    form_num=1
    break_num=2
-   sum_eds=1
+   sum_reacs=1
 else if (umbr_type .eq. "CYCLOREVER") then
    form_num=0
    break_num=2
-   sum_eds=1
+   sum_reacs=1
 else if (umbr_type .eq. "REARRANGE") then
    form_num=1
    break_num=1
-   sum_eds=1
+   sum_reacs=1
 else if (umbr_type .eq. "DECOM_1BOND") then
    form_num=0
    break_num=1
-   sum_eds=1
+   sum_reacs=1
 else if (umbr_type .eq. "ATOM_SHIFT") then
 else
    if (rank .eq. 0) then
@@ -434,9 +434,9 @@ end if
 !
 !    Allocate arrays for reaction type parametrization
 !
-allocate(at_ed(sum_eds,200),n_ed(sum_eds),mass_ed(sum_eds))
-at_ed=0
-n_ed=0
+allocate(at_reac(sum_reacs,200),n_reac(sum_reacs),mass_reac(sum_reacs))
+at_reac=0
+n_reac=0
 
 !
 !     allocate arrays for breaking and forming bonds as well as for its 
@@ -471,7 +471,7 @@ do i = 1, nkey
             read(record,*) names
             k=1
 !
-!     Read in the atom indices of each single educt: quite complicated in fortran..
+!     Read in the atom indices of each single reactant: quite complicated in fortran..
 !
             act_number=" "
             do l=1,120
@@ -484,11 +484,11 @@ do i = 1, nkey
                   end if
                else
                   if (len(trim(act_number)) .ge. 1) then
-                     read(act_number,*,iostat=istat) at_ed(1,k)
+                     read(act_number,*,iostat=istat) at_reac(1,k)
                      if (istat .eq. 0) then
                         k=k+1
                      else
-                        at_ed(1,k)=0
+                        at_reac(1,k)=0
                      end if
                   end if
                   act_number=" "
@@ -498,7 +498,7 @@ do i = 1, nkey
             read(record,*) names
             k=1
 !
-!     Do the same for the second educt..
+!     Do the same for the second reactant..
 !
             act_number=" "
             do l=1,120
@@ -511,22 +511,22 @@ do i = 1, nkey
                   end if
                else
                   if (len(trim(act_number)) .ge. 1) then
-                     read(act_number,*,iostat=istat) at_ed(2,k)
+                     read(act_number,*,iostat=istat) at_reac(2,k)
                      if (istat .eq. 0) then
                         k=k+1
                      else
-                        at_ed(2,k)=0
+                        at_reac(2,k)=0
                      end if
                   end if
                   act_number=" "
                end if
             end do
          else if (keyword(1:20) .eq. 'EDUCT3 ') then
-            if (sum_eds .gt. 2) then
+            if (sum_reacs .gt. 2) then
                read(record,*) names
                k=1
 !
-!     Do the same for the third educt..
+!     Do the same for the third reactant..
 !
                act_number=" "
                do l=1,120
@@ -539,11 +539,11 @@ do i = 1, nkey
                      end if
                   else
                      if (len(trim(act_number)) .ge. 1) then
-                        read(act_number,*,iostat=istat) at_ed(3,k)
+                        read(act_number,*,iostat=istat) at_reac(3,k)
                         if (istat .eq. 0) then
                            k=k+1
                         else
-                           at_ed(3,k)=0
+                           at_reac(3,k)=0
                         end if
                      end if
                      act_number=" "
@@ -551,11 +551,11 @@ do i = 1, nkey
                end do
             end if
          else if (keyword(1:20) .eq. 'EDUCT4 ') then
-            if (sum_eds .eq. 4) then
+            if (sum_reacs .eq. 4) then
                read(record,*) names
                k=1
 !     
-!     Do the same for the fourth educt..
+!     Do the same for the fourth reactant..
 !
                act_number=" "
                do l=1,120
@@ -568,11 +568,11 @@ do i = 1, nkey
                      end if
                   else
                      if (len(trim(act_number)) .ge. 1) then
-                        read(act_number,*,iostat=istat) at_ed(4,k)
+                        read(act_number,*,iostat=istat) at_reac(4,k)
                         if (istat .eq. 0) then
                            k=k+1
                         else
-                           at_ed(4,k)=0
+                           at_reac(4,k)=0
                         end if
                      end if
                      act_number=" "
@@ -653,34 +653,34 @@ do i = 1, nkey
                end do
             end do
 !
-!     Fpr unimolecular reactions, read in the structure of the educt as well
+!     Fpr unimolecular reactions, read in the structure of the reactant as well
 !
 !
-!     For unimoleculae reactions: read in structure of educt molecule!
+!     For unimoleculae reactions: read in structure of reactant molecule!
 !
          else if (keyword(1:20) .eq. 'EDUCTS_STRUC ') then
-            if (sum_eds .eq. 1) then
+            if (sum_reacs .eq. 1) then
               ! fix_atoms=.true.
-               read(record,*) names,educts_file
+               read(record,*) names,reactants_file
 
-               open(unit=31,file=educts_file,status="old",iostat=readstat)
+               open(unit=31,file=reactants_file,status="old",iostat=readstat)
                if (readstat .ne. 0) then
                   if (rank .eq. 0) then
-                     write(*,*) "The file ",educts_file," with the educts structure &
+                     write(*,*) "The file ",reactants_file," with the reactants structure &
                                        &  could not been found!"
                      call fatal
                   end if
                end if
-               allocate(ed_ref(3,natoms))
+               allocate(reac_ref(3,natoms))
                read(31,*) ; read(31,*)
                do l=1,natoms
-                  read(31,*) names,ed_ref(:,l)
+                  read(31,*) names,reac_ref(:,l)
                   end do
                close(31)
 !
-!     convert educts structure to bohr 
+!     convert reactants structure to bohr
 !
-               ed_ref=ed_ref/bohr
+               reac_ref=reac_ref/bohr
             end if
 
 !
@@ -1077,10 +1077,10 @@ if (rank .eq. 0) then
       write(*,*) "ADDITION: A bimolecular addition: two bonds are built, one is broken."
       write(*,*) "ADDITION3: A trimolecular addition: three bonds are built, two are broken."
       write(*,*) "ADD3_SOLV: A trimolecular addition: three bonds are built, two are broken, two"
-      write(*,*) "           educts are clustered before the reaction (bimol. k(T))."
+      write(*,*) "           reactants are clustered before the reaction (bimol. k(T))."
       write(*,*) "ADDITION4: A tetramolecular addition: four bonds are built, three are broken."
       write(*,*) "ADD4_SOLV: A tetramolecular addition: four bonds are built, three are broken, three"
-      write(*,*) "           educts are clustered before the reaction (bimol. k(T))."
+      write(*,*) "           reactants are clustered before the reaction (bimol. k(T))."
       write(*,*) "ATOM_SHIFT: A single atom is transported a certain distance, e.g. on a metal surface."
       write(*,*) "CYCLOREV: A cycloreversion: two bonds are broken simultaneously."
       call fatal
@@ -1110,11 +1110,11 @@ if (rank .eq. 0) then
       call fatal
    end if
 !
-!      The asymptotic educts distance (not needed for ATOM_SHIFT)
+!      The asymptotic reactants distance (not needed for ATOM_SHIFT)
 !
    if (R_inf .eq. 0.d0) then
      if ((umbr_type .ne. "ATOM_SHIFT") .and. (umbr_type .ne. "CYCLOREV")) then
-        write(*,*) "No educt max distance is given! Add the keyword R_INF!"
+        write(*,*) "No reactant max distance is given! Add the keyword R_INF!"
         call fatal
      end if
    end if
@@ -1212,10 +1212,10 @@ end if
 !
 !     Control if additional settings are correct/useful/appropriate
 !
-do i=1,sum_eds
-   if (at_ed(i,1) .eq. 0) then
+do i=1,sum_reacs
+   if (at_reac(i,1) .eq. 0) then
       if (rank .eq. 0) then
-         write(*,'(a,i1,a,i1,a)') "No atom for educt ",i," is given! &
+         write(*,'(a,i1,a,i1,a)') "No atom for reactant ",i," is given! &
               &  Add the keyword EDUCT",i,"!"
          call fatal
       end if
@@ -1223,28 +1223,28 @@ do i=1,sum_eds
 end do
 
 !
-!     Control the elements of the educts arrays for doublings, emptyness etc..
-!     for all educts in one loop!
+!     Control the elements of the reactants arrays for doublings, emptyness etc..
+!     for all reactants in one loop!
 !
-do l=1,sum_eds
+do l=1,sum_reacs
    active=.true.
    i=0
    do while (active)
       i=i+1
-      if (at_ed(l,i) .eq. 0) then
+      if (at_reac(l,i) .eq. 0) then
          active=.false.
-      else if ((at_ed(l,i) .gt. natoms) .or. (at_ed(l,i) .lt. 0)) then
+      else if ((at_reac(l,i) .gt. natoms) .or. (at_reac(l,i) .lt. 0)) then
          if (rank .eq. 0) then
             write(*,'(a,i1,a)') "Educt ",l," has an atom out of range!"
             call fatal
          end if
       else
          do p=1,l
-            do j=1,n_ed(p)
-               if (at_ed(l,i) .eq. at_ed(p,j)) then
+            do j=1,n_reac(p)
+               if (at_reac(l,i) .eq. at_reac(p,j)) then
                   if (rank .eq. 0) then
-                    write(*,'(a,i4,a,i1,a,i1,a)') " The atom No. ",at_ed(l,i), &
-                        & " is shared between educt ",l," and ",p,"!"
+                    write(*,'(a,i4,a,i1,a,i1,a)') " The atom No. ",at_reac(l,i), &
+                        & " is shared between reactant ",l," and ",p,"!"
                     call fatal
                   end if
                end if
@@ -1254,15 +1254,15 @@ do l=1,sum_eds
    end do
    if (i .eq. 1) then
       if (rank .eq. 0) then
-         write(*,*) "One of the educts has no atoms!"
+         write(*,*) "One of the reactants has no atoms!"
          call fatal
       end if
    end if
-   n_ed(l)=i-1
+   n_reac(l)=i-1
 end do
-if (sum(n_ed) .ne. natoms .and. umbr_type .ne. "ATOM_SHIFT") then
+if (sum(n_reac) .ne. natoms .and. umbr_type .ne. "ATOM_SHIFT") then
    if (rank .eq. 0) then
-      write(*,*) "The sum of educt atoms isn´t equal to the total number of atoms!"
+      write(*,*) "The sum of reactant atoms isn´t equal to the total number of atoms!"
       call fatal
    end if
 end if

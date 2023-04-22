@@ -32,7 +32,7 @@
 !       the s1 dividing surface for the rpmd rate calculation
 !       program
 !       For unimolecular reactions, also define reference 
-!       bond lengths of the s0 educt surface 
+!       bond lengths of the s0 reactant surface 
 !     
 !     part of EVB
 !
@@ -76,14 +76,14 @@ end do
 !
 if ((umbr_type .eq. "CYCLOREVER") .or. (umbr_type .eq. "REARRANGE") .or.&
            &  (umbr_type .eq. "DECOM_1BOND") .or. (umbr_type .eq. "ELIMINATION")) then
-   allocate(form_ed(form_num),break_ed(break_num))
+   allocate(form_reac(form_num),break_reac(break_num))
    do i=1,form_num
       atom1=bond_form(i,1)
       atom2=bond_form(i,2)
-      Rx=ed_ref(1,atom1)-ed_ref(1,atom2)
-      Ry=ed_ref(2,atom1)-ed_ref(2,atom2)
-      Rz=ed_ref(3,atom1)-ed_ref(3,atom2)
-      form_ed(i)=sqrt(Rx*Rx+Ry*Ry+Rz*Rz)
+      Rx=reac_ref(1,atom1)-reac_ref(1,atom2)
+      Ry=reac_ref(2,atom1)-reac_ref(2,atom2)
+      Rz=reac_ref(3,atom1)-reac_ref(3,atom2)
+      form_reac(i)=sqrt(Rx*Rx+Ry*Ry+Rz*Rz)
    end do
 
 !
@@ -92,10 +92,10 @@ if ((umbr_type .eq. "CYCLOREVER") .or. (umbr_type .eq. "REARRANGE") .or.&
    do i=1,break_num
       atom1=bond_break(i,1)
       atom2=bond_break(i,2)
-      Rx=ed_ref(1,atom1)-ed_ref(1,atom2)
-      Ry=ed_ref(2,atom1)-ed_ref(2,atom2)
-      Rz=ed_ref(3,atom1)-ed_ref(3,atom2)
-      break_ed(i)=sqrt(Rx*Rx+Ry*Ry+Rz*Rz)
+      Rx=reac_ref(1,atom1)-reac_ref(1,atom2)
+      Ry=reac_ref(2,atom1)-reac_ref(2,atom2)
+      Rz=reac_ref(3,atom1)-reac_ref(3,atom2)
+      break_reac(i)=sqrt(Rx*Rx+Ry*Ry+Rz*Rz)
    end do
 end if
 return

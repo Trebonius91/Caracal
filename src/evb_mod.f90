@@ -185,7 +185,7 @@ real(kind=8),allocatable::rp_point_s(:) ! s values of the points with gradients 
 real(kind=8),allocatable::rp_point_v12(:)  ! coupling strengths on these points
 real(kind=8),dimension(:,:),allocatable::dv12 ! the coupling gradients at the TREQ points
 real(kind=8),dimension(:,:,:),allocatable::d2v12  ! the coupling hessians at the TREQ points
-integer::qmdff_order    ! if QMDFF1=educt, QMDFF2=product or the other way
+integer::qmdff_order    ! if QMDFF1=reactant, QMDFF2=product or the other way
 real(kind=8)::s_transfer  ! the actual value of the reaction coordinate s
 real(kind=8)::s_ts    ! position of the TS along the path (in terms of the s-parameter)
 real(kind=8)::s_tot    ! the total length of the IRC for rescaling
@@ -227,10 +227,10 @@ integer::npaths  ! number of equivalent reaction paths
 real(kind=8),dimension(:,:,:),allocatable::p_i,q_i  ! positions and momenta of the system
 logical::use_rpmd  ! if the rpmd.x program is used, allow also 1 internal coordinate..
 integer,allocatable::rpmd_atoms(:) ! if not all atoms shall be treated with RPMD, define the active ones
-real(kind=8),dimension(:,:),allocatable::ts_ref,ed_ref
-real(kind=8),dimension(:),allocatable::int_ed,int_ts,xi_scale ! scale int. coordinates to 0..1
+real(kind=8),dimension(:,:),allocatable::ts_ref,reac_ref
+real(kind=8),dimension(:),allocatable::int_reac,int_ts,xi_scale ! scale int. coordinates to 0..1
 real(kind=8),dimension(:),allocatable::form_ref,break_ref  ! reference values for the TS bonds
-real(kind=8),dimension(:),allocatable::form_ed,break_ed ! reference values of educts bonds (unimol.)
+real(kind=8),dimension(:),allocatable::form_reac,break_reac ! reference values of reactants bonds (unimol.)
 real(kind=8)::k_force ! umbrella force constant
 real(kind=8),allocatable::struc_equi(:,:,:)
 real(kind=8)::umbr_lo,umbr_hi ! bonds for umbrella samplings
@@ -238,7 +238,7 @@ real(kind=8)::umbr_dist ! distance between single umbrella samplings
 character(len=20)::umbr_type  ! type of coordinate system to be used for umbrella sampling
 integer::form_num,break_num  ! number of forming and breaking bonds for the reac.type
 integer,dimension(:,:),allocatable::bond_form,bond_break  ! forming and breaking bonds
-real(kind=8),allocatable::r_refs(:,:)  ! the needed educt-educt distances for the pre-equilibration
+real(kind=8),allocatable::r_refs(:,:)  ! the needed reactant-reactant distances for the pre-equilibration
 integer::shift_atom,shift_coord  ! for the ATOM_SHIFT coordinate 
 real(kind=8)::shift_lo,shift_hi  ! for the ATOM_SHIFT coordinate 
 logical::fix_atoms  ! if some atoms shall be fixed in dynamics calculations
@@ -250,11 +250,11 @@ integer::n_samplings,n_over  ! number of sampling windows
 logical::writestat ! decides if MD statistics shall be written out
 character(len=20)::pmf_method  ! if WHAM or umbrella integration shall be used!
 real(kind=8),allocatable::average(:),variance(:)   ! for umbrella integration!
-integer::sum_eds   ! total number of educt molcules (1 up to 4)
-integer,allocatable::at_ed(:,:)  ! atom numbers of all educts (up to four for ADDITION4)
-real(kind=8)::R_inf   ! reference distance of both/all educts
-integer,allocatable::n_ed(:) ! number of atoms in the educts (up to four for ADDITION4)
-real(kind=8),allocatable::mass_ed(:)  ! masses of the educts (up to four for ADDITION4)
+integer::sum_reacs   ! total number of reactant molcules (1 up to 4)
+integer,allocatable::at_reac(:,:)  ! atom numbers of all reactants (up to four for ADDITION4)
+real(kind=8)::R_inf   ! reference distance of both/all reactants
+integer,allocatable::n_reac(:) ! number of atoms in the reactants (up to four for ADDITION4)
+real(kind=8),allocatable::mass_reac(:)  ! masses of the reactants (up to four for ADDITION4)
 real(kind=8)::beta  ! inverse temperature
 real(kind=8)::andersen_time ! application interval for Andersen thermostat
 character(len=40)::thermo ! which thermostat shall be used (character)?

@@ -354,16 +354,16 @@ allocate(int_curr(nat6))
 allocate(int_ts(nat6))
 call xyz_2int(ts_ref,int_ts,natoms)
 !
-!     Partitionate the mass to get the masses of the single educts 
+!     Partitionate the mass to get the masses of the single reactants
 !     only for bimolecular reactions
 !
 
 if (umbr_type .ne. "ATOM_SHIFT") then
-   mass_ed=0.d0
-   if (sum_eds .gt. 0) then
-      do i=1,sum_eds
-         do j=1,n_ed(i)
-            mass_ed(i)=mass_ed(i)+mass(at_ed(i,j))
+   mass_reac=0.d0
+   if (sum_reacs .gt. 0) then
+      do i=1,sum_reacs
+         do j=1,n_reac(i)
+            mass_reac(i)=mass_reac(i)+mass(at_reac(i,j))
          end do
       end do
    end if
@@ -435,7 +435,7 @@ if (int_coord_plot) open(unit=191,file="int_coord.out",status="unknown")
 !     FIRST START STRUCTURES FOR ALL WINDOWS
 ! --------------------------------------------------------!
 ! 
-!     Loop over all windows (beginning from educts) and geneate starting 
+!     Loop over all windows (beginning from reactants) and geneate starting 
 !     structures: take the last of the current sampling as start structure 
 !     for the next!
 !     Do all of these calculation with only one bead!
@@ -1578,7 +1578,7 @@ if (rank .eq. 0) then
       open(unit=94,file="pmf_integration.dat",status="unknown")
       write(94,*) "# xi-value     PMF(kJ/mol)"
       do i=1,nbins-1
-         write(94,*) bin_coord(i),pmf(i)*hartree
+         write(94,*) bin_coord(i),pmf(i)*2625.50d0
       end do
       close(94)
       write(15,*) "Umbrella Integration finished! PMF stored to pmf_integration.dat."
@@ -1671,7 +1671,7 @@ if (rank .eq. 0) then
 !   maxlocate=maxloc(pmf(-int(xi_min/((xi_max-xi_min)/(nbins)))+1:nbins-1),dim=1)
    xi_barrier=bin_coord(maxlocate)
 !
-!     Take the educt asymptotic (xi=zero) as lowest PMF value
+!     Take the reactant asymptotic (xi=zero) as lowest PMF value
 !
    if (pmf_minloc .eq. 'ZERO') then
       minlocate=-int(xi_min/((xi_max-xi_min)/(nbins)))+1

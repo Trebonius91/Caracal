@@ -28,8 +28,8 @@
 
 !
 !     subroutine calc_com: Calculate the center of masses for 
-!      both educts in the bimolecular reaction model or more 
-!      educts if another model shall be used !
+!      both reactants in the bimolecular reaction model or more 
+!      reactants if another model shall be used !
 !
 !     part of EVB
 !
@@ -40,17 +40,17 @@ implicit none
 integer::i,j,k,l  !  loop indices 
 integer::atom ! the actual atom index
 real(kind=8)::coords(3,natoms)
-real(kind=8)::com(sum_eds,3)  ! the center of masses for all educts
+real(kind=8)::com(sum_reacs,3)  ! the center of masses for all reactants
 
 com=0.d0  ! reset com to 0
 !
-!     com for all reactants (number: sum_eds)
+!     com for all reactants (number: sum_reacs)
 !
-do k=1,sum_eds
-   do i=1,n_ed(k)
-      atom=at_ed(k,i)
+do k=1,sum_reacs
+   do i=1,n_reac(k)
+      atom=at_reac(k,i)
       do j=1,3
-         com(k,j)=com(k,j)+mass(atom)*coords(j,atom)/(mass_ed(k))
+         com(k,j)=com(k,j)+mass(atom)*coords(j,atom)/(mass_reac(k))
       end do
    end do
 end do

@@ -66,11 +66,11 @@ use evb_mod
 implicit none
 integer::i,j,k,l,i1,i2,j1,j2  ! loop indices
 integer::mode  ! if usual umbrella sampling or recrossing shall be calculated!
-integer::s0_terms  ! number of interaction betweem sum_eds educt particles
+integer::s0_terms  ! number of interaction betweem sum_reacs reactant particles
 real(kind=8)::coords(3,natoms) ! the actual coordinates
-real(kind=8)::Red(3,sum_eds,sum_eds)  ! all possible educt-educt distances
-real(kind=8)::r_eds(sum_eds,sum_eds) ! the actual distane between two educts
-real(kind=8)::eds_avg  ! the average distance between two educts
+real(kind=8)::Red(3,sum_reacs,sum_reacs)  ! all possible reactant-reactant distances
+real(kind=8)::r_eds(sum_reacs,sum_reacs) ! the actual distane between two reactants
+real(kind=8)::eds_avg  ! the average distance between two reactants
 real(kind=8)::R_f(3,form_num),R_b(3,break_num)  ! generalized vectors for all bonds
 real(kind=8)::form_act(form_num),break_act(break_num)  ! actual bondlengths
 real(kind=8)::xi_act  ! the calculated Xi value
@@ -79,9 +79,9 @@ real(kind=8)::d2xi_act(3,natoms,3,natoms)  ! the calculated Xi hessian
 real(kind=8)::s0,s1   ! dividing surface values 
 real(kind=8)::ds0(3,natoms),ds1(3,natoms)  ! the calculated surface derivatives
 real(kind=8)::d2s0(3,natoms,3,natoms),d2s1(3,natoms,3,natoms) ! the calculated surface hessians
-real(kind=8)::com(sum_eds,3)   ! array with center of mass coordinates
+real(kind=8)::com(sum_reacs,3)   ! array with center of mass coordinates
 real(kind=8)::Rinv ! the inverse bond length/distance (for derivatives)
-real(kind=8)::r_factor(sum_eds,sum_eds)  ! modifying factor in s0 for different distances
+real(kind=8)::r_factor(sum_reacs,sum_reacs)  ! modifying factor in s0 for different distances
 real(kind=8)::correct ! local correction for ds0 and d2s0
 real(kind=8)::massfactor ! for hessians: factor of two masses
 real(kind=8)::dxx,dxy,dxz,dyy,dyz,dzz ! abbreviations for hessian elements
@@ -158,8 +158,8 @@ if ((umbr_type .eq. "BIMOLEC") .or. (umbr_type .eq. "CYCLOADD") &
 !
    r_eds=0.d0
    s0=0.d0 
-   do i=1,sum_eds
-      do j=i+1,sum_eds
+   do i=1,sum_reacs
+      do j=i+1,sum_reacs
          Red(1,i,j)=com(j,1)-com(i,1)
          Red(2,i,j)=com(j,2)-com(i,2)
          Red(3,i,j)=com(j,3)-com(i,3)
@@ -171,17 +171,17 @@ if ((umbr_type .eq. "BIMOLEC") .or. (umbr_type .eq. "CYCLOADD") &
 !   write(*,*) "s0 calculation",s0
 !
 !    divide the surface function through the number of interactions 
-!    (n_ed^2-n_ed)/2 
+!    (n_reac^2-n_reac)/2
 !
-   s0_terms=(sum_eds*sum_eds-sum_eds)/2
+   s0_terms=(sum_reacs*sum_reacs-sum_reacs)/2
    s0=s0/real(s0_terms)
 !
-!     Try to enforce similar values for all possible educt-educt distances 
+!     Try to enforce similar values for all possible reactant-reactant distances
 !     calculate average and the deviation to it to correct the actual values
 ! 
 !   eds_avg=sum(r_eds)/real(s0_terms)
-!   do i=1,sum_eds
-!      do j=i+1,sum_eds
+!   do i=1,sum_reacs
+!      do j=i+1,sum_reacs
 !          r_factor(i,j)=1/((2*r_eds(i,j)-eds_avg)/r_eds(i,j) )
 !          write(*,*) i,j,eds_avg,r_eds(i,j),r_factor(i,j)
 !         r_eds(i,j)=eds_avg !r_eds(i,j)+(-eds_avg+r_eds(i,j))      
@@ -242,24 +242,24 @@ if ((umbr_type .eq. "BIMOLEC") .or. (umbr_type .eq. "CYCLOADD") &
    end do
 
 ! 
-!     The educts dividing surface
+!     The reactants dividing surface
 !
    
    ds0=0.d0
-   do i=1,sum_eds
-      do j=i+1,sum_eds
+   do i=1,sum_reacs
+      do j=i+1,sum_reacs
          Rinv=1.d0/r_eds(i,j)
-         do k=1,n_ed(i)
-            atom=at_ed(i,k)
-            ds0(1,atom)=ds0(1,atom)+Red(1,i,j)*Rinv*mass(atom)/mass_ed(i)/real(s0_terms)
-            ds0(2,atom)=ds0(2,atom)+Red(2,i,j)*Rinv*mass(atom)/mass_ed(i)/real(s0_terms)
-            ds0(3,atom)=ds0(3,atom)+Red(3,i,j)*Rinv*mass(atom)/mass_ed(i)/real(s0_terms)
+         do k=1,n_reac(i)
+            atom=at_reac(i,k)
+            ds0(1,atom)=ds0(1,atom)+Red(1,i,j)*Rinv*mass(atom)/mass_reac(i)/real(s0_terms)
+            ds0(2,atom)=ds0(2,atom)+Red(2,i,j)*Rinv*mass(atom)/mass_reac(i)/real(s0_terms)
+            ds0(3,atom)=ds0(3,atom)+Red(3,i,j)*Rinv*mass(atom)/mass_reac(i)/real(s0_terms)
          end do
-         do k=1,n_ed(j)
-            atom=at_ed(j,k)
-            ds0(1,atom)=ds0(1,atom)-Red(1,i,j)*Rinv*mass(atom)/mass_ed(j)/real(s0_terms)
-            ds0(2,atom)=ds0(2,atom)-Red(2,i,j)*Rinv*mass(atom)/mass_ed(j)/real(s0_terms)
-            ds0(3,atom)=ds0(3,atom)-Red(3,i,j)*Rinv*mass(atom)/mass_ed(j)/real(s0_terms)
+         do k=1,n_reac(j)
+            atom=at_reac(j,k)
+            ds0(1,atom)=ds0(1,atom)-Red(1,i,j)*Rinv*mass(atom)/mass_reac(j)/real(s0_terms)
+            ds0(2,atom)=ds0(2,atom)-Red(2,i,j)*Rinv*mass(atom)/mass_reac(j)/real(s0_terms)
+            ds0(3,atom)=ds0(3,atom)-Red(3,i,j)*Rinv*mass(atom)/mass_reac(j)/real(s0_terms)
          end do
       end do
    end do
@@ -394,12 +394,12 @@ if ((umbr_type .eq. "BIMOLEC") .or. (umbr_type .eq. "CYCLOADD") &
       d2s1(3,atom2,3,atom2) = d2s1(3,atom2,3,atom2) + dzz/real(break_num)
    end do
 !
-!     The educts dividing surface
+!     The reactants dividing surface
 !
 
    d2s0=0.d0
-   do i=1,sum_eds
-      do j=i+1,sum_eds   
+   do i=1,sum_reacs
+      do j=i+1,sum_reacs
          Rinv=1.d0/r_eds(i,j)
          dxx = -(Red(2,i,j) * Red(2,i,j) + Red(3,i,j) * Red(3,i,j)) * (Rinv * Rinv * Rinv)
          dyy = -(Red(3,i,j) * Red(3,i,j) + Red(1,i,j) * Red(1,i,j)) * (Rinv * Rinv * Rinv)
@@ -408,11 +408,11 @@ if ((umbr_type .eq. "BIMOLEC") .or. (umbr_type .eq. "CYCLOADD") &
          dxz = Red(1,i,j) * Red(3,i,j) * (Rinv * Rinv * Rinv)
          dyz = Red(2,i,j) * Red(3,i,j) * (Rinv * Rinv * Rinv)
    
-         do k=1,n_ed(i)
-            atom1=at_ed(i,k)
-            do l=1,n_ed(i)
-               atom2=at_ed(i,l)
-               massfactor=mass(atom1)/mass_ed(i)*mass(atom2)/mass_ed(i)
+         do k=1,n_reac(i)
+            atom1=at_reac(i,k)
+            do l=1,n_reac(i)
+               atom2=at_reac(i,l)
+               massfactor=mass(atom1)/mass_reac(i)*mass(atom2)/mass_reac(i)
                d2s0(1,atom1,1,atom2) = d2s0(1,atom1,1,atom2)+dxx * massfactor/real(s0_terms)
                d2s0(1,atom1,2,atom2) = d2s0(1,atom1,2,atom2)+dxy * massfactor/real(s0_terms)
                d2s0(1,atom1,3,atom2) = d2s0(1,atom1,3,atom2)+dxz * massfactor/real(s0_terms)
@@ -423,9 +423,9 @@ if ((umbr_type .eq. "BIMOLEC") .or. (umbr_type .eq. "CYCLOADD") &
                d2s0(3,atom1,2,atom2) = d2s0(3,atom1,2,atom2)+dyz * massfactor/real(s0_terms)
                d2s0(3,atom1,3,atom2) = d2s0(3,atom1,3,atom2)+dzz * massfactor/real(s0_terms)
             end do
-            do l=1,n_ed(j)
-               atom2=at_ed(j,l)
-               massfactor=mass(atom1)/mass_ed(i)*mass(atom2)/mass_ed(j)
+            do l=1,n_reac(j)
+               atom2=at_reac(j,l)
+               massfactor=mass(atom1)/mass_reac(i)*mass(atom2)/mass_reac(j)
                d2s0(1,atom1,1,atom2) = d2s0(1,atom1,1,atom2)-dxx * massfactor/real(s0_terms)
                d2s0(1,atom1,2,atom2) = d2s0(1,atom1,2,atom2)-dxy * massfactor/real(s0_terms)
                d2s0(1,atom1,3,atom2) = d2s0(1,atom1,3,atom2)-dxz * massfactor/real(s0_terms)
@@ -437,11 +437,11 @@ if ((umbr_type .eq. "BIMOLEC") .or. (umbr_type .eq. "CYCLOADD") &
                d2s0(3,atom1,3,atom2) = d2s0(3,atom1,3,atom2)-dzz * massfactor/real(s0_terms)
             end do
          end do
-         do k=1,n_ed(j)
-            atom1=at_ed(j,k)
-            do l=1,n_ed(i)
-               atom2=at_ed(i,l)
-               massfactor=mass(atom1)/mass_ed(j)*mass(atom2)/mass_ed(i)
+         do k=1,n_reac(j)
+            atom1=at_reac(j,k)
+            do l=1,n_reac(i)
+               atom2=at_reac(i,l)
+               massfactor=mass(atom1)/mass_reac(j)*mass(atom2)/mass_reac(i)
                d2s0(1,atom1,1,atom2) = d2s0(1,atom1,1,atom2)-dxx * massfactor/real(s0_terms)
                d2s0(1,atom1,2,atom2) = d2s0(1,atom1,2,atom2)-dxy * massfactor/real(s0_terms)
                d2s0(1,atom1,3,atom2) = d2s0(1,atom1,3,atom2)-dxz * massfactor/real(s0_terms)
@@ -452,9 +452,9 @@ if ((umbr_type .eq. "BIMOLEC") .or. (umbr_type .eq. "CYCLOADD") &
                d2s0(3,atom1,2,atom2) = d2s0(3,atom1,2,atom2)-dyz * massfactor/real(s0_terms)
                d2s0(3,atom1,3,atom2) = d2s0(3,atom1,3,atom2)-dzz * massfactor/real(s0_terms)
             end do
-            do l=1,n_ed(j)
-               atom2=at_ed(j,l)
-               massfactor=mass(atom1)/mass_ed(j)*mass(atom2)/mass_ed(j)
+            do l=1,n_reac(j)
+               atom2=at_reac(j,l)
+               massfactor=mass(atom1)/mass_reac(j)*mass(atom2)/mass_reac(j)
                d2s0(1,atom1,1,atom2) = d2s0(1,atom1,1,atom2)+dxx * massfactor/real(s0_terms)
                d2s0(1,atom1,2,atom2) = d2s0(1,atom1,2,atom2)+dxy * massfactor/real(s0_terms)
                d2s0(1,atom1,3,atom2) = d2s0(1,atom1,3,atom2)+dxz * massfactor/real(s0_terms)
@@ -520,7 +520,7 @@ else if (umbr_type .eq. "ATOM_SHIFT") then
 !
    s1=coords(shift_coord,shift_atom)-shift_hi
 !
-!    value of the educts dividing surface function: reference to shift_lo
+!    value of the reactants dividing surface function: reference to shift_lo
 !
    s0=coords(shift_coord,shift_atom)-shift_lo
 !
@@ -542,7 +542,7 @@ else if (umbr_type .eq. "ATOM_SHIFT") then
    ds1=0d0
    ds1(shift_coord,shift_atom)=1d0
 !
-!    gradient of the educts dividing surface function:
+!    gradient of the reactants dividing surface function:
 !   
    ds0=0d0
    ds0(shift_coord,shift_atom)=1d0
@@ -595,7 +595,7 @@ else if (umbr_type .eq. "ATOM_SHIFT") then
 !    #############################################################################
 !    3 UNIMOLECULAR REACTIONS (GENERAL)
 !
-!    Here, the s0 dividing surface is defined as the educt structure. Therefore, 
+!    Here, the s0 dividing surface is defined as the reactant structure. Therefore,
 !    both dividing surfaces are defined as a bunch of reference values for 
 !    the forming and breaking bonds of interest
 !
@@ -644,14 +644,14 @@ else if ((umbr_type .eq. "CYCLOREVER") .or. (umbr_type .eq. "REARRANGE") .or. &
       s1=s1-(form_act(i)-form_ref(i))/real(form_num)
    end do
 !     
-!    value of the educts dividing surface: analogous to TS dividing surface 
+!    value of the reactants dividing surface: analogous to TS dividing surface
 !
    s0=0.d0
    do i=1,break_num
-      s0=s0+(break_act(i)-break_ed(i))/real(break_num)
+      s0=s0+(break_act(i)-break_reac(i))/real(break_num)
    end do
    do i=1,form_num
-      s0=s0-(form_act(i)-form_ed(i))/real(form_num)
+      s0=s0-(form_act(i)-form_reac(i))/real(form_num)
    end do
 !
 !    calculate Xi value with the RPMDrate formula
@@ -702,7 +702,7 @@ else if ((umbr_type .eq. "CYCLOREVER") .or. (umbr_type .eq. "REARRANGE") .or. &
       ds1(3,atom2) = ds1(3,atom2) - R_b(3,i) * Rinv/real(break_num)
    end do
 !
-!     educts dividing surface: derivatives are equal!
+!     reactants dividing surface: derivatives are equal!
 !
    ds0=ds1
 !
@@ -837,7 +837,7 @@ else if ((umbr_type .eq. "CYCLOREVER") .or. (umbr_type .eq. "REARRANGE") .or. &
       d2s1(3,atom2,3,atom2) = d2s1(3,atom2,3,atom2) + dzz/real(break_num)
    end do
 !
-!     The Hessian of the educts dividing surface: equal to the TS one!
+!     The Hessian of the reactants dividing surface: equal to the TS one!
 !
    d2s0=d2s1
 !

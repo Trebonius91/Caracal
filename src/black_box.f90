@@ -89,7 +89,7 @@ real(kind=8)::read_dummy(5000) ! dummy array for scan read in
 real(kind=8)::tmp1,tmp2     ! sorting of Xi values and energies 
 real(kind=8),allocatable::tmp3(:,:)   ! sorting of IRC structures
 !     For calculation of QM reference data of QMDFFs of both minima
-logical::educts_done,products_done  ! if this part was already done before
+logical::reactants_done,products_done  ! if this part was already done before
 integer::min_procs,min_mem   ! processors and memors for minimum calculations
 integer::ens_procs  ! processors for additional energy calculations
 character(len=80)::link_gaussian   ! link to gaussian executable 
@@ -104,8 +104,8 @@ character(len=80),allocatable::e_method(:)   ! commands for QM method
 !                for additional energy calculations 
 character(len=120)::e_basis ! command for QM methods basis for add. energy calcs
 integer::e_met_words,e_bas_words  ! number of commands for additional energy calcs.
-integer::geo_educts,geo_products  ! if geoopts of educts/products are already finished
-real(kind=8),allocatable::educts_xyz(:),products_xyz(:) ! for Gaussian: geoopt structures 
+integer::geo_reactants,geo_products  ! if geoopts of reactants/products are already finished
+real(kind=8),allocatable::reactants_xyz(:),products_xyz(:) ! for Gaussian: geoopt structures 
 integer::minlines   ! structure section of minimum geoopt name.fchk files
 !     For calculation of QM reference for RP-EVB coupling 
 integer::rp_pts_min  ! minimum number of RP-EVB points (+N/2 will be added)
@@ -137,7 +137,7 @@ character(len=1)::software_ens ! used software if the energies shall be correcte
 integer::njobs_round  ! number of calculations to be done in this round
 integer::njobs_done ! number of calculations already done in previous runs
 logical::ens_extra  ! if energies shall be corrected or not
-real(kind=8)::ens_educts,ens_products  ! extra energy for educt and product opt structures
+real(kind=8)::ens_reactants,ens_products  ! extra energy for reactant and product opt structures
 !   For generation of dynamic folders 
 character(len=80)::qmdff_en_line  ! line with QMDFF energies 
 integer::temps(20)   ! list with simulation temperatures for RPMD
@@ -145,7 +145,7 @@ integer::temp_num   ! number of different temperatures
 integer,allocatable::fragments(:)   ! for all atoms: to which fragment they belong 
 integer,allocatable::fragsize(:),atfrags(:)  ! list of numbers of atoms per fragment 
 integer,allocatable::frag1(:),frag2(:),frag3(:),frag4(:)  ! atoms for each fragment
-integer::num_eds   ! number of molecules in the educt structure
+integer::num_eds   ! number of molecules in the reactant structure
 integer,allocatable::atind(:)  ! atomic indices for bondlength criterion
 real(kind=8)::bondlentol  ! bondlength criterion tolerance
 integer,allocatable::doubles(:,:) ! all bonds that are present in both structures
@@ -840,7 +840,7 @@ pre_exp=25.d0
 rp_mid_tot=0.6d0
 rp_mid_trans=0.1d0
 dt=0.2d0
-r_inf=20.d0
+r_inf=10.d0
 k_force=0.1
 umbr_lo=-0.05d0
 umbr_hi=1.03d0
@@ -863,7 +863,7 @@ child_point=100
 child_evol=1000
 energy_tol=500d0
 err_max=1000
-recross_nocheck=.false.
+recross_check=.true.
 recross_mpi=.false.
 scan_path=.false. ! if a scan instead of an IRC was calculated
 !
@@ -1189,7 +1189,7 @@ write(*,'(a,f15.7)') " * The damping coefficient for RP-EVB is: ", pre_exp
 write(*,'(a,2f15.7)') " * The interval for direct interpolation and its borders &
              & are: ", rp_mid_tot,rp_mid_trans
 write(*,'(a,f15.7)') " * The MD timestep in fs is: ",dt
-write(*,'(a,f15.7)') " * The asymptotic distance for educts in bohr is: ",r_inf
+write(*,'(a,f15.7)') " * The asymptotic distance for reactants in Angstroms is: ",r_inf
 write(*,'(a,f15.7)') " * The strength of the umbrella potential (a.u.): ",k_force 
 write(*,'(a,2f15.7)') " * Borders of umbrella window distribution: ",umbr_lo,umbr_hi
 write(*,'(a,f15.7)') " * Distance between two umbrella windows: ",umbr_dist
@@ -1644,8 +1644,8 @@ end if
 !
 !    TASK 2 : CALCULATE QMDFF REFERENCE DATA
 !
-!    Two minima will be considered: educts (min1) and products (min2)
-!    The first structure of the IRC will be starting point for the educts 
+!    Two minima will be considered: reactants (min1) and products (min2)
+!    The first structure of the IRC will be starting point for the reactants 
 !    calculation, and the last structure for the products calculation
 !    In case of orca calculations, all tasks can be done in one calculation,
 !    in case of Gaussian calculations, the geometry optimization needs 
@@ -1660,34 +1660,34 @@ write(*,*)
 !
 !    Check if these calculations were already done in a run before 
 !
-inquire(file="educts/calc_done", exist=educts_done)
+inquire(file="reactants/calc_done", exist=reactants_done)
 inquire(file="products/calc_done", exist=products_done)
 
 
-if (.not. educts_done .or. .not. products_done) then
-   call system("mkdir educts")
+if (.not. reactants_done .or. .not. products_done) then
+   call system("mkdir reactants")
    call system("mkdir products")
 
    if (software .eq. "G") then
   
 !
-!    PART A : Do geometry optimization for educts and producs 
+!    PART A : Do geometry optimization for reactants and producs 
 ! 
 !    First, write appropriate input files for geoopt calculations 
 !
       do k=1,2
          if (k .eq. 1) then
-            sys_stat=chdir("educts")
+            sys_stat=chdir("reactants")
          else if (k .eq. 2) then
             sys_stat=chdir("products")
          end if
          if (sys_stat .ne. 0) then
-            write(*,*) "ERROR! Directory educts/producs can't be accessed!"
+            write(*,*) "ERROR! Directory reactants/producs can't be accessed!"
             call fatal
          end if
          if (k .eq. 1) then
-            open(unit=16,file="educts_opt.com") 
-            write(16,*) "%chk=educts_opt.chk"
+            open(unit=16,file="reactants_opt.com") 
+            write(16,*) "%chk=reactants_opt.chk"
          else if (k .eq. 2) then
             open(unit=16,file="products_opt.com")
             write(16,*) "%chk=products_opt.chk"
@@ -1734,17 +1734,17 @@ if (.not. educts_done .or. .not. products_done) then
 !     If less than two calculations might be done at once, start them subsequently
       if (nprocs_tot .lt. 2*min_procs) then
 !
-!     First educts 
+!     First reactants 
 !
-         write(*,*) "Start geometry optimization of educts minimum."
-         sys_stat=chdir("educts") 
+         write(*,*) "Start geometry optimization of reactants minimum."
+         sys_stat=chdir("reactants") 
          if (sys_stat .ne. 0) then
-            write(*,*) "ERROR! Directory educts can't be accessed!"
+            write(*,*) "ERROR! Directory reactants can't be accessed!"
             call fatal
          end if
-         sys_stat=system(trim(link_gaussian)// " educts_opt.com")            
+         sys_stat=system(trim(link_gaussian)// " reactants_opt.com")            
          if (sys_stat .ne. 0) then
-            write(*,*) "ERROR! The Gaussian16 calculation in 'educts' failed!"
+            write(*,*) "ERROR! The Gaussian16 calculation in 'reactants' failed!"
             call fatal
          end if
          sys_stat=chdir("..")
@@ -1769,17 +1769,17 @@ if (.not. educts_done .or. .not. products_done) then
 !     If two calculations can be done at once, start them parallel and test finishing
 !
 !
-!     First educts 
+!     First reactants 
 !
-         write(*,*) "Start geometry optimization of educts minimum."
-         sys_stat=chdir("educts")
+         write(*,*) "Start geometry optimization of reactants minimum."
+         sys_stat=chdir("reactants")
          if (sys_stat .ne. 0) then
-            write(*,*) "ERROR! Directory educts can't be accessed!"
+            write(*,*) "ERROR! Directory reactants can't be accessed!"
             call fatal
          end if
-         sys_stat=system(trim(link_gaussian)// " educts_opt.com &")          
+         sys_stat=system(trim(link_gaussian)// " reactants_opt.com &")
          if (sys_stat .ne. 0) then
-            write(*,*) "ERROR! The Gaussian16 calculation in 'educts' failed!"
+            write(*,*) "ERROR! The Gaussian16 calculation in 'reactants' failed!"
             call fatal
          end if
          sys_stat=chdir("..")
@@ -1802,29 +1802,29 @@ if (.not. educts_done .or. .not. products_done) then
 !     Now test each second, if the calculations are finished (then, the last line of the 
 !     name.log file begins with 'Normal termination of Gaussian')
 ! 
-         geo_educts=0
+         geo_reactants=0
          geo_products=0
          call sleep(1)
          do 
 !
-!     First educts 
+!     First reactants
 !
-            if (geo_educts .ne. 1) then
-               sys_stat=chdir("educts")
+            if (geo_reactants .ne. 1) then
+               sys_stat=chdir("reactants")
                if (sys_stat .ne. 0) then
-                  write(*,*) "ERROR! Directory educts can't be accessed!"
+                  write(*,*) "ERROR! Directory reactants can't be accessed!"
                   call fatal
                end if
-               sys_stat=system("tail -1 educts_opt.log > tail.out &")
+               sys_stat=system("tail -1 reactants_opt.log > tail.out &")
                sys_stat=system("sleep 0.1")
                open (unit=16,file="tail.out") 
                read(16,'(a)',iostat=readstat) a80
                if (readstat .eq. 0) then
                   if (index(a80,'Normal termination of Gaussian') .ne. 0) then    
-                     geo_educts=1
-                     write(*,*) "Geometry optimization of educts minimum finished!"
+                     geo_reactants=1
+                     write(*,*) "Geometry optimization of reactants minimum finished!"
                   else if (index(a80,'File lengths (MBytes)') .ne. 0) then
-                     write(*,*) "ERROR! The optimization of the educts minimum failed!"
+                     write(*,*) "ERROR! The optimization of the reactants minimum failed!"
                      call fatal
                   end if
                end if
@@ -1856,10 +1856,10 @@ if (.not. educts_done .or. .not. products_done) then
                close(16)
                sys_stat=chdir("..")
             end if
-            if ((geo_educts .eq. 1) .and. (geo_products .eq. 1)) exit
+            if ((geo_reactants .eq. 1) .and. (geo_products .eq. 1)) exit
             call sleep(1)
          end do
-         sys_stat=system("rm educts/tail.out")
+         sys_stat=system("rm reactants/tail.out")
          sys_stat=system("rm products/tail.out")
       end if
 !
@@ -1868,10 +1868,10 @@ if (.not. educts_done .or. .not. products_done) then
 !
 !    Convert the name.chk output files of both minimizations 
 !       
-      sys_stat=chdir("educts")
-      formchk_stat=system("formchk educts_opt.chk educts_opt.fchk > formchk.log") 
+      sys_stat=chdir("reactants")
+      formchk_stat=system("formchk reactants_opt.chk reactants_opt.fchk > formchk.log")
       if (formchk_stat .ne. 0) then
-         write(*,*) "ERROR! Converting of educts_opt.chk file failed!"
+         write(*,*) "ERROR! Converting of reactants_opt.chk file failed!"
          call fatal
       end if 
       sys_stat=chdir("..")
@@ -1886,22 +1886,22 @@ if (.not. educts_done .or. .not. products_done) then
 !
 !     Read in both fchk files and get the optimized structures of minima
 !
-      allocate(educts_xyz(3*natoms))
+      allocate(reactants_xyz(3*natoms))
       allocate(products_xyz(3*natoms))
       minlines=int((natoms*3)/5)
 !
-!     First educts minimum
+!     First reactants minimum
 !
-      open(unit=16,file="educts/educts_opt.fchk",status="old")
+      open(unit=16,file="reactants/reactants_opt.fchk",status="old")
       do
          read(16,'(a)',iostat=lastline) a80
          if (lastline .ne. 0) exit
          if (index(a80,'Current cartesian coordinates              R') .ne. 0) then      
             do i=1,minlines   
-               read(16,*)  educts_xyz((i-1)*5+1:i*5)
+               read(16,*)  reactants_xyz((i-1)*5+1:i*5)
             end do
             if (natoms*3-minlines .ne. 0) then
-               read(16,*)  educts_xyz(minlines*5+1:3*natoms)
+               read(16,*)  reactants_xyz(minlines*5+1:3*natoms)
             end if
             exit
          end if
@@ -1926,24 +1926,24 @@ if (.not. educts_done .or. .not. products_done) then
       end do
       close(16)
 !
-!    PART B : Do reference data calculations for educts and producs 
+!    PART B : Do reference data calculations for reactants and producs
 ! 
 !    First, write appropriate input files for calculations 
 !
 
       do k=1,2
          if (k .eq. 1) then
-            sys_stat=chdir("educts")
+            sys_stat=chdir("reactants")
          else if (k .eq. 2) then
             sys_stat=chdir("products")
          end if
          if (sys_stat .ne. 0) then
-            write(*,*) "ERROR! Directory educts/producs can't be accessed!"
+            write(*,*) "ERROR! Directory reactants/producs can't be accessed!"
             call fatal
          end if
          if (k .eq. 1) then
-            open(unit=16,file="educts_ref.com") 
-            write(16,*) "%chk=educts_ref.chk"
+            open(unit=16,file="reactants_ref.com")
+            write(16,*) "%chk=reactants_ref.chk"
          else if (k .eq. 2) then
             open(unit=16,file="products_ref.com")
             write(16,*) "%chk=products_ref.chk"
@@ -1975,7 +1975,7 @@ if (.not. educts_done .or. .not. products_done) then
          write(16,'(i4,i4)') charge,multi
          do i=1,natoms
             if (k .eq. 1) then
-               write(16,*) name(i),educts_xyz((i-1)*3+1:i*3)*bohr
+               write(16,*) name(i),reactants_xyz((i-1)*3+1:i*3)*bohr
             else if (k .eq. 2) then
                write(16,*) name(i),products_xyz((i-1)*3+1:i*3)*bohr
             end if
@@ -1992,17 +1992,17 @@ if (.not. educts_done .or. .not. products_done) then
 !     If less than two calculations might be done at once, start them subsequently
       if (nprocs_tot .lt. 2*min_procs) then
 !
-!     First educts 
+!     First reactants
 !
-         write(*,*) "Start QMDFF reference calculation of educts minimum."
-         sys_stat=chdir("educts") 
+         write(*,*) "Start QMDFF reference calculation of reactants minimum."
+         sys_stat=chdir("reactants")
          if (sys_stat .ne. 0) then
-            write(*,*) "ERROR! Directory educts can't be accessed!"
+            write(*,*) "ERROR! Directory reactants can't be accessed!"
             call fatal
          end if
-         sys_stat=system(trim(link_gaussian)// " educts_ref.com")            
+         sys_stat=system(trim(link_gaussian)// " reactants_ref.com")
          if (sys_stat .ne. 0) then
-            write(*,*) "ERROR! The Gaussian16 calculation in 'educts' failed!"
+            write(*,*) "ERROR! The Gaussian16 calculation in 'reactants' failed!"
             call fatal
          end if
          sys_stat=chdir("..")
@@ -2027,17 +2027,17 @@ if (.not. educts_done .or. .not. products_done) then
 !     If two calculations can be done at once, start them parallel and test finishing
 !
 !
-!     First educts 
+!     First reactants
 !
-         write(*,*) "Start QMDFF reference calculation of educts minimum."
-         sys_stat=chdir("educts")
+         write(*,*) "Start QMDFF reference calculation of reactants minimum."
+         sys_stat=chdir("reactants")
          if (sys_stat .ne. 0) then
-            write(*,*) "ERROR! Directory educts can't be accessed!"
+            write(*,*) "ERROR! Directory reactants can't be accessed!"
             call fatal
          end if
-         sys_stat=system(trim(link_gaussian)// " educts_ref.com &")          
+         sys_stat=system(trim(link_gaussian)// " reactants_ref.com &")
          if (sys_stat .ne. 0) then
-            write(*,*) "ERROR! The Gaussian16 calculation in 'educts' failed!"
+            write(*,*) "ERROR! The Gaussian16 calculation in 'reactants' failed!"
             call fatal
          end if
          sys_stat=chdir("..")
@@ -2060,30 +2060,30 @@ if (.not. educts_done .or. .not. products_done) then
 !     Now test each second, if the calculations are finished (then, the last line of the 
 !     name.log file begins with 'Normal termination of Gaussian')
 ! 
-         geo_educts=0
+         geo_reactants=0
          geo_products=0
          call sleep(1)
          do 
 !
-!     First educts 
+!     First reactants
 !
-            if (geo_educts .ne. 1) then
-               sys_stat=chdir("educts")
+            if (geo_reactants .ne. 1) then
+               sys_stat=chdir("reactants")
                if (sys_stat .ne. 0) then
-                  write(*,*) "ERROR! Directory educts can't be accessed!"
+                  write(*,*) "ERROR! Directory reactants can't be accessed!"
                   call fatal
                end if
-               sys_stat=system("tail -1 educts_ref.log > tail.out &")
+               sys_stat=system("tail -1 reactants_ref.log > tail.out &")
                sys_stat=system("sleep 0.1")
                open (unit=16,file="tail.out") 
                read(16,'(a)',iostat=readstat) a80
                if (readstat .eq. 0) then
                   if (index(a80,'Normal termination of Gaussian') .ne. 0) then    
-                     geo_educts=1
-                     write(*,*) "QMDFF reference calculation of educts minimum finished!"
+                     geo_reactants=1
+                     write(*,*) "QMDFF reference calculation of reactants minimum finished!"
                      call system("touch calc_done")
                   else if (index(a80,'File lengths (MBytes)') .ne. 0) then
-                     write(*,*) "ERROR! The QMDFF reference calculation of the educts minimum failed!"
+                     write(*,*) "ERROR! The QMDFF reference calculation of the reactants minimum failed!"
                      call fatal
                   end if
                end if
@@ -2116,23 +2116,23 @@ if (.not. educts_done .or. .not. products_done) then
                close(16)
                sys_stat=chdir("..")
                end if
-            if ((geo_educts .eq. 1) .and. (geo_products .eq. 1)) exit
+            if ((geo_reactants .eq. 1) .and. (geo_products .eq. 1)) exit
             call sleep(1)
          end do
-         sys_stat=system("rm educts/tail.out")
+         sys_stat=system("rm reactants/tail.out")
          sys_stat=system("rm products/tail.out")
       end if
 !
-!     For later informations, write out xyz files with structures of educts and products 
+!     For later informations, write out xyz files with structures of reactants and products
 !     minima!
 !  
-      open(unit=18,file="educts/educts_opt.xyz")
+      open(unit=18,file="reactants/reactants_opt.xyz")
       open(unit=19,file="products/products_opt.xyz")
 
       write(18,*) natoms; write(18,*) 
       write(19,*) natoms; write(19,*)
       do i=1,natoms
-         write(18,*) name(i),educts_xyz((i-1)*3+1:i*3)*bohr
+         write(18,*) name(i),reactants_xyz((i-1)*3+1:i*3)*bohr
          write(19,*) name(i),products_xyz((i-1)*3+1:i*3)*bohr
       end do
   
@@ -2165,11 +2165,11 @@ if (ens_extra) then
    write(*,*) "---- TASK 2-B: calculate QMDFF reference energy with extra reference -------"
    write(*,*)
    write(*,*) 
-   ens_educts=0.d0
+   ens_reactants=0.d0
    ens_products=0.d0
    do k=1,2
       if (k .eq. 1) then
-         sys_stat=chdir("educts")
+         sys_stat=chdir("reactants")
       else if (k .eq. 2) then
          sys_stat=chdir("products")
       end if
@@ -2200,7 +2200,7 @@ if (ens_extra) then
       write(15,'(a,i3,a,i3,a)') "*xyzfile ",charge," ",multi," struc.xyz"
       close(15)
       if (k .eq. 1) then
-         call system("cp ../educts_opt.xyz struc.xyz")
+         call system("cp ../reactants_opt.xyz struc.xyz")
       else if (k .eq. 2) then
          call system("cp ../products_opt.xyz struc.xyz")
       end if
@@ -2210,7 +2210,7 @@ if (ens_extra) then
       inquire(file="done", exist=exist)
       if (.not. exist) then 
          if (k .eq. 1) then
-            write(*,*) "Start extra energy calculation for optimized educts.."
+            write(*,*) "Start extra energy calculation for optimized reactants.."
          else if (k .eq. 2) then
             write(*,*) "Start extra energy calculation for optimized products.."
          end if 
@@ -2223,7 +2223,7 @@ if (ens_extra) then
          call system("touch done")
       else 
          if (k .eq. 1) then
-            write(*,*) " Energy calculation already done for educts!"
+            write(*,*) " Energy calculation already done for reactants!"
          else if (k .eq. 2) then
             write(*,*) " Energy calculation already done for products!"
          end if
@@ -2235,7 +2235,7 @@ if (ens_extra) then
 9     read(16,'(a)',end=28)a80
          if (index(a80,'FINAL SINGLE POINT ENERGY ') .ne. 0) then
             if (k .eq. 1) then
-               read(a80,*) adum,adum,adum,adum,ens_educts
+               read(a80,*) adum,adum,adum,adum,ens_reactants
             else if (k .eq. 2) then
                read(a80,*) adum,adum,adum,adum,ens_products 
             end if
@@ -2269,14 +2269,14 @@ inquire(file="evb_qmdff", exist=exist)
 if (exist) call system("rm -r evb_qmdff")
 call system("mkdir evb_qmdff")
 
-sys_stat=system("cp educts/educts_ref.log evb_qmdff/educts.log") 
+sys_stat=system("cp reactants/reactants_ref.log evb_qmdff/reactants.log")
 if (sys_stat .ne. 0) then
-   write(*,*) "ERROR! Copying of educt reference failed!"
+   write(*,*) "ERROR! Copying of reactant reference failed!"
    call fatal
 end if
-sys_stat=system("cp educts/educts_ref.chk evb_qmdff/educts.chk")
+sys_stat=system("cp reactants/reactants_ref.chk evb_qmdff/reactants.chk")
 if (sys_stat .ne. 0) then
-   write(*,*) "ERROR! Copying of educt reference failed!"
+   write(*,*) "ERROR! Copying of reactant reference failed!"
    call fatal
 end if
 sys_stat=system("cp products/products_ref.log evb_qmdff/products.log") 
@@ -2292,7 +2292,7 @@ end if
 
 open(unit=15,file="evb_qmdff/qmdffgen.key",status="replace")
 write(15,*) "software ",software
-write(15,*) "2qmdff educts products"
+write(15,*) "2qmdff reactants products"
 close(15)
 !
 !     Invoke qmdffgen.x to generate the QMDFFs
@@ -2310,7 +2310,7 @@ if (exist) call system("rm min_energies.dat")
 
 if (ens_extra) then
    open(unit=16,file="min_energies.dat",status="new")
-   write(16,*) ens_educts
+   write(16,*) ens_reactants
    write(16,*) ens_products
    close(16) 
 end if 
@@ -3258,7 +3258,7 @@ if (.not. exist) sys_stat=system("mkdir calc_rate")
 !     fragments and bonds will be extracted 
 !
 sys_stat=chdir("evb_qmdff")
-call prepare ("educts.qmdff","products.qmdff","dummy",2)
+call prepare ("reactants.qmdff","products.qmdff","dummy",2)
 ! 
 !     For later usage: read in the qmdff energies!
 !
@@ -3275,7 +3275,7 @@ close(15)
 !     Read in fragments from qmdff logfile!
 !
 allocate(fragments(natoms))
-open(unit=15,file="educts_qmdff.log",status="old")
+open(unit=15,file="reactants_qmdff.log",status="old")
 do
    read(15,'(a)',iostat=lastline) a80
 
@@ -3295,7 +3295,7 @@ end do
 close(15)
 
 !
-!     Determine number of fragments and belonging atoms for the educt
+!     Determine number of fragments and belonging atoms for the reactant
 !     structure 
 !
 
@@ -3303,7 +3303,7 @@ allocate(fragsize(4))
 fragsize=0
 do i=1,natoms
    if (fragments(i) .gt. 4) then
-      write(*,*) "ERROR! More than 4 fragments found in educt structure!"
+      write(*,*) "ERROR! More than 4 fragments found in reactant structure!"
       call fatal
    end if 
    do j=1,4
@@ -3350,7 +3350,7 @@ do i=1,natoms
 end do
 
 !
-!     Determine number of molecules in educt system
+!     Determine number of molecules in reactant system
 !
 
 if (atfrags(4) .ne. 0)  then
@@ -3363,9 +3363,9 @@ else
    num_eds=1
 end if
 !
-!     Write info message about atoms in educt structures 
+!     Write info message about atoms in reactant structures
 !
-write(*,'(a,i1)') " Number of molecules in educt system: ",num_eds
+write(*,'(a,i1)') " Number of molecules in reactant system: ",num_eds
 write(*,'(a,40i4)') " Atoms of first molecule: ",frag1
 if (num_eds .ge. 2) then
    write(*,'(a,40i4)') " Atoms of second molecule: ",frag2
@@ -3377,7 +3377,7 @@ end if
 
 !
 !     Determine which bonds are the forming or breaking bonds during 
-!     the reaction: Determine bond pools of both educts and products 
+!     the reaction: Determine bond pools of both reactants and products
 !     and determine differences between them
 !
 allocate(atind(natoms))
@@ -3436,7 +3436,7 @@ do i=1,nbond
 end do
 !
 !     Determine the number and indices of breaking bonds: All bonds that 
-!     are in educts but not in the double array
+!     are in reactants but not in the double array
 !
 allocate(breaks_tmp(2,max(nbond,nbond_two)))
 n_break=0
@@ -3563,57 +3563,57 @@ write(*,'(a)') " "
 !
 !     Determine which type of reaction the actual path describes!
 !     --> This defines the type of dividing surfaces used in the samplings 
-!     It will be determined from the number of educts and the number 
+!     It will be determined from the number of reactants and the number 
 !     of forming and breaking bonds
 !
 
 if ((n_form .eq. 1) .and. (n_break .eq. 1) .and. (num_eds .eq. 1)) then
    write(*,*) "There are one breaking and one forming bonds as well as one "
-   write(*,*) " educt molecule! Therefore the reaction type is REARRANGE!"
+   write(*,*) " reactant molecule! Therefore the reaction type is REARRANGE!"
    umbr_type="REARRANGE"
 else if ((n_form .eq. 1) .and. (n_break .eq. 1) .and. (num_eds .eq. 2)) then
    write(*,*) "There are one breaking and one forming bonds as well as two "
-   write(*,*) " educt molecules! Therefore the reaction type is BIMOLECULAR!"
+   write(*,*) " reactant molecules! Therefore the reaction type is BIMOLECULAR!"
    umbr_type="BIMOLEC"
 else if ((n_form .eq. 2) .and. (n_break .eq. 0) .and. (num_eds .eq. 2)) then
    write(*,*) "There are two breaking and no forming bonds as well as two "
-   write(*,*) " educt molecules! Therefore the reaction is a CYCLOADDIOTION!"
+   write(*,*) " reactant molecules! Therefore the reaction is a CYCLOADDIOTION!"
    umbr_type="CYCLOADD"
 else if ((n_form .eq. 1) .and. (n_break .eq. 0) .and. (num_eds .eq. 2)) then
    write(*,*) "There are no breaking and one forming bonds as well as two "
-   write(*,*) " educt molecules! Therefore the reaction is an MERGING!"
+   write(*,*) " reactant molecules! Therefore the reaction is an MERGING!"
    umbr_type="MERGING"
 else if ((n_form .eq. 2) .and. (n_break .eq. 1) .and. (num_eds .eq. 2)) then
    write(*,*) "There are one breaking and two forming bonds as well as two "
-   write(*,*) " educt molecules! Therefore the reaction is an ADDITION!"
+   write(*,*) " reactant molecules! Therefore the reaction is an ADDITION!"
    umbr_type="ADDITION"
 else if ((n_form .eq. 3) .and. (n_break .eq. 2) .and. (num_eds .eq. 3)) then
    write(*,*) "There are three breaking and two forming bonds as well as three "
-   write(*,*) " educt molecules! Therefore the reaction is a cyclic addition with"
+   write(*,*) " reactant molecules! Therefore the reaction is a cyclic addition with"
    write(*,*) " three molecules (ADDITION3)!"
    umbr_type="ADDITION3"
 else if ((n_form .eq. 4) .and. (n_break .eq. 3) .and. (num_eds .eq. 4)) then
    write(*,*) "There are four breaking and three forming bonds as well as four "
-   write(*,*) " educt molecules! Therefore the reaction is a cyclic addition with"
+   write(*,*) " reactant molecules! Therefore the reaction is a cyclic addition with"
    write(*,*) " four molecules (ADDITION4)!"
    umbr_type="ADDITION4"
 else if ((n_form .eq. 0) .and. (n_break .eq. 2) .and. (num_eds .eq. 1)) then
-   write(*,*) "There are two breaking and no forming bonds for one educt "
+   write(*,*) "There are two breaking and no forming bonds for one reactant "
    write(*,*) " molecule. The reaction type is a CYCLOREVER(SION)!"
    umbr_type="CYCLOREVER"
 else if ((n_form .eq. 0) .and. (n_break .eq. 1) .and. (num_eds .eq. 1)) then
-   write(*,*) "There are one breaking and no forming bonds for one educt "
+   write(*,*) "There are one breaking and no forming bonds for one reactant "
    write(*,*) " molecule. The reaction type is a 1bond-decomposition"
    write(*,*) " (DECOM_1BOND)"
    umbr_type="DECOM_1BOND"
 else if ((n_form .eq. 1) .and. (n_break .eq. 2) .and. (num_eds .eq. 1)) then
-   write(*,*) "There are two breaking and one forming bonds for one educt "
+   write(*,*) "There are two breaking and one forming bonds for one reactant "
    write(*,*) " molecule. The reaction type is an usual elimination"
    write(*,*) " (ELIMINATION)"
    umbr_type="ELIMINATION"
 else 
    write(*,*) "ERROR! No reaction type with ",n_form," forming, ",n_break," breaking"
-   write(*,*) " bonds and ",num_eds," educt molecules is supported so far!"
+   write(*,*) " bonds and ",num_eds," reactant molecules is supported so far!"
    call fatal
 end if
 
@@ -3662,7 +3662,7 @@ do i=1,temp_num
 !
       if (kt_avg .eq. 1) then
          call system("cp ../../rp_ref/grad_hess.dat .")
-         call system("cp ../../evb_qmdff/educts.qmdff .")
+         call system("cp ../../evb_qmdff/reactants.qmdff .")
          call system("cp ../../evb_qmdff/products.qmdff .")
          call system("cp ../../mep_irc/irc.xyz .")
          call system("cp ../../mep_irc/irc_ens.dat .")
@@ -3671,7 +3671,7 @@ do i=1,temp_num
          end if
       else 
          call system("cp ../../../rp_ref/grad_hess.dat .")
-         call system("cp ../../../evb_qmdff/educts.qmdff .")
+         call system("cp ../../../evb_qmdff/reactants.qmdff .")
          call system("cp ../../../evb_qmdff/products.qmdff .")
          call system("cp ../../../mep_irc/irc.xyz .")
          call system("cp ../../../mep_irc/irc_ens.dat .")
@@ -3690,9 +3690,9 @@ do i=1,temp_num
       end do
       close(15) 
 !
-!     For unimolecular reactions: Write educts structure to extra file 
+!     For unimolecular reactions: Write reactants structure to extra file 
 !
-      open(unit=15,file="educts.xyz",status="unknown")
+      open(unit=15,file="reactants.xyz",status="unknown")
       write(15,*) natoms
       write(15,*)
       do j=1,natoms
@@ -3721,7 +3721,7 @@ do i=1,temp_num
       write(15,'(a)') "# PES settings"
       write(15,'(a)') "##################################"
       write(15,'(a)') "# names of the QMDFF files 1 and 2:"
-      write(15,'(a)') "    qmdffnames educts.qmdff products.qmdff"
+      write(15,'(a)') "    qmdffnames reactants.qmdff products.qmdff"
       write(15,'(a)') "# QMDFF energy shifts for both minima:"
       write(15,'(a,a)') "   ",qmdff_en_line 
       write(15,'(a)') "# Speficy the TREQ method as PES description."
@@ -3765,20 +3765,20 @@ do i=1,temp_num
       write(15,'(a)') " mecha {"
       write(15,'(a)') "# species of the reaction mechanism:"  
       write(15,'(a,a)') "    type ", umbr_type  
-      write(15,'(a)') "# list of all educts with atom numbers:"
+      write(15,'(a)') "# list of all reactants with atom numbers:"
       do j=1,num_eds
          if (j .eq. 1) then
-            write(15,'(a,i1,40i4)') "    educt",j,frag1(:)
+            write(15,'(a,i1,40i4)') "    reactant",j,frag1(:)
          else if (j .eq. 2) then
-            write(15,'(a,i1,40i4)') "    educt",j,frag2(:)
+            write(15,'(a,i1,40i4)') "    reactant",j,frag2(:)
          else if (j .eq. 3) then
-            write(15,'(a,i1,40i4)') "    educt",j,frag3(:)
+            write(15,'(a,i1,40i4)') "    reactant",j,frag3(:)
          else if (j .eq. 4) then
-            write(15,'(a,i1,40i4)') "    educt",j,frag4(:)
+            write(15,'(a,i1,40i4)') "    reactant",j,frag4(:)
          end if   
          
       end do
-      write(15,'(a)') "# The asymptotic distance in the reaction (bohr):"
+      write(15,'(a)') "# The asymptotic distance in the reaction (Angstroms):"
       write(15,'(a,f15.7)') "    r_inf ",r_inf
       write(15,'(a)') "# list of forming bonds in the reaction:"
       write(15,'(a)',advance="no") "    bond_form "
@@ -3798,8 +3798,8 @@ do i=1,temp_num
       if ((umbr_type .eq. "CYCLOREVER") .or. (umbr_type .eq. "REARRANGE") .or.&
             &  (umbr_type .eq. "DECOM_1BOND")) then
          write(15,'(a)') " "
-         write(15,'(a)') "# file with educts structure for unimolecular reactions"
-         write(15,'(a)') "      educts_struc educts.xyz "
+         write(15,'(a)') "# file with reactants structure for unimolecular reactions"
+         write(15,'(a)') "      reactants_struc reactants.xyz "
       end if
       write(15,'(a)') " "
       write(15,'(a)') "###################################"
@@ -3850,9 +3850,9 @@ do i=1,temp_num
       write(15,'(a,i9)') "    child_perpoint" ,child_point
       write(15,'(a)') "# number of evolution timesteps for each child:"
       write(15,'(a,i9)') "    child_steps",child_evol
-      if (recross_nocheck) then
+      if (.not. recross_check) then
          write(15,'(a)') "# no error checking will be done for the recrossing part.."
-         write(15,'(a)') "    nocheck"
+         write(15,'(a)') "    no_check"
       end if
       if (recross_mpi) then
          write(15,'(a)') "# The recrossing calculation will be parallelized"
@@ -3894,8 +3894,8 @@ write(*,*) " will be started simultenously with all cores availiable!"
 !
 write(adum_nprocs,'(i3)') nprocs_tot
 write(*,'(a,i3)') " Number of needed reference calculations: ",n_rp_pts
-write(*,'(a,i3)') " Total processors availiable: ",nprocs_tot
-write(*,'(a,i2)') " Processors per calculation: ",rp_procs
+write(*,'(a,i3)') " Total processors available: ",nprocs_tot
+write(*,'(a,i2)') " Processors per calculation: ",nprocs_tot
 write(*,'(a,i2)') " Calculations to be done simultaneously: ",ncalcs_round
 write(*,'(a,i2)') " Rounds of calculations to be done: ",nrounds
 

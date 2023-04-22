@@ -55,9 +55,9 @@ real(kind=8)::int_grad(nat6)
 real(kind=8)::grad_xyz(3,natoms,nbeads),grad_bias(3,natoms)
 real(kind=8)::grad_xyz2(3*natoms),grad_bias2(3*natoms)
 !     for pre equilibration addition of bias potentials
-real(kind=8)::r_eds(sum_eds,sum_eds) ! the actual distane between two educts
-real(kind=8)::Red(3,sum_eds,sum_eds)  ! all possible educt-educt distances
-real(kind=8)::com(sum_eds,3)
+real(kind=8)::r_eds(sum_reacs,sum_reacs) ! the actual distance between two reactants
+real(kind=8)::Red(3,sum_reacs,sum_reacs)  ! all possible reactant-reactant distances
+real(kind=8)::com(sum_reacs,3)
 real(kind=8)::Rinv ! the inverse bond length/distance (for derivatives)
 integer::atom  ! the current atom index
  

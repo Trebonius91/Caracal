@@ -42,7 +42,7 @@ real(kind=8)::xi_max,xi_min  ! positions of minimum/maximum of the PMF
 real(kind=8)::pmf_max,pmf_min  ! the minimum and maximum of the PMF 
 real(kind=8)::pmf_int  ! integral from xi_0 to xi_TS (only unimolecular)
 real(kind=8)::kappa    ! the calculated recrossing factor
-real(kind=8)::my_R  ! the reduced mass of the educts
+real(kind=8)::my_R  ! the reduced mass of the reactants
 real(kind=8)::k_t  ! the final rate constant
 real(kind=8)::pi  ! pi
 
@@ -93,17 +93,17 @@ if ((umbr_type .eq. "BIMOLEC") .or. (umbr_type .eq. "CYCLOADD") .or. &
    write(*,*) " where my_R=m1*m2/(m1+m2)"
    write(*,*)
 !
-!     calculate the reduced mass of the educts
+!     calculate the reduced mass of the reactants
 !
-   my_R=mass_ed(1)*mass_ed(2)/(mass_ed(1)+mass_ed(2))
+   my_R=mass_reac(1)*mass_reac(2)/(mass_reac(1)+mass_reac(2))
    write(15,*) "- The parameters are defined as (in atomic units):"
    write(15,*)
    write(15,'(a,i3)') "   * n_paths = ",npaths
    write(15,'(a,f12.8)') "   * kappa = ",kappa
    write(15,'(a,f15.8,a)') "   * R_inf = ",R_inf," bohr"
    write(15,'(a,f15.8,a)') "   * beta = ",beta," 1/hartree"
-   write(15,'(a,f15.8,a)') "   * m1 = ",mass_ed(1)," amu"
-   write(15,'(a,f15.8,a)') "   * m2 = ",mass_ed(2)," amu"
+   write(15,'(a,f15.8,a)') "   * m1 = ",mass_reac(1)," amu"
+   write(15,'(a,f15.8,a)') "   * m2 = ",mass_reac(2)," amu"
    write(15,'(a,f15.8,a)') "   * my_R = ",my_R," amu"
    write(15,'(a,f15.8,a,f12.8)') "   * W(xi_TS) = ",pmf_max," hartee at xi= ",xi_max
    write(15,'(a,f15.8,a,f12.8)') "   * w(xi_min) = ",pmf_min, " hartree at xi= ",xi_min
@@ -114,8 +114,8 @@ if ((umbr_type .eq. "BIMOLEC") .or. (umbr_type .eq. "CYCLOADD") .or. &
    write(*,'(a,f12.8)') "   * kappa = ",kappa 
    write(*,'(a,f15.8,a)') "   * R_inf = ",R_inf," bohr"
    write(*,'(a,f15.8,a)') "   * beta = ",beta," 1/hartree"
-   write(*,'(a,f15.8,a)') "   * m1 = ",mass_ed(1)," amu"
-   write(*,'(a,f15.8,a)') "   * m2 = ",mass_ed(2)," amu"
+   write(*,'(a,f15.8,a)') "   * m1 = ",mass_reac(1)," amu"
+   write(*,'(a,f15.8,a)') "   * m2 = ",mass_reac(2)," amu"
    write(*,'(a,f15.8,a)') "   * my_R = ",my_R," amu"
    write(*,'(a,f15.8,a,f12.8)') "   * W(xi_TS) = ",pmf_max," hartee at xi= ",xi_max
    write(*,'(a,f15.8,a,f12.8)') "   * w(0) = ",pmf_min, " hartree at xi= ",xi_min
@@ -149,14 +149,14 @@ else if (umbr_type .eq. "ATOM_SHIFT") then
    write(*,*)
    write(*,*) "k(T)=kappa*1/sqrt(2*pi*m*beta)*exp(-beta*W(xi_TS))/(INT_(xi_min)^(xi_TS)) exp(-beta*W(s))ds)"
    write(*,*) "  where m=mass of the translated atom"
-   write(*,*) "  and INT... the integrated PMF profile from the educts to the TS"
+   write(*,*) "  and INT... the integrated PMF profile from the reactants to the TS"
    write(*,*) 
    write(15,*)
    write(15,*) "- The rate formula is:"
    write(15,*)
    write(15,*) "k(T)=kappa*1/sqrt(2*pi*m*beta)*exp(-beta*W(xi_TS))/(INT_(xi_min)^(xi_TS)) exp(-beta*W(s))ds)"
    write(15,*) "  where m=mass of the translated atom"
-   write(15,*) "  and INT... the integrated PMF profile from the educts to the TS"
+   write(15,*) "  and INT... the integrated PMF profile from the reactants to the TS"
    write(15,*)
    write(*,*) "- The parameters are defined as (in atomic units):"
    write(*,*) 
@@ -198,37 +198,44 @@ else if ((umbr_type .eq. "CYCLOREVER") .or. (umbr_type .eq. "REARRANGE") .or. &
    end if
    write(*,*) "This is an UNIMOLECULAR REACTION!"
    write(*,*)
-   write(*,*) "- The rate formula is:"
+   write(*,*) "So far, no general rate constant formula has been implemented for this case."
+   write(*,*) "For the different mechanisms, different prefactors will be developed in the "
+   write(*,*) " in the next version of CARACAL."
+   write(*,*) "Until then, the simple TST rate formula (with kappa) will be used:"
    write(*,*)
-   write(*,*) "k(T)=kappa*1/sqrt(2*pi*m*beta)*exp(-beta*W(xi_TS))/(INT_(xi_min)^(xi_TS)) exp(-beta*W(s))ds)"
-   write(*,*) "  where m=mass of the system,"
-   write(*,*) "  and INT... the integrated PMF profile from the educts to the TS"
-   write(*,*)
+   write(*,*) "k(T)=kappa*k_B*T/h*exp(-(W(xi_TS)-W(xi_min))/(k_B*T)) "
+   write(*,*) " where T=temperature, k_B=Boltzmann constant, h=Plancks constant"
+   write(*,*) "  W(xi_TS), W(xi_min)=free energies at the TS and the reactants minimum."
+   write(15,*) "This is an UNIMOLECULAR REACTION!"
    write(15,*)
-   write(15,*) "- The rate formula is:"
-   write(15,*) 
-   write(15,*) "k(T)=kappa*1/sqrt(2*pi*m*beta)*exp(-beta*W(xi_TS))/(INT_(xi_min)^(xi_TS)) exp(-beta*W(s))ds)"
-   write(15,*) "  where m=mass of the system,"
-   write(15,*) "  and INT... the integrated PMF profile from the educts to the TS"
+   write(15,*) "So far, no general rate constant formula has been implemented for this case."
+   write(15,*) "For the different mechanisms, different prefactors will be derived in the "
+   write(15,*) " in the next version of CARACAL."
+   write(15,*) "Until then, the simple TST rate formula (with kappa) will be used:"
    write(15,*)
+   write(15,*) "k(T)=kappa*k_B*T/h*exp(-(W(xi_TS)-W(xi_min))/(k_B*T)) "
+   write(15,*) " where T=temperature, k_B=Boltzmann constant, h=Plancks constant"
+   write(15,*) "  W(xi_TS), W(xi_min)=free energies at the TS and the reactants minimum."
+
    write(*,*) "- The parameters are defined as (in atomic units):"
    write(*,*)
    write(*,'(a,f12.8)') "   * kappa = ",kappa
-   write(*,'(a,f15.8,a)') "   * beta = ",beta," 1/hartree"
-   write(*,*) "mass_ed",mass_ed(1:4)
-   write(*,'(a,f15.8,a)') "   * m = ",mass_ed(1)," amu"
-   write(*,'(a,f15.8,a,f12.8)') "   * W(xi_TS) = ",pmf_max," hartee at xi= ",xi_max
-   write(*,'(a,f15.8,a,f12.8)') "   * W(xi_min) = ",pmf_min, " hartree at xi= ",xi_min
-   write(*,'(a,f15.8)') "   * value of the integral from xi_min to xi_TS: ",pmf_int
+   write(*,'(a,f15.8,a)') "   * T = ",kelvin," K"
+!
+!     convert free energies to kcal/mol
+!
+   pmf_max=pmf_max*2625.50d0
+   pmf_min=pmf_min*2625.50d0
+   
+   write(*,'(a,f15.8,a,f12.8)') "   * W(xi_TS) = ",pmf_max," kJ/mol at xi= ",xi_max
+   write(*,'(a,f15.8,a,f12.8)') "   * W(xi_min) = ",pmf_min, " kJ/mol at xi= ",xi_min
 !
 !     calculate the rate constant in atomic units 
 !
-   k_t=kappa/sqrt((2*pi*beta*mass_ed(1)))*exp(-beta*pmf_max)/pmf_int
+   k_t=kappa*1.3806485E-23*kelvin/6.62607E-34*exp(-(pmf_max-pmf_min)/(0.00831447*kelvin))
 !
 !     convert the rate constant into usual units (s^(-1))
 !
-   k_t=k_t*6.02214179E23*2.418884326505e-17/5.2917721092e-11/pi
-!   k_t=k_t*1e3 * ((5.2917721092e-11)**3 / 2.418884326505e-17)*6.02214179E23
    write(15,*)
    write(15,*) "----------------------------------------------"
    write(15,'(a)') "  The final value of the rate coefficient is: "
@@ -239,9 +246,9 @@ else if ((umbr_type .eq. "CYCLOREVER") .or. (umbr_type .eq. "REARRANGE") .or. &
    write(*,'(a)') "  The final value of the rate coefficient is: "
    write(*,'(a,es16.8,a)') "    ",k_t,"  s^(-1)"
    write(*,*) "----------------------------------------------"
-
-
 else 
+
+
    write(*,*) "For this type of reaction no rate constant calculation"
    write(*,*) "has been implemented so far!"
 end if

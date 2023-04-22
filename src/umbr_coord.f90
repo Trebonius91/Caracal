@@ -40,8 +40,8 @@ implicit none
 real(kind=8)::int_curr(nat6)
 real(kind=8)::xi_val
 !
-!     difference between educts and TS, linear interpolation
+!     difference between reactants and TS, linear interpolation
 !
-int_curr=int_ed+xi_val*(int_ts-int_ed)
+int_curr=int_reac+xi_val*(int_ts-int_reac)
 
 end subroutine umbr_coord

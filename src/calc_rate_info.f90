@@ -174,21 +174,21 @@ if (rank .eq. 0) then
    else if (umbr_type .eq. "MERGING") then
       write(15,'(a)') " * A bimolecular merging reaction will be investigated."
    else if (umbr_type .eq. "ADDITION") then
-      write(15,'(a)') " * An addition reaction with two educts will be investigated."
+      write(15,'(a)') " * An addition reaction with two reactants will be investigated."
    else if (umbr_type .eq. "ADDITION3") then
-      write(15,'(a)') " * A cyclic addition with three educts will be investigated."
+      write(15,'(a)') " * A cyclic addition with three reactants will be investigated."
    else if (umbr_type .eq. "ADD3_SOLV") then
-      write(15,'(a)') " * A cyclic addition with three educts, two of them preclustered,"
+      write(15,'(a)') " * A cyclic addition with three reactants, two of them preclustered,"
       write(15,'(a)') "     will be investigated."
    else if (umbr_type .eq. "ADDITION4") then
-      write(15,'(a)') " * A cyclic addition with four educts will be investigated."
+      write(15,'(a)') " * A cyclic addition with four reactants will be investigated."
    else if (umbr_type .eq. "ADD4_SOLV") then
-      write(15,'(a)') " * A cyclic addition with four educts, three of them preclustered,"
+      write(15,'(a)') " * A cyclic addition with four reactants, three of them preclustered,"
       write(15,'(a)') "     will be investigated."
    else if (umbr_type .eq. "ELIMINATION") then
-      write(15,'(a)') " * An elimination starting from one educt will be investigated."
+      write(15,'(a)') " * An elimination starting from one reactant will be investigated."
    else if (umbr_type .eq. "REARRANGE") then
-      write(15,'(a)') " * A rearrangement of one educt will be investigated."
+      write(15,'(a)') " * A rearrangement of one reactant will be investigated."
    else if (umbr_type .eq. "DECOM_1BOND") then
       write(15,'(a)') " * A unimolecular decomposition with one broken bond will be investigated."
    else if (umbr_type .eq. "ATOM_SHIFT") then
@@ -208,8 +208,8 @@ if (rank .eq. 0) then
 
    end if
    if (umbr_type .ne. "ATOM_SHIFT") then
-      do i=1,sum_eds
-         write(15,'(a,a,a,i4,a)') "   - The ",trim(word(i))," educt has ",n_ed(i)," atoms." 
+      do i=1,sum_reacs
+         write(15,'(a,a,a,i4,a)') "   - The ",trim(word(i))," reactant has ",n_reac(i)," atoms." 
       end do
       do i=1,form_num
          write(15,'(a,a,a,i4,a,i4)') "   - The ",trim(word(i))," forming bond is: ", &
@@ -219,7 +219,7 @@ if (rank .eq. 0) then
          write(15,'(a,a,a,i4,a,i4)') "   - The ",trim(word(i))," breaking bond is: ", &
                & bond_break(i,1),"-",bond_break(i,2)
       end do
-      write(15,'(a,f12.6,a)') "   - The asymptotic educt distance is: ",R_inf*bohr," Angstrom"
+      write(15,'(a,f12.6,a)') "   - The asymptotic reactant distance is: ",R_inf*bohr," Angstrom"
    end if
    write(15,'(a)') " * The umbrella samplings are carried out along the reaction path"
    write(15,'(a,f12.6,a,f12.6)') "      along a range between Xi=",umbr_hi," and Xi=",umbr_lo
@@ -241,7 +241,7 @@ if (rank .eq. 0) then
    write(15,'(a,f12.6,a,f12.6)') " * The PMF is calculed between Xi=",xi_min," and Xi=",xi_max
    write(15,'(a,i7,a)') " * The PMF is calculated on ",nbins," single bins along the path."
    if (pmf_minloc .eq. 'ZERO') then
-      write(15,'(a)') "  * The PMF_MINLOC option was set to 'ZERO'! Therefore, the educt asympotic"
+      write(15,'(a)') "  * The PMF_MINLOC option was set to 'ZERO'! Therefore, the reactant asympotic"
       write(15,'(a)') "      will be taken as the lower energy for delta F."
    else if (pmf_minloc .eq. 'PMF_MIN') then 
       write(15,'(a)') "  * The PMF_MINLOC option was set to 'PMF_MIN'! Therefore, the lowest PMF value"
