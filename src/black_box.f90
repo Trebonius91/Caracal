@@ -65,7 +65,7 @@ integer::nat3  ! 3*natoms
 !     For read in of the IRC/MEP
 logical::scan_path
 character(len=:),allocatable::irc_prefix
-character(len=80)::log_name,chk_name,fchk_name
+character(len=80)::log_name,chk_name,fchk_name,xyz_name
 character(len=2)::irc_direct  ! direction of the IRC: left2right or right2left
 integer::formchk_stat ! exit status of formchk program
 integer::sys_stat  ! general exit status for sys calls
@@ -78,6 +78,7 @@ integer::idum  ! dummy integer
 real(kind=8)::rdum ! dummy real
 integer::irc_num ! number of structures in the irc
 integer::irc_lines  ! number of lines in the irc.fchk file
+integer::ts_loc_a(1),ts_loc   ! index of TS structure in IRC
 integer::charge,multi  ! charge and multiplicity of the system
 integer::energylines,chargelines,coordlines ! for better readin of irc.fchk
 integer,allocatable::at_charge(:)
@@ -132,6 +133,9 @@ real(kind=8),allocatable::xyz_out(:),g_out(:),h_out(:)  ! arrays for write out
 logical::snforca
 character(len=40)::names
 logical::section
+integer::ndays,nhours,nminutes,nseconds,tot_time
+character(len=1)::software_irc  ! used software for the calculation of the given IRC
+character(len=1)::software_gf  ! used software for QMDFF ref. and gradient/hessian calculations
 character(len=1)::software_ens ! used software if the energies shall be corrected 
 !   For additional calculation of energies 
 integer::njobs_round  ! number of calculations to be done in this round
@@ -184,6 +188,14 @@ if (rank .eq. 0) then
 end if
 
 !
+!    Measure the needed time for initialization of the system
+!
+if (rank .eq. 0) then
+   call cpu_time(time(1))
+end if
+
+
+!
 !     print out help informations if -help or -h is given as command line argument
 !     call the respective subroutine, else, show infos about the possibility
 !
@@ -206,62 +218,35 @@ call getkey(rank)
 write(*,*) "---- TASK 0: read in mandatory informations from file ----------"
 write(*,*) 
 !
-!     Read the reference program/software from input file
-!     --> currently, only Gaussian IRCs can be read! (18.04.2023)
+!     Read the program, which was used for IRC calculation
 
-!do i = 1, nkey
-!   next = 1
-!   record = keyline(i)
-!   call gettext (record,keyword,next)
-!   call upcase (keyword)
-!   string = record(next:120)
-!   if (keyword(1:11) .eq. 'SOFTWARE ') then
-!      read(record,*) prefix,software
-!     possible options: O (orca), G (gaussian), T (turbomole), C (CP2K)
-!      read_software=.true.
-!      select case (software)
-!         case("O")
-!            write(*,*) "* Reference IRC is read in from ORCA output"
-!         case("G")
-!            write(*,*) "* Reference IRC is read in from GAUSSIAN output"
-!         case("T")
-!            write(*,*) "* Reference IRC is read in from TURBOMOLE output"
-!         case("C")
-!            write(*,*) "* Reference IRC is read in from CP2K output"
-!         case default
-!            read_software=.false.
-!         end select
-!   end if
-!end do
-read_software=.true.
-software="G"
+do i = 1, nkey
+   next = 1
+   record = keyline(i)
+   call gettext (record,keyword,next)
+   call upcase (keyword)
+   string = record(next:120)
+   if (keyword(1:15) .eq. 'IRC_SOFTWARE ') then
+      read(record,*) prefix,software_irc
+!     possible options: O (orca), G (gaussian)
+      read_software=.true.
+      select case (software_irc)
+         case("O")
+            write(*,*) "* Reference IRC is read in from ORCA output"
+         case("G")
+            write(*,*) "* Reference IRC is read in from GAUSSIAN output"
+         case default
+            read_software=.false.
+         end select
+   end if
+end do
 !
 !     If the software wasn't defined in the caracal.key file, read it in manually!
 !
 if (.not. read_software) then
-   exist=.false.
-   do while (.not. exist)
-      write(iout,'(/," Used Software for reference calculations:",/, &
-        &  " (O = orca, G = gaussian, T = turbomole,C = CP2K): ",$)')
-      read (*,'(A1)')  software
-      if ((software .eq. "O") .or. (software .eq. "G") .or. &
-         &  (software .eq. "T") .or. (software .eq. "C")) then
-         exist = .true.
-         select case (software)
-            case("O")
-               write(*,*) "* Reference IRC is read in from ORCA output"
-            case("G")
-               write(*,*) "* Reference IRC is read in from GAUSSIAN output"
-            case("T")
-               write(*,*) "* Reference IRC is read in from TURBOMOLE output"
-            case("C")
-               write(*,*) "* Reference IRC is read in from CP2K output"
-            case default
-               write(*,*) "None of the supported software was used! Try again!"
-               exist=.false.
-         end select
-      end if
-   end do
+   write(*,*) "Please tell which QM software package was used for IRC calculation!"
+   write(*,*) "Add the keyword 'IRC_SOFTWARE', with O (orca) or G (Gaussian)"
+   call fatal
 end if
 !
 !    If another method shall be used for the calculation of the energies 
@@ -278,15 +263,6 @@ do i = 1, nkey
    if (keyword(1:20) .eq. 'SEPARATE_ENERGY ') then
       write(*,*) "* The keyword SEPARATE_ENERGY is present, therefore energies"
       write(*,*) "   along the IRC path will be calculated separately."
-!      read(record,*,iostat=readstat) prefix,software_ens
-!      if (software_ens .eq. "G") then
-!         write(*,*) "  -> Gaussian will be used for these calculations."
-!      else if (software_ens .eq. "O") then
-!         write(*,*) "  -> orca will be used for these calculations."
-!      else
-!         write(*,*) "ERROR! No valid software has been chosen here!"
-!         call fatal
-!      end if
       ens_extra=.true.
    end if
 end do
@@ -343,43 +319,6 @@ do i = 1, nkey
       exit
    end if
 end do
-
-!
-!    If needed, check if executables are really in the stated links 
-!
-if ((software .eq. "G") .or. (software_ens .eq. "G")) then
-   sys_stat=system("command -v " // trim(link_gaussian) // " > sys.log")
-   if (sys_stat .ne. 0) then
-      write(*,*) "ERROR! Gaussian executable could not been found at ",trim(link_gaussian)," !"
-      write(*,*) " Please add or alter the GAUSSIAN keyword (SYMLINKS section)!"
-      call fatal
-   end if
-end if 
-
-if ((software .eq. "O") .or. (software_ens .eq. "O")) then
-   sys_stat=system("command -v " // trim(link_orca) // " > sys.log")
-   if (sys_stat .ne. 0) then
-      write(*,*) "ERROR! orca executable could not been found at ",trim(link_gaussian)," !"
-      write(*,*) " Please add or alter the ORCA keyword (SYMLINKS section)!"
-      call fatal
-   end if
-end if
-
-
-sys_stat=system("command -v " // trim(link_qmdffgen) // " > sys.log")
-if (sys_stat .ne. 0) then
-   write(*,*) "ERROR! qmdffgen.x executable could not been found at ",trim(link_qmdffgen)," !"
-   write(*,*) " Please add or alter the QMDFFGEN keyword (SYMLINKS section)!"
-   call fatal
-end if
-
-sys_stat=system("command -v " // trim(link_rpmd) // " > sys.log")
-if (sys_stat .ne. 0) then
-   write(*,*) "ERROR! calc_rate.x executable could not been found at ",trim(link_rpmd)," !"
-   write(*,*) " Please add or alter the CALC_RATE keyword (SYMLINKS section)!"
-   call fatal
-end if
-
 
 !
 !    Read in the total number of processors to be accessible for all included types 
@@ -457,7 +396,7 @@ end if
 !
 !    Read in filenames of MEP/IRC input informations!
 !
-if (software .eq. "G") then
+if (software_irc .eq. "G") then
    exist=.false.
 !
 !    Try to read IRC filename keyword from caracal.key file!
@@ -485,47 +424,46 @@ if (software .eq. "G") then
 !
          inquire(file=log_name,exist=exist)
          if (.not. exist) then
-            cycle
+            write(*,*) "The ",trim(log_name)," file could not been found!"
+            call fatal
          end if
          inquire(file=chk_name,exist=exist)
          if (.not. exist) then
-            cycle
+            write(*,*) "The ",trim(chk_name)," file could not been found!"
+            call fatal
          end if
       end if
    end do
+else if (software_irc .eq. "O") then
 !
-!    If no keyword is there, read it from command line!
-!
-   do while (.not. exist)
-      write(*,*) "Enter the file prefix name of the .chk and .log files from the"
-      write(*,*) "IRC calculation with Gaussian:"
-      read (*,'(A80)')  line
-      if (allocated(irc_prefix)) deallocate(irc_prefix)
-      if (.not. allocated(irc_prefix)) allocate(character(len=LEN(TRIM(line)))  &
+!    Try to read IRC filename keyword from caracal.key file!
+!   
+   do i = 1, nkey
+      next = 1
+      record = keyline(i)
+      call gettext (record,keyword,next)
+      call upcase (keyword)
+      string = record(next:120)
+      if (keyword(1:11) .eq. 'IRC_PREFIX ') then
+         read(record,*) prefix,line
+         if (allocated(irc_prefix)) deallocate(irc_prefix)
+         if (.not. allocated(irc_prefix)) allocate(character(len=LEN(TRIM(line)))  &
                & :: irc_prefix)
-      irc_prefix=trim(line)
+         irc_prefix=trim(line)
 !
-!    Define the output filenames from the given filename prefix
+!    Define the output filename from the given filename prefix
 !
-      log_name=irc_prefix // ".log"
-      fchk_name=irc_prefix // ".fchk"
-      chk_name=irc_prefix // ".chk"
+         xyz_name=irc_prefix // ".xyz"
 !
 !    Check if the name.log and the name.chk files are present 
 !
-      inquire(file=log_name,exist=exist)
-      if (.not. exist) then
-         write(*,*) "The ",trim(log_name)," file could not been found!" 
-         cycle
+         inquire(file=xyz_name,exist=exist)
+         if (.not. exist) then
+            write(*,*) "The ",trim(xyz_name)," file could not been found!"
+            call fatal
+         end if
       end if
-      inquire(file=chk_name,exist=exist)
-      if (.not. exist) then
-         write(*,*) "The ",trim(chk_name)," file could not been found!"
-         cycle
-      end if
-      exit
    end do
-else if (software .eq. "O") then
 
 
 end if
@@ -602,6 +540,8 @@ gf_method="NN"
 gf_basis="NN"
 gf_met_words=0
 gf_bas_words=0
+charge=-100
+multi=-100
 
 section = .false.
 do i = 1, nkey
@@ -621,10 +561,10 @@ do i = 1, nkey
          call upcase (keyword)
 
          if (keyword(1:13) .eq. 'SOFTWARE ') then 
-            read(record,*,iostat=readstat) prefix,software
-            if (software .eq. "G") then
+            read(record,*,iostat=readstat) prefix,software_gf
+            if (software_gf .eq. "G") then
                write(*,*) "  -> Gaussian will be used for gradient+frequency calculations."
-            else if (software .eq. "O") then
+            else if (software_gf .eq. "O") then
                write(*,*) "  -> orca will be used for gradient+frequency calculations."
             else
                write(*,*) "ERROR! No valid software has been chosen for gradient+frequency calculations!"
@@ -638,6 +578,21 @@ do i = 1, nkey
          else if (keyword(1:13) .eq. 'BASIS ') then
             read(record(10:120),'(a)') gf_basis
             gf_bas_words=1
+!
+!    If a orca IRC is given, charge and multiplicity of the system must be given as well!
+!
+         else if (keyword(1:13) .eq. 'CHARGE ') then
+            read(record,*,iostat=readstat) names,charge
+            if (readstat .ne. 0) then 
+               write(*,*) "Correct format: CHARGE [total charge as integer]"
+               call fatal
+            end if
+         else if (keyword(1:13) .eq. 'MULTI') then
+            read(record,*,iostat=readstat) names,multi
+            if (readstat .ne. 0) then
+               write(*,*) "Correct format: MULTI [spin multiplicity as integer]"
+               call fatal
+            end if         
          end if
          if (keyword(1:13) .eq. '}') exit
          if (j .eq. nkey-i) then
@@ -652,6 +607,20 @@ if (.not. section) then
    write(*,*) "Please add a GRAD_FREQ section with settings for the gradient+frequency"
    write(*,*) " reference calculations!"
    call fatal
+end if
+
+!
+!    If Gaussian is not used as reference method, require the input if charge and multiplicity
+!
+if (software_irc .ne. "G") then
+   if (charge .eq. -100) then
+      write(*,*) "Please give the charge of the system in the GRAD_FREQ section!"
+      call fatal
+   end if
+   if (multi .eq. -100) then
+      write(*,*) "Please give the spin multiplicity of the system in the GRAD_FREQ section!"
+      call fatal
+   end if
 end if
 
 !
@@ -736,6 +705,45 @@ if (ens_extra) then
    write(*,'(a)',advance="no") " * The add. energy reference basis set is: "
    write(*,'(a)') trim(e_basis)
 end if
+
+
+!
+!    If needed, check if executables are really in the stated links 
+!
+if ((software_irc .eq. "G") .or. (software_gf .eq. "G") .or. (software_ens) .eq. "G") then
+   sys_stat=system("command -v " // trim(link_gaussian) // " > sys.log")
+   if (sys_stat .ne. 0) then
+      write(*,*) "ERROR! Gaussian executable could not been found at ",trim(link_gaussian)," !"
+      write(*,*) " Please add or alter the GAUSSIAN keyword (SYMLINKS section)!"
+      call fatal
+   end if
+end if
+
+if ((software_irc .eq. "O") .or. (software_ens .eq. "O") .or. (software_gf) .eq. "O") then
+   sys_stat=system("command -v " // trim(link_orca) // " > sys.log")
+   if (sys_stat .ne. 0) then
+      write(*,*) "ERROR! orca executable could not been found at ",trim(link_gaussian)," !"
+      write(*,*) " Please add or alter the ORCA keyword (SYMLINKS section)!"
+      call fatal
+   end if
+end if
+
+
+sys_stat=system("command -v " // trim(link_qmdffgen) // " > sys.log")
+if (sys_stat .ne. 0) then
+   write(*,*) "ERROR! qmdffgen.x executable could not been found at ",trim(link_qmdffgen)," !"
+   write(*,*) " Please add or alter the QMDFFGEN keyword (SYMLINKS section)!"
+   call fatal
+end if
+
+sys_stat=system("command -v " // trim(link_rpmd) // " > sys.log")
+if (sys_stat .ne. 0) then
+   write(*,*) "ERROR! calc_rate.x executable could not been found at ",trim(link_rpmd)," !"
+   write(*,*) " Please add or alter the CALC_RATE keyword (SYMLINKS section)!"
+   call fatal
+end if
+
+
 !
 !    If the automatically generated coordinate set for RPMD fails, a manual
 !    alignment might be needed
@@ -1225,7 +1233,7 @@ end if
 write(*,*)
 write(*,*) "---- TASK 1: extract IRC/MEP reference informations ----------"
 write(*,*) 
-if (software .eq. "G") then
+if (software_irc .eq. "G") then
    formchk_stat=system("formchk " // chk_name // " " // fchk_name )
    if (formchk_stat .ne. 0) then
       write(*,*) "ERROR! The formchk command needed for extraction of the"
@@ -1633,12 +1641,126 @@ if (software .eq. "G") then
    end do
    close(17)
 
-else if (software .eq. "O") then
-   
+else if (software_irc .eq. "O") then
+!
+!     Read in orca IRC file: only xyz trajectory with energies
+!      as comments!
+!
+   open(unit=14,file=xyz_name,status="old")
+   read(14,*) natoms
+   i=1
+   do 
+      read(14,*,iostat=readstat)
+      if (readstat .ne. 0) exit
+      i=i+1
+   end do
+   close(14)
+   irc_num=i/(natoms+2)
+  
+   allocate(xi_vals(irc_num))
+   allocate(irc_energies(irc_num))
+   allocate(irc_coords(irc_num,natoms,3))
+ 
+   open(unit=14,file=xyz_name,status="old")
+   do i=1,irc_num
+      read(14,*) idum
+      read(14,*) adum,adum,adum,adum,adum,irc_energies(i)
+      do j=1,natoms
+         read(14,*) name(j),irc_coords(i,j,:)
+      end do
+   end do
+   close(14)
+   irc_coords=irc_coords/bohr
+!
+!     Determine TS position for xi_vals determination: highest energy!
+!
+   ts_loc_a=maxloc(irc_energies)
+   ts_loc=ts_loc_a(1)
+
+   do i=ts_loc,1,-1
+      xi_vals(ts_loc-i+1)=-real(i)+1
+   enddo
+   do i=ts_loc+1,irc_num
+      xi_vals(i)=real(i-ts_loc)
+   end do
+
+
+!
+!     If the IRC shall be readed from right to left, invert all entries of the relevant arrays!
+!
+   allocate(tmp3(natoms,3))
+   if (irc_direct .eq. "RL") then
+      write(*,*) "The IRC direction shall be right2left, therefore invert the upfollowing of the"
+      write(*,*) " read in IRC data."
+      do i=1,irc_num/2
+!
+!     First, store the rightest element in a temporary variable
+!
+         tmp1=xi_vals(irc_num-i+1)
+         tmp2=irc_energies(irc_num-i+1)
+         tmp3(:,:)=irc_coords(irc_num-i+1,:,:)
+!
+!     Second, Overwrite the rightest element with the leftest
+!
+         xi_vals(irc_num-i+1)=xi_vals(i)
+         irc_energies(irc_num-i+1)=irc_energies(i)
+         irc_coords(irc_num-i+1,:,:)=irc_coords(i,:,:)
+!
+!     Third, overwrite the leftest element with the temporary variable 
+!
+         xi_vals(i)=tmp1
+         irc_energies(i)=tmp2
+         irc_coords(i,:,:)=tmp3(:,:)
+      end do
+!
+!     Swith the signs of all Xi values 
+!
+      do i=1,irc_num
+         xi_vals(i)=-xi_vals(i)
+      end do
+   end if
+
+!
+!     Generate output folder for IRC informations
+!
+   inquire(file="mep_irc", exist=exist)
+   if (.not. exist)  call system("mkdir mep_irc")
+!
+!     Output file for energies
+!   
+   open(unit=17,file="mep_irc/irc_ens.dat",status="replace")
+   do i=1,irc_num
+      write(17,*) irc_energies(i)
+   end do
+   close(17)
+!
+!     Output file for energies and reaction coordinates Xi
+!
+   open(unit=17,file="mep_irc/irc_xi_ens.dat",status="replace")
+   do i=1,irc_num
+      write(17,*) xi_vals(i),irc_energies(i)
+   end do
+   close(17)
+
+!
+!     Output file for xyz structures of the path
+!
+   open(unit=17,file="mep_irc/irc.xyz",status="replace")
+   do i=1,irc_num
+      write(17,*) natoms
+      write(17,*)
+      do j=1,natoms
+         write(17,*) name(j),irc_coords(i,j,:)*bohr
+      end do
+   end do
+   close(17)
 
 
 end if
 
+if (rank .eq. 0) then
+   call cpu_time(time(2))
+end if
 
 
 !
@@ -1654,9 +1776,6 @@ end if
 write(*,*)
 write(*,*) "---- TASK 2: calculate QMDFF reference data of minima ----------"
 write(*,*) 
-write(*,*) "Due to different printout formates, therefore geometry optimizations"
-write(*,*) "and QMDFF reference calculations need to be done in different runs!"
-write(*,*) 
 !
 !    Check if these calculations were already done in a run before 
 !
@@ -1665,10 +1784,15 @@ inquire(file="products/calc_done", exist=products_done)
 
 
 if (.not. reactants_done .or. .not. products_done) then
+
    call system("mkdir reactants")
    call system("mkdir products")
 
-   if (software .eq. "G") then
+   if (software_gf .eq. "G") then
+
+write(*,*) "Due to different printout formates, therefore geometry optimizations"
+write(*,*) "and QMDFF reference calculations need to be done in different runs!"
+write(*,*)
   
 !
 !    PART A : Do geometry optimization for reactants and producs 
@@ -1751,20 +1875,20 @@ if (.not. reactants_done .or. .not. products_done) then
 !
 !     Then products 
 !
-          write(*,*) "Start geometry optimization of products minimum."
-          sys_stat=chdir("products")
-          if (sys_stat .ne. 0) then
-             write(*,*) "ERROR! Directory products can't be accessed!"
-             call fatal
-          end if
-          sys_stat=system(trim(link_gaussian)// "  products_opt.com")          
-          if (sys_stat .ne. 0) then
-             write(*,*) "ERROR! The Gaussian16 calculation in 'products' failed!"
-             call fatal
-          end if
-          sys_stat=chdir("..")
+         write(*,*) "Start geometry optimization of products minimum."
+         sys_stat=chdir("products")
+         if (sys_stat .ne. 0) then
+            write(*,*) "ERROR! Directory products can't be accessed!"
+            call fatal
+         end if
+         sys_stat=system(trim(link_gaussian)// "  products_opt.com")          
+         if (sys_stat .ne. 0) then
+            write(*,*) "ERROR! The Gaussian16 calculation in 'products' failed!"
+            call fatal
+         end if
+         sys_stat=chdir("..")
 
-   else 
+      else 
 !
 !     If two calculations can be done at once, start them parallel and test finishing
 !
@@ -2139,13 +2263,193 @@ if (.not. reactants_done .or. .not. products_done) then
       close(18)
       close(19)
   
-   else if (software .eq. "O") then
+   else if (software_gf .eq. "O") then
+!
+!     First, write input files for combined opt+freq calculations
+!
+      do k=1,2
+         if (k .eq. 1) then
+            sys_stat=chdir("reactants")
+         else if (k .eq. 2) then
+            sys_stat=chdir("products")
+         end if
+         if (sys_stat .ne. 0) then
+            write(*,*) "ERROR! Directory reactants/producs can't be accessed!"
+            call fatal
+         end if
+         if (k .eq. 1) then
+            open(unit=16,file="reactants.inp")
+         else if (k .eq. 2) then
+            open(unit=16,file="products.inp")
+         end if
+         if (min_procs .gt. 1) then
+            if (min_procs .lt. 10) then
+               write(16,'(a,i1)') "! PAL",min_procs
+            else
+               write(16,'(a,i2)') "! PAL",min_procs
+            end if
+         end if
+         write(16,'(a)',advance="no") "! opt freq "
+         do i=1,gf_met_words
+            write(16,'(a,a)',advance="no") trim(gf_method(i))," "
+         end do
+         write(16,'(a,a)',advance="no") trim(gf_basis)," "
+         write(16,*)
+         write(16,'(a,i4,i4)') "* xyz ", charge,multi
+         do i=1,natoms
+            if (k .eq. 1) then
+               write(16,*) name(i),irc_coords(1,i,:)*bohr
+            else if (k .eq. 2) then
+               write(16,*) name(i),irc_coords(irc_num,i,:)*bohr
+            end if
+         end do
 
+         write(16,*) "*"
+         write(16,*) "%output"
+         write(16,*) "    Print[ P_Hirshfeld ] 1"
+         write(16,*) "end"
+         close(16)
+         sys_stat=chdir("..")
+      end do
+!
+!     Now start orca Jobs for geoopts 
+!
+!     If less than two calculations might be done at once, start them subsequently
+      if (nprocs_tot .lt. 2*min_procs) then
+!
+!     First reactants
+!
+         write(*,*) "Start QMDFF reference calculation of reactants minimum."
+         sys_stat=chdir("reactants")
+         if (sys_stat .ne. 0) then
+            write(*,*) "ERROR! Directory reactants can't be accessed!"
+            call fatal
+         end if
+         sys_stat=system(trim(link_orca)// " reactants.inp > reactants.log")
+         if (sys_stat .ne. 0) then
+            write(*,*) "ERROR! The orca5 calculation in 'reactants' failed!"
+            call fatal
+         end if
+         sys_stat=chdir("..")
+!
+!     Then products 
+!
+         write(*,*) "Start QMDFF reference calculation of products minimum."
+         sys_stat=chdir("products")
+         if (sys_stat .ne. 0) then
+            write(*,*) "ERROR! Directory products can't be accessed!"
+            call fatal
+         end if
+         sys_stat=system(trim(link_orca)// " products.inp > products.log")
+         if (sys_stat .ne. 0) then
+            write(*,*) "ERROR! The orca5 calculation in 'products' failed!"
+            call fatal
+         end if
+         sys_stat=chdir("..")
 
-
-
+      else
+!
+!     If two calculations can be done at once, start them parallel and test finishing
+!
+!
+!     First reactants
+!
+         write(*,*) "Start QMDFF reference calculation of reactants minimum."
+         sys_stat=chdir("reactants")
+         if (sys_stat .ne. 0) then
+            write(*,*) "ERROR! Directory reactants can't be accessed!"
+            call fatal
+         end if
+         sys_stat=system(trim(link_orca)// " reactants.inp > reactants.log &")
+         if (sys_stat .ne. 0) then
+            write(*,*) "ERROR! The orca5 calculation in 'reactants' failed!"
+            call fatal
+         end if
+         sys_stat=chdir("..")
+!
+!     Then products 
+!
+         write(*,*) "Start QMDFF reference calculation of products minimum."
+         sys_stat=chdir("products")
+         if (sys_stat .ne. 0) then
+            write(*,*) "ERROR! Directory products can't be accessed!"
+            call fatal
+         end if
+         sys_stat=system(trim(link_orca)// " products.inp > products.log &")
+         if (sys_stat .ne. 0) then
+            write(*,*) "ERROR! The orca5 calculation in 'products' failed!"
+            call fatal
+         end if
+         sys_stat=chdir("..")
+!
+!     Now test each second, if the calculations are finished (then, the last line of the 
+!     name.log file begins with 'Normal termination of Gaussian')
+! 
+         geo_reactants=0
+         geo_products=0
+         call sleep(1)
+         do
+!
+!     First reactants
+!
+            if (geo_reactants .ne. 1) then
+               sys_stat=chdir("reactants")
+               if (sys_stat .ne. 0) then
+                  write(*,*) "ERROR! Directory reactants can't be accessed!"
+                  call fatal
+               end if
+               sys_stat=system("tail -2 reactants.log > tail.out &")
+               sys_stat=system("sleep 0.1")
+               open (unit=16,file="tail.out")
+               read(16,'(a)',iostat=readstat) a80
+               if (readstat .eq. 0) then
+                  if (index(a80,'****ORCA TERMINATED NORMALLY****') .ne. 0) then
+                     geo_reactants=1 
+                     call system("touch calc_done")
+                     write(*,*) "QMDFF reference calculation of reactants minimum finished!"
+                  else if ((index(a80,'ERROR') .ne. 0) .or. (index(a80,'error') .ne. 0) .or. &
+                      &  (index(a80,'Aborting the run') .ne. 0)) then
+                     write(*,*) "ERROR! The reference calculaiton of the reactants minimum failed!"
+                     call fatal
+                  end if
+               end if
+               close(16)
+               sys_stat=chdir("..")
+            end if
+!
+!     Then products 
+!
+            if (geo_products .ne. 1) then
+               sys_stat=chdir("products")
+               if (sys_stat .ne. 0) then
+                  write(*,*) "ERROR! Directory products can't be accessed!"
+                  call fatal
+               end if
+               sys_stat=system("tail -2 products.log > tail.out &")
+               sys_stat=system("sleep 0.1")
+               open (unit=16,file="tail.out")
+               read(16,'(a)',iostat=readstat) a80
+               if (readstat .eq. 0) then
+                  if (index(a80,'****ORCA TERMINATED NORMALLY****') .ne. 0) then
+                     geo_products=1
+                     call system("touch calc_done")
+                     write(*,*) "QMDFF reference calculation of products minimum finished!"
+                  else if ((index(a80,'ERROR') .ne. 0) .or. (index(a80,'error') .ne. 0) .or. & 
+                     &   (index(a80,'Aborting the run') .ne. 0)) then
+                     write(*,*) "ERROR! The reference calculation of the products minimum failed!"
+                     call fatal
+                  end if
+               end if
+               close(16)
+               sys_stat=chdir("..")
+            end if
+            if ((geo_reactants .eq. 1) .and. (geo_products .eq. 1)) exit
+            call sleep(1)
+         end do
+         sys_stat=system("rm reactants/tail.out")
+         sys_stat=system("rm products/tail.out")
+      end if
    end if
-
 else 
    write(*,*) "QMDFF reference information on both minima was already calculated!"
  
@@ -2199,10 +2503,18 @@ if (ens_extra) then
       end if
       write(15,'(a,i3,a,i3,a)') "*xyzfile ",charge," ",multi," struc.xyz"
       close(15)
-      if (k .eq. 1) then
-         call system("cp ../reactants_opt.xyz struc.xyz")
-      else if (k .eq. 2) then
-         call system("cp ../products_opt.xyz struc.xyz")
+      if (software_gf .eq. "G") then
+         if (k .eq. 1) then
+            call system("cp ../reactants_opt.xyz struc.xyz")
+         else if (k .eq. 2) then
+            call system("cp ../products_opt.xyz struc.xyz")
+      end if
+      else if (software_gf .eq. "O") then
+         if (k .eq. 1) then
+            call system("cp ../reactants.xyz struc.xyz")
+         else if (k .eq. 2) then
+            call system("cp ../products.xyz struc.xyz")
+         end if
       end if
 !
 !     Start the calculations if they are not already finished
@@ -2251,6 +2563,10 @@ end if
 
 
 
+if (rank .eq. 0) then
+   call cpu_time(time(3))
+end if
+
 !
 !    TASK 3 : GENERATE THE QMDFFs
 !
@@ -2269,29 +2585,50 @@ inquire(file="evb_qmdff", exist=exist)
 if (exist) call system("rm -r evb_qmdff")
 call system("mkdir evb_qmdff")
 
-sys_stat=system("cp reactants/reactants_ref.log evb_qmdff/reactants.log")
-if (sys_stat .ne. 0) then
-   write(*,*) "ERROR! Copying of reactant reference failed!"
-   call fatal
+if (software_gf .eq. "G") then
+   sys_stat=system("cp reactants/reactants_ref.log evb_qmdff/reactants.log")
+   if (sys_stat .ne. 0) then
+      write(*,*) "ERROR! Copying of reactant reference failed!"
+      call fatal
+   end if
+   sys_stat=system("cp reactants/reactants_ref.chk evb_qmdff/reactants.chk")
+   if (sys_stat .ne. 0) then
+      write(*,*) "ERROR! Copying of reactant reference failed!"
+      call fatal
+   end if
+   sys_stat=system("cp products/products_ref.log evb_qmdff/products.log") 
+   if (sys_stat .ne. 0) then
+      write(*,*) "ERROR! Copying of products reference failed!"
+   end if
+   sys_stat=system("cp products/products_ref.chk evb_qmdff/products.chk")
+   if (sys_stat .ne. 0) then
+      write(*,*) "ERROR! Copying of products reference failed!"
+      call fatal
+   end if
+else if (software_gf .eq. "O") then
+   sys_stat=system("cp reactants/reactants.log evb_qmdff/reactants.out")
+   if (sys_stat .ne. 0) then
+      write(*,*) "ERROR! Copying of reactant reference failed!"
+      call fatal
+   end if
+   sys_stat=system("cp reactants/reactants.hess evb_qmdff/reactants.hess")
+   if (sys_stat .ne. 0) then
+      write(*,*) "ERROR! Copying of reactant reference failed!"
+      call fatal
+   end if
+   sys_stat=system("cp products/products.log evb_qmdff/products.out")
+   if (sys_stat .ne. 0) then
+      write(*,*) "ERROR! Copying of products reference failed!"
+   end if
+   sys_stat=system("cp products/products.hess evb_qmdff/products.hess")
+   if (sys_stat .ne. 0) then
+      write(*,*) "ERROR! Copying of products reference failed!"
+      call fatal
+   end if
 end if
-sys_stat=system("cp reactants/reactants_ref.chk evb_qmdff/reactants.chk")
-if (sys_stat .ne. 0) then
-   write(*,*) "ERROR! Copying of reactant reference failed!"
-   call fatal
-end if
-sys_stat=system("cp products/products_ref.log evb_qmdff/products.log") 
-if (sys_stat .ne. 0) then
-   write(*,*) "ERROR! Copying of products reference failed!"
-end if
-sys_stat=system("cp products/products_ref.chk evb_qmdff/products.chk")
-if (sys_stat .ne. 0) then
-   write(*,*) "ERROR! Copying of products reference failed!"
-   call fatal
-end if
-
 
 open(unit=15,file="evb_qmdff/qmdffgen.key",status="replace")
-write(15,*) "software ",software
+write(15,*) "software ",software_gf
 write(15,*) "2qmdff reactants products"
 close(15)
 !
@@ -2324,9 +2661,9 @@ write(*,*) "QMDFF generation successful!"
 sys_stat=chdir("..")
 
 !
-!    TASK 4 : CALCULATE RP-EVB GRADIENT+HESSIAN REFERENCE
+!    TASK 4 : CALCULATE TREQ GRADIENT+HESSIAN REFERENCE
 !
-!    For the parametrization of RP-EVB, gradients and frequencies need to be calculated
+!    For the parametrization of TREQ, gradients and frequencies need to be calculated
 !    at a number of reference points along the path 
 !    
 !    First, the position of these points will be determined from the path topology
@@ -2335,8 +2672,13 @@ sys_stat=chdir("..")
 !    Then, QM input data will be generated for each of this points, the calculations 
 !    will be started and the results will be collected 
 !
+
+if (rank .eq. 0) then
+   call cpu_time(time(4))
+end if
+
 write(*,*)
-write(*,*) "---- TASK 4: Generate the reference data for RP-EVB  ----------"
+write(*,*) "---- TASK 4: Generate the reference data for TREQ  ----------"
 write(*,*)
 write(*,*) "First: determine positions of all RP-EVB points at which gradients"
 write(*,*) " of the QM reference will be calculated."
@@ -2563,7 +2905,7 @@ end do
 !
 !     If Gaussian shall be used for QM reference calculations
 !
-if (software .eq. "G") then
+if (software_gf .eq. "G") then
    sys_stat=chdir("rp_ref")
    if (sys_stat .ne. 0) then
       write(*,*) "ERROR! The folder rp_ref seems to be nonexistent!"
@@ -2600,10 +2942,36 @@ if (software .eq. "G") then
       write(16,*)
       close(16)
    end do
-else if (software .eq. "O") then
-
-
-
+else if (software_gf .eq. "O") then
+   sys_stat=chdir("rp_ref")
+   if (sys_stat .ne. 0) then
+      write(*,*) "ERROR! The folder rp_ref seems to be nonexistent!"
+      call fatal
+   end if
+   do i=1,n_rp_pts
+      inquire(file=adjustl(trim(rp_names(i))), exist=exist)
+      if (.not. exist) call system("mkdir " // adjustl(trim(rp_names(i))))
+      open(unit=16,file=adjustl(trim(rp_names(i))) // "/orca.inp",status="replace")
+      if (min_procs .gt. 1) then
+         if (min_procs .lt. 10) then
+            write(16,'(a,i1)') " ! PAL",rp_procs
+         else
+            write(16,'(a,i2)') " ! PAL",rp_procs
+         end if
+      end if
+      write(16,'(a)',advance="no") " ! freq engrad "
+      do j=1,gf_met_words
+         write(16,'(a,a)',advance="no") adjustl(trim(gf_method(j)))," "
+      end do
+      write(16,'(a,a)',advance="no") adjustl(trim(gf_basis))," "
+      write(16,*) " "
+      write(16,'(a,i4,i4)') "* xyz ", charge,multi
+      do j=1,natoms
+         write(16,*) name(j),irc_coords(rp_points(i),j,:)*bohr
+      end do
+      write(16,*) "*"
+      close(16)
+   end do
 end if
 write(*,*) " --> done!"
 !
@@ -2631,82 +2999,168 @@ write(*,'(a,i2)') " Rounds of calculations to be done: ",nrounds
 !    Go into large loop for calculation rounds: First, start the calculations simultaneously
 !    Then, wait until all started calculations are finished 
 !
-
-do i=1,nrounds
+!    A) GAUSSIAN calculations
+!
+if (software_gf .eq. "G") then
+   do i=1,nrounds
 !
 !    directly include possible "rest calculations"
 !   
-   if (i .lt. nrounds) then
-      ncalcs_round=nprocs_tot/rp_procs
-   else 
-      if (mod(n_rp_pts,ncalcs_round) .ne. 0) then
-         ncalcs_round=mod(n_rp_pts,ncalcs_round)
-      else 
+      if (i .lt. nrounds) then
          ncalcs_round=nprocs_tot/rp_procs
+      else 
+         if (mod(n_rp_pts,ncalcs_round) .ne. 0) then
+            ncalcs_round=mod(n_rp_pts,ncalcs_round)
+         else 
+            ncalcs_round=nprocs_tot/rp_procs
+         end if
       end if
-   end if
 !
 !    Start the calculations 
 !
    
-   do j=1,ncalcs_round 
-      sys_stat=chdir(adjustl(trim(rp_names((i-1)*nprocs_tot/rp_procs+j))))
-      inquire(file="done", exist=exist)
-      if (.not. exist) then
-         sys_stat=system(trim(link_gaussian)// " gauss.com &")
-         write(*,'(a,i3)') " Reference calculation stated for RP-EVB point ",&
-                    & (i-1)*nprocs_tot/rp_procs+j
-         if (sys_stat .ne. 0) then
-            write(*,*) "ERROR! The Gaussian16 calculation in RP folder ",&
-                   & trim(rp_names((i-1)*nprocs_tot/rp_procs+j))," failed!"
-            call fatal
-         end if 
-      else 
-         write(*,'(a,i3)') " Reference calculation already done for RP-EVB point ",&
-              & (i-1)*nprocs_tot/rp_procs+j
-      end if
-      sys_stat=chdir("..")
-   end do
-!
-!     Check if all are finished 
-!
-   if (.not. allocated(round_done)) allocate(round_done(ncalcs_round))
-   round_done=0
-   do 
       do j=1,ncalcs_round 
          sys_stat=chdir(adjustl(trim(rp_names((i-1)*nprocs_tot/rp_procs+j))))
-         sys_stat=system("tail -1 gauss.log > tail.out &")
-         sys_stat=system("sleep 0.1")
-         open (unit=16,file="tail.out")
-         read(16,'(a)',iostat=readstat) a80
-         if (readstat .eq. 0) then
-            if (index(a80,'Normal termination of Gaussian') .ne. 0) then
-               if (round_done(j) .eq. 0) then
-                  write(*,*) " Finished reference calculation for RP-EVB point ",&
-                        & (i-1)*nprocs_tot/rp_procs+j
-                  call system(" touch done")
-               end if
-               round_done(j)=1
-            else if (index(a80,'File lengths (MBytes)') .ne. 0) then
-               write(*,*) "ERROR! The QMDFF reference calculation for RP-EVB point ",&
-                        & (i-1)*nprocs_tot/rp_procs+j,"failed!"
+         inquire(file="done", exist=exist)
+         if (.not. exist) then
+            sys_stat=system(trim(link_gaussian)// " gauss.com &")
+            write(*,'(a,i3)') " Reference calculation stated for RP-EVB point ",&
+                      & (i-1)*nprocs_tot/rp_procs+j
+            if (sys_stat .ne. 0) then
+               write(*,*) "ERROR! The Gaussian16 calculation in RP folder ",&
+                      & trim(rp_names((i-1)*nprocs_tot/rp_procs+j))," failed!"
                call fatal
-            end if
+            end if 
+         else 
+            write(*,'(a,i3)') " Reference calculation already done for RP-EVB point ",&
+                 & (i-1)*nprocs_tot/rp_procs+j
          end if
-         close(16)
          sys_stat=chdir("..")
       end do
 !
+!     Check if all are finished 
+!
+      if (.not. allocated(round_done)) allocate(round_done(ncalcs_round))
+      round_done=0
+      do 
+         do j=1,ncalcs_round 
+            sys_stat=chdir(adjustl(trim(rp_names((i-1)*nprocs_tot/rp_procs+j))))
+            sys_stat=system("tail -1 gauss.log > tail.out &")
+            sys_stat=system("sleep 0.1")
+            open (unit=16,file="tail.out")
+            read(16,'(a)',iostat=readstat) a80
+            if (readstat .eq. 0) then
+               if (index(a80,'Normal termination of Gaussian') .ne. 0) then
+                  if (round_done(j) .eq. 0) then
+                     write(*,*) " Finished reference calculation for RP-EVB point ",&
+                           & (i-1)*nprocs_tot/rp_procs+j
+                     call system(" touch done")
+                  end if
+                  round_done(j)=1
+                  write(*,*) "ERROR! The QMDFF reference calculation for RP-EVB point ",&
+                           & (i-1)*nprocs_tot/rp_procs+j,"failed!"
+                  call fatal
+               end if
+            end if
+            close(16)
+            sys_stat=chdir("..")
+         end do
+!
 !     If all actual calculations are finished, all stata are 1 (sum=N)
 !
-      idum=sum(round_done)
-      if (idum .eq. ncalcs_round) exit 
-   end do 
-   if (allocated(round_done)) deallocate(round_done)
-end do
+         idum=sum(round_done)
+         if (idum .eq. ncalcs_round) exit 
+      end do 
+      if (allocated(round_done)) deallocate(round_done)
+   end do
+!
+!    B) ORCA calculations
+!
+else if (software_gf .eq. "O") then
+   do i=1,nrounds
+!
+!    directly include possible "rest calculations"
+!   
+      if (i .lt. nrounds) then
+         ncalcs_round=nprocs_tot/rp_procs
+      else
+         if (mod(n_rp_pts,ncalcs_round) .ne. 0) then
+            ncalcs_round=mod(n_rp_pts,ncalcs_round)
+         else
+            ncalcs_round=nprocs_tot/rp_procs
+         end if
+      end if
+!
+!    Start the calculations 
+!
+   
+      do j=1,ncalcs_round
+         sys_stat=chdir(adjustl(trim(rp_names((i-1)*nprocs_tot/rp_procs+j))))
+         inquire(file="done", exist=exist)
+         if (.not. exist) then
+            sys_stat=system(trim(link_orca)// " orca.inp > orca.log &")
+            write(*,'(a,i3)') " Reference calculation stated for RP-EVB point ",&
+                      & (i-1)*nprocs_tot/rp_procs+j
+            if (sys_stat .ne. 0) then
+               write(*,*) "ERROR! The orca5 calculation in RP folder ",&
+                      & trim(rp_names((i-1)*nprocs_tot/rp_procs+j))," failed!"
+               call fatal
+            end if
+         else
+            write(*,'(a,i3)') " Reference calculation already done for RP-EVB point ",&
+                 & (i-1)*nprocs_tot/rp_procs+j
+         end if
+         sys_stat=chdir("..")
+      end do
+!
+!     Check if all are finished 
+!
+      if (.not. allocated(round_done)) allocate(round_done(ncalcs_round))
+      round_done=0
+      do
+         do j=1,ncalcs_round
+            sys_stat=chdir(adjustl(trim(rp_names((i-1)*nprocs_tot/rp_procs+j))))
+            sys_stat=system("tail -2 orca.log > tail.out &")
+            sys_stat=system("sleep 0.1")
+            open (unit=16,file="tail.out")
+            read(16,'(a)',iostat=readstat) a80
+            if (readstat .eq. 0) then
+               if (index(a80,'****ORCA TERMINATED NORMALLY****') .ne. 0) then
+                  if (round_done(j) .eq. 0) then
+                     write(*,*) " Finished reference calculation for RP-EVB point ",&
+                           & (i-1)*nprocs_tot/rp_procs+j
+                     call system(" touch done")
+                  end if
+                  round_done(j)=1
+               else if ((index(a80,'ERROR') .ne. 0) .or. (index(a80,'error') .ne. 0) .or. &
+                     &   (index(a80,'Aborting the run') .ne. 0)) then
+
+                  write(*,*) "ERROR! The QMDFF reference calculation for RP-EVB point ",&
+                           & (i-1)*nprocs_tot/rp_procs+j,"failed!"
+                  call fatal
+               end if
+            end if
+            close(16)
+            sys_stat=chdir("..")
+         end do
+!
+!     If all actual calculations are finished, all stata are 1 (sum=N)
+!
+         idum=sum(round_done)
+         if (idum .eq. ncalcs_round) exit
+      end do
+      if (allocated(round_done)) deallocate(round_done)
+   end do
+
+end if
+
+if (rank .eq. 0) then
+   call cpu_time(time(5))
+end if
+
 
 !
-!     TASK 4-B : CALCULATE SEPARATE RP-EVB ENERGY REFERENCE
+!     TASK 4-B : CALCULATE SEPARATE TREQ ENERGY REFERENCE
 !
 !     If a higher level of theory shall be used for energy reference 
 !     along the path, generate the needed input data for these 
@@ -2719,7 +3173,7 @@ if (ens_extra) then
    call chdir("add_ens")
  
    write(*,*)
-   write(*,*) "---- TASK 4-B: Calculate separate energy data for RP-EVB  ----------"
+   write(*,*) "---- TASK 4-B: Calculate separate energy data for TREQ  ----------"
    write(*,*)
    ! irc_num
 !
@@ -2969,8 +3423,8 @@ allocate(hess1d2((3*natoms)*(3*natoms)))
 allocate(g_out(nat3),xyz_out(nat3),h_out(nat3*nat3))
 dg_ref_file="grad_hess.dat"
 open(unit=15,file=dg_ref_file,status="unknown")
-write(15,'(A)') "# This is an input file for DG-EVB-QMDFF, "
-write(15,'(A)') "# generated by gen_dg_evb."
+write(15,'(A)') "# This is an input file for TREQ calculations, "
+write(15,'(A)') "# generated by black_box.x."
 write(15,*)
 write(15,'((A),(I3))') "NPOINTS",n_rp_pts
 write(15,*)
@@ -2993,8 +3447,8 @@ do i=1,n_rp_pts
 !  
 !      A: for orca calculations 
 !
-   if (software .eq. "O") then
-      open(unit=11,file="run.engrad")
+   if (software_gf .eq. "O") then
+      open(unit=11,file="orca.engrad")
 
 !
 !     Read in actual energy
@@ -3020,7 +3474,7 @@ do i=1,n_rp_pts
 !
 !     Read in the hessian
 !
-      open(unit=13,file="run.hess")
+      open(unit=13,file="orca.hess")
       m=nat3/5
       if(mod(nat3,5).gt.0)m=m+1
 
@@ -3049,7 +3503,7 @@ do i=1,n_rp_pts
 !
 !     B: for Gaussian calculations
 !
-   else if (software .eq. "G") then
+   else if (software_gf .eq. "G") then
 !
 !    First execute the formchk command in order to get the formatted output
 ! 
@@ -3242,6 +3696,10 @@ end do
 
 
 
+
+if (rank .eq. 0) then
+   call cpu_time(time(6))
+end if
 
 !
 !     TASK 6 : Generate input folder for dynamic calculations
@@ -3718,7 +4176,7 @@ do i=1,temp_num
       write(15,'(a)') "# number of ring polymer beads in the system:"
       write(15,'(a,i4)') "    bead_number ",nbeads 
       write(15,'(a)') "##################################"
-      write(15,'(a)') "# PES settings"
+      write(15,'(a)') "# potential energy surface settings"
       write(15,'(a)') "##################################"
       write(15,'(a)') "# names of the QMDFF files 1 and 2:"
       write(15,'(a)') "    qmdffnames reactants.qmdff products.qmdff"
@@ -3744,7 +4202,7 @@ do i=1,temp_num
       end if 
       write(15,'(a)') " } "
       write(15,'(a)') "##################################"
-      write(15,'(a)') "# Global dynamics settings"
+      write(15,'(a)') "# global dynamics settings"
       write(15,'(a)') "##################################" 
       write(15,'(a)') "# MD timestep (fs):"  
       write(15,'(a,f12.7)') "    deltat ",dt
@@ -3760,7 +4218,7 @@ do i=1,temp_num
       write(15,'(a,f20.8)') "     nose_damp",nose_q
       write(15,'(a)') " }"
       write(15,'(a)') "##################################"
-      write(15,'(a)') "# Reactive system settings"
+      write(15,'(a)') "# reactive system settings"
       write(15,'(a)') "##################################" 
       write(15,'(a)') " mecha {"
       write(15,'(a)') "# species of the reaction mechanism:"  
@@ -3803,7 +4261,7 @@ do i=1,temp_num
       end if
       write(15,'(a)') " "
       write(15,'(a)') "###################################"
-      write(15,'(a)') "# Umbrella sampling settings"
+      write(15,'(a)') "# umbrella sampling settings"
       write(15,'(a)') "###################################"
       write(15,'(a)') " umbrella {"
       write(15,'(a)') "# umbrella force constant (a.u.):"
@@ -3822,7 +4280,7 @@ do i=1,temp_num
       write(15,'(a,i9)') "    sample_trajs",umbr_traj
       write(15,'(a)') " }"
       write(15,'(a)') "###################################"
-      write(15,'(a)') "# PMF calculation settings"
+      write(15,'(a)') "# potential of mean force calculation settings"
       write(15,'(a)') "###################################"
       write(15,'(a)') " pmf { "
       write(15,'(a)') "# borders of integragion for PMF (xi):"
@@ -3837,7 +4295,7 @@ do i=1,temp_num
       end if
       write(15,'(a)') " } "
       write(15,'(a)') "###################################"
-      write(15,'(a)') "# Recrossing calculation settings"
+      write(15,'(a)') "# recrossing calculation settings"
       write(15,'(a)') "###################################"
       write(15,'(a)') " recross { "
       write(15,'(a)') "# number of MD timesteps for parent sampling:"
@@ -3885,7 +4343,7 @@ end do
 write(*,*)
 write(*,*) "---- TASK 7: start k(T) calculations for all temperatures -------"
 write(*,*)
-write(*,*) "rpmd.x calculations are quite good parallelized, therefore only one"
+write(*,*) "rpmd.x calculations are parallelized quite well, therefore only one"
 write(*,*) " will be started simultenously with all cores availiable!"
 
 
@@ -4197,7 +4655,7 @@ if (temp_num .ge. 2) then
       write(*,*) 
       write(*,'(a,f14.8)') " The correlation coefficient:",corre
       write(*,*) 
-      write(*,*) "In order to visualize the Arrhenius plot, open: rpmd/arrhenius.gnu"
+      write(*,*) "In order to visualize the Arrhenius plot, open: calc_rate/arrhen_plot.gnu"
    else 
       write(*,*) "No Arrhenius fit could be done because an error occured during "
       write(*,*) " a k(T) calculation."
@@ -4205,10 +4663,43 @@ if (temp_num .ge. 2) then
 end if
 
 
+if (rank .eq. 0) then
+   call cpu_time(time(7))
+end if
+!
+!    Print out the calculation time partitioning and the final messages
+!    Print out time measuring for better informations 
+!
+
+tot_time=int(time(8)-time(1))
+ndays=tot_time/86400
+nhours=(tot_time-86400*ndays)/3600
+nminutes=(tot_time-86400*ndays-3600*nhours)/60
+nseconds=tot_time-86400*ndays-3600*nhours-60*nminutes
+
+
+write(*,*)
+write(*,*) " Timings: "
+write(*,*) " ----------"
+write(*,'(A, F12.3, A)') " Read in of settings and initialization:  ",time(2)-time(1)," s."
+write(*,'(A, F12.3, A)') " QMDFF reference calculation :            ",time(3)-time(2)," s."
+write(*,'(A, F12.3, A)') " QMDFF generation                         ",time(4)-time(3)," s."
+write(*,'(A, F12.3, A)') " TREQ reference data calculation          ",time(5)-time(4)," s."
+write(*,'(A, F12.3, A)') " Additional energy calculations           ",time(6)-time(5)," s."
+write(*,'(A, F12.3, A)') " Rate constant calculations + Arrhenius   ",time(7)-time(6)," s."
+write(*,*)
+write(*,'(A, F12.3, A)') " The calculation needed a total time of   ",time(7)-time(1)," seconds."
+write(*,'(A, I6,A,I2,A,I2,A,I2,A)') " These are: ",ndays," days, ",nhours," hours, ",nminutes,&
+          & " minutes and ",nseconds," seconds."
+write(*,*)
+
+
+
+
 write(*,*) 
-write(*,*) " ----------------------------------------------------"
-write(*,*) "The calculation is finished! Look into result folders"
-write(*,*) "for more details and several plots."
+write(*,*) " -.-. .- .-. .- -.-. .- .-.."
+write(*,*) "CARACAL has successfully finished all tasks!"
+write(*,*) "Look into the results folders for more details and plots."
 write(*,*) 
 
 sys_stat=chdir("..")

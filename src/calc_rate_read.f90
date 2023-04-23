@@ -467,7 +467,7 @@ do i = 1, nkey
 !
 !     Now read in all other informaton of the MECHA section
 !
-         if (keyword(1:20) .eq. 'EDUCT1 ') then
+         if (keyword(1:20) .eq. 'REACTANT1 ') then
             read(record,*) names
             k=1
 !
@@ -494,7 +494,7 @@ do i = 1, nkey
                   act_number=" "
                end if
             end do
-         else if (keyword(1:20) .eq. 'EDUCT2 ') then
+         else if (keyword(1:20) .eq. 'REACTANT2 ') then
             read(record,*) names
             k=1
 !
@@ -521,7 +521,7 @@ do i = 1, nkey
                   act_number=" "
                end if
             end do
-         else if (keyword(1:20) .eq. 'EDUCT3 ') then
+         else if (keyword(1:20) .eq. 'REACTANT3 ') then
             if (sum_reacs .gt. 2) then
                read(record,*) names
                k=1
@@ -550,7 +550,7 @@ do i = 1, nkey
                   end if
                end do
             end if
-         else if (keyword(1:20) .eq. 'EDUCT4 ') then
+         else if (keyword(1:20) .eq. 'REACTANT4 ') then
             if (sum_reacs .eq. 4) then
                read(record,*) names
                k=1

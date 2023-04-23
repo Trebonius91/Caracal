@@ -402,14 +402,14 @@ if (rank .eq. 0) then
    write(15,*)
    write(15,*) "You are starting a rate constant calculation with connected"
    write(15,*) "Umbrella-samplings"
-   write(15,*)  " . ...- -... --.- -- -.. ..-. ..-."
+   write(15,*)  " -.-. .- .-. .- -.-. .- .-.. "
    write(15,*)
    write(15,'(a,i2,a)') " This is a parallelized calculation, ",psize," cores are utilized."
    write(15,*)
    write(*,*)
    write(*,*) "You are starting a rate constant calculation with connected"
    write(*,*) "Umbrella-samplings"
-   write(*,*)  " . ...- -... --.- -- -.. ..-. ..-."
+   write(*,*)  " -.-. .- .-. .- -.-. .- .-.."
    write(*,*)
    write(*,'(a,i2,a)') " This is a parallelized calculation, ",psize," cores are utilized." 
    write(*,*) 
@@ -1926,16 +1926,16 @@ if (rank .eq. 0) then
              & " minutes and ",nseconds," seconds."
    write(*,*)
 
-   write(15,*) ".. .----. -- -.. --- -. . "
-   write(15,*) "Rate constant calculation successfully finished!"
+   write(15,*) " -.-. .- .-. .- -.-. .- .-.. "
+   write(15,*) "CARACAL rate constant calculation successfully finished!"
    write(15,*) 
    write(15,*) "exit time:"
    call timestamp ()
 
-   write(*,*) ".. .----. -- -.. --- -. . "
+   write(*,*) " -.-. .- .-. .- -.-. .- .-.. "
    write(*,*) "Informations printed to calc_rate.log!"
    write(*,*) "Other results are stored into folder ",foldername
-   write(*,*) "Rate constant calculation successfully finished!"
+   write(*,*) "CARACAL rate constant calculation successfully finished!"
    write(*,*) 
 end if
 !

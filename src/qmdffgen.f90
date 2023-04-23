@@ -358,7 +358,7 @@ if (qmdffnumber .eq. 2) then
 !     for orca output (eventually generated from gaussian output..)
 !
    if (software .eq. "O") then
-      open(unit=19,file="min1.hess")
+      open(unit=19,file=prefix1 // ".hess")
    
       read(19,'(a)')a80
       if(index(a80,'gauss2orca.pl').ne.0) then
@@ -370,7 +370,7 @@ if (qmdffnumber .eq. 2) then
          goto 52
       end if
   
-      open(unit=20,file="min2.hess") 
+      open(unit=20,file=prefix2 // ".hess") 
          do i=1,7
             read(20,*) a80
          end do
