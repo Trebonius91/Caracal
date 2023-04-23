@@ -325,10 +325,6 @@ real(kind=8),allocatable::molmass(:)
 !
 character(len=120)::keyfile
 !
-!     for RPMDrate: tells, when it is used 
-!
-integer::use_rpmdrate
-!
 !     If an analytical potential energy surface from the 
 !     literature shall be used 
 !

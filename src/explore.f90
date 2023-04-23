@@ -47,6 +47,7 @@
 program explore
 use general
 use evb_mod
+use debug
 
 implicit none
 integer::num_arg,input_unit,i,qmdff_energies_unit,asciinum
@@ -72,6 +73,11 @@ character(len=120) string
 character(len=120) coupling
 character(len=80)::jobtype
 character(len=80) date
+! for former egrad.x capabilities (energies+gradient+QMDFF debug)
+!  for Wilson matrix printout
+real(kind=8),allocatable::internal(:),B_mat(:,:),dB_mat(:,:,:)
+logical::path_struc,print_wilson
+integer::wilson_mode,ref_count
 ! for manual internal coordinates
 integer,dimension(:,:),allocatable::coord_tmp
 integer,dimension(:),allocatable::coord_types
@@ -81,7 +87,7 @@ integer mode,next,j,k,readstatus,dg_evb_mode,mat_size
 integer::int_mode  ! method for defining internal coordinates (if used)
 logical::exist,exists,has_next,coupl1,par_soschl
 
-logical::grad,frequency,opt_min,orca_fake,ts_opt,calc_irc
+logical::grad,frequency,opt_min,orca_fake,ts_opt,calc_irc,calc_egrad
 ! for EVB-QMDFF hessian calculation
 real(kind=8),dimension(:,:),allocatable::hess,mass_mat
 real(kind=8),dimension(:),allocatable::h_out,freqs
@@ -101,10 +107,6 @@ rank=0
 !     no MPI is used
 !
 use_mpi=.false.
-!
-!     no RPMDrate is used
-!
-use_rpmdrate = 0
 !
 !     set up the structure and mechanics calculation
 !
@@ -153,6 +155,7 @@ call read_pes(rank)
 grad=.true. ! calculate always gradients...
 geomax=100
 calc_frag=.false.
+calc_egrad=.false.
 frequency=.false.  
 opt_min=.false.
 ts_opt=.false.
@@ -204,6 +207,10 @@ if (trim(jobtype) .eq. "OPT_MIN") then
 else if (trim(jobtype) .eq. "OPT_TS") then
    write(*,*) "OPT_TS: A transition state optimization will be done."
    ts_opt=.true.
+else if (trim(jobtype) .eq. "EGRAD") then
+   write(*,*) "EGRAD: Energies and gradients for a number of structures"
+   write(*,*) " in the XYZSTART file will be calculated."
+   calc_egrad=.true.
 else if (trim(jobtype) .eq. "IRC") then
    write(*,*) "IRC: A reaction path will be optimized."
    calc_irc=.true.
@@ -477,6 +484,245 @@ end if
 
 
 call cpu_time(time1)
+
+!
+!    For energy+gradient calculations: start here!
+!
+if (calc_egrad) then
+
+!
+!     If the debugging mode shall be started to print out more details!
+!
+   do_debug=.false.
+   do i = 1, nkey
+      next = 1
+      record = keyline(i)
+      call gettext (record,keyword,next)
+      call upcase (keyword)
+      string = record(next:120)
+      if (keyword(1:16) .eq. 'DEBUG ') then
+         do_debug=.true.
+      end if
+   end do
+!
+!     If, for coordinate analysis etc., the Wilson matrix for each structure shall
+!     be written to file 
+!
+   print_wilson=.false.
+   do i = 1, nkey
+      next = 1
+      record = keyline(i)
+      call gettext (record,keyword,next)
+      call upcase (keyword)
+      string = record(next:120)
+      if (keyword(1:16) .eq. 'PRINT_WILSON ') then
+         read(record,*,iostat=readstat) names,wilson_mode
+         if (readstat .ne. 0) then
+            write(*,*) "The keyword PRINT_WILSON is incomplete!"
+            call fatal
+         end if
+         print_wilson=.true.
+         if ((wilson_mode .ne. 1) .and. (wilson_mode .ne. 2)) then
+            write(*,*) "ERROR! No valid number for PRINT_WILSON given!"
+            call fatal
+         end if
+      end if
+   end do
+
+
+!
+!     Print debug information message
+!     Also allocate debug arrays
+!
+   if (do_debug) then
+      write(*,*) "THE DEBUGGING MODE WAS REQUESTED; ADDITIONAL INFOS WILL & 
+          & BE PRINTED (if QMDFFs are used)"
+
+      open(unit=288,file="bond_debug.dat",status="replace")
+      open(unit=289,file="ang_debug.dat",status="replace")
+      open(unit=290,file="dihed_debug.dat",status="replace")
+      open(unit=291,file="dispersion_debug.dat",status="replace")
+      open(unit=292,file="coulomb_debug.dat",status="replace")
+!
+!     QMDFF energy components: (no QMDFFs, no structures, no energyterms)
+!
+      allocate(qmdff_parts(2,1000,10000))
+!
+!     the labels for the different QMDFF energy components 
+!
+      allocate(parts_labels(2,10000))
+      parts_labels=" "
+   end if
+!
+!     Read in the internal coordinates from file if the Wilson matrix 
+!     shall be calculated for each structure
+!
+   if (print_wilson) then
+      call init_int("dummy",0,0,1)
+      allocate(internal(nat6),B_mat(nat6,3*natoms))
+      open(unit=215,file="wilson_mat.dat",status="replace")
+      write(215,*) "# No. int. coord.(i)   No. cart. coord(j)        B(i,j)"
+      if (wilson_mode .eq. 2) then
+         allocate(dB_mat(nat6,3*natoms,3*natoms))
+         open(unit=216,file="wilson_deriv.dat",status="replace")
+         write(216,*) "# No. int. coord.(i)   No. cart. coord(j)    No.cart.coord(k)     B'(i,j,k)"
+      end if
+      write(*,*) "The Wilson matrices of the structures are written to 'wilson_mat.dat'"
+      if (wilson_mode .eq. 2) then
+         write(*,*) "The Wilson matrix derivatives are written to 'wilson_derivs.dat'"
+      end if
+   end if
+
+!
+!     produce the EVB-QMDFF-energies for all points
+!
+   ref_count=0
+   open(unit=166,file=xyzfile,status='old',iostat=readstat)
+   if (readstat .ne. 0) then
+      write(*,*) "The file ",xyzfile," with the geometries to be calculated is missing!"
+      write(*,*) "Please edit the XYZSTART keyword!"
+      call fatal
+   end if
+
+   open(unit=44,file="energies.dat",status='unknown')
+   open(unit=45,file="gradients.dat",status='unknown')
+   write(*,*)  " . ...- -... --.- -- -.. ..-. ..-."
+   write(*,*) "Calculating energy and gradient ..."
+   allocate(g_evb(3,natoms))
+   allocate(coord(3,natoms))
+!
+!     open file with single QMDFF energies
+!
+   open (unit=99,file="single_qmdff.dat",status='unknown')
+   open(unit=172,file="grad_square.dat",status="unknown")  ! TEST for gradients
+   if (treq) open (unit=48,file="treq.out",status="unknown")
+   if (int_grad_plot) open (unit=192,file="int_grad.out",status="unknown")
+   do
+      ref_count=ref_count+1
+      call next_geo(coord,natoms,166,has_next)
+      if (.not.has_next) exit
+! 
+!     Distunguish between debug and normal calculation
+!
+      coord=coord/bohr
+      call gradient(coord,e_evb,g_evb,1)  ! else calculate the usual gradient
+!
+!     If desired, calculate the Wilson matrix the structure and print it to file
+!
+      if (print_wilson) then
+         write(215,*) "Structure",ref_count,":"
+         call xyz_2int(coord,internal,natoms)
+         call calc_wilson(coord,internal,B_mat)
+         do i=1,nat6
+            do j=1,3*n_one
+               write(215,*) i,"      ",j,"      ",B_mat(i,j)
+            end do
+         end do
+!
+!     If ordered, calculate and print also the Wilson matrix derivative!
+!
+         if (wilson_mode .eq. 2) then
+            call calc_dwilson(coord,internal,dB_mat)
+            do i=1,nat6
+               do j=1,3*n_one
+                  do k=1,3*n_one
+                     write(216,*) i,"      ",j,"      ",k,"      ",dB_mat(i,j,k)
+                  end do
+               end do
+            end do
+         end if
+      end if
+
+!
+!     Calculate and write the energies of the single qmdffs!
+!
+      if ((.not. treq) .and. (.not. pot_ana) .and. (nqmdff .gt. 1) ) then
+         call eqmdff(coord,e_qmdff1,e_qmdff2)
+         write(99,*) e_qmdff1,e_qmdff2
+      end if
+      write(44,*) e_evb
+      write(45,*) "Structure",ref_count,":"
+      do k=1,natoms
+         write(45,*) g_evb(:,k)
+      end do
+   end do
+   if (print_wilson) then
+      close(215)
+      if (wilson_mode .eq. 2) close(216)
+   end if
+
+   if (treq) close(48)
+   close(172)
+!
+!    For debugging, print the QMDFF components to two files (one for each QMDFF)
+!
+   close(166)
+   close(192)
+   close(44)
+   close(45)
+   close(99)
+   if (treq) close(48)
+   if (int_grad_plot) close(192)
+   if (do_debug) then
+!
+!    Components of first QMDFF
+!
+      open(unit=99,file="debug_qmdff1.dat",status="unknown")
+      do i=1,struc_no
+         do j=1,comp_no
+            write(99,'(e15.7)',advance="no") qmdff_parts(1,i,j)
+         end do
+         write(99,*) " "
+      end do
+      close(99)
+
+!
+!    Components of second QMDFF
+!
+      open(unit=99,file="debug_qmdff2.dat",status="unknown")
+      do i=1,struc_no
+         do j=1,comp_no2
+            write(99,'(e15.7)',advance="no") qmdff_parts(2,i,j)
+         end do
+         write(99,*) " "
+      end do
+      close(99)
+
+!
+!    gnuplot script for first QMDFF
+!
+      open(unit=99,file="debug1_plot.gnu",status="unknown")
+      write(99,'(a,a,a)') "plot 'debug_qmdff1.dat' u 0:1 w l title '",trim(parts_labels(1,1)),"' \"
+      do i=2,comp_no
+         write(99,'(a,i4,a,a,a)')  ", '' u 0:",i," w l title '",trim(parts_labels(1,i)),"' \"
+      end do
+      write(99,*) " "
+      write(99,*) "pause -1"
+      close(99)
+
+!
+!    gnuplot script for first QMDFF
+!
+      open(unit=99,file="debug2_plot.gnu",status="unknown")
+      write(99,'(a,a,a)') "plot 'debug_qmdff2.dat' u 0:1 w l title '",trim(parts_labels(2,1)),"' \"
+      do i=2,comp_no2
+         write(99,'(a,i4,a,a,a)')  ", '' u 0:",i," w l title '",trim(parts_labels(2,i)),"' \"
+      end do
+      write(99,*) " "
+      write(99,*) "pause -1"
+      close(99)
+!
+!    close output files 
+!
+      close(288)
+      close(289)
+      close(290)
+   end if
+   goto 389
+end if
+
+
+
 !
 !    Open file with start structure and read it in
 !
@@ -748,6 +994,7 @@ if (calc_irc) then
    write(*,*) "Finished!"
 end if
 
+389 continue
 
 call cpu_time(time2)
 duration=time2-time1

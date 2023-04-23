@@ -94,10 +94,6 @@ call mpi_init(ierr)
 call mpi_comm_size(mpi_comm_world,psize,ierr) ! total number of procs
 call mpi_comm_rank(mpi_comm_world,rank,ierr) ! index of current proc
 !
-!     no RPMDrate is used
-!
-use_rpmdrate = 0
-!
 !     set up the structure and mechanics calculation
 !
 call initial(rank)
@@ -481,7 +477,6 @@ if (evb_de) then
             call upcase (keyword)
             if (keyword(1:11) .eq. 'COUPLING ') then
                read(record,*) names,off_basis
-               write(*,*) "HGupgupg",off_basis
                if (off_basis .eq. "1g" .or. off_basis.eq."2g" & 
                    & .or. off_basis.eq."3g" &
                    & .or.off_basis.eq."sp" .or. off_basis.eq."sd" &
@@ -495,6 +490,55 @@ if (evb_de) then
                   off_basis="1g"
                end if
             end if
+            if (keyword(1:11) .eq. '}') exit
+            if (j .eq. nkey-i) then
+               write(*,*) "The DE-EVB section has no second delimiter! (})"
+               call fatal
+            end if
+         end do
+      end if
+   end do
+end if
+!
+!      Read in the detailed settings for the dE-EVB coupling term
+!      Loop over structure with brackets
+!
+if (evb_dq) then
+!
+!      Set default values 
+!
+   off_basis="1g"
+   do i = 1, nkey
+      next = 1
+      record = keyline(i)
+      call gettext (record,keyword,next)
+      call upcase (keyword)
+      call upcase (record)
+      string = record(next:120)
+      if (trim(adjustl(record(1:15))) .eq. 'DQ_EVB { ' .or. &
+                  & trim(adjustl(record(1:15))) .eq. 'DQ_EVB{ ') then
+         do j=1,nkey-i+1
+            next=1
+            record = keyline(i+j)
+            call gettext (record,keyword,next)
+            call upcase (keyword)
+            if (keyword(1:11) .eq. 'COUPLING ') then
+               read(record,*) names,off_basis
+               if (off_basis .eq. "1g" .or. off_basis.eq."2g" &
+                   & .or. off_basis.eq."sd2") then
+               else
+                  if (rank .eq. 0) then
+                     write(*,*) "No valid coupling function was defined."
+                     write(*,*) "We will use the simple 1g-dQ coupling instead."
+                  end if
+                  off_basis="1g"
+               end if
+            else if (keyword(1:11) .eq. 'TS_FILE ') then
+               read(record,*) names,filets
+               inquire(file=filets,exist=ts_xyz)
+            end if
+
+
             if (keyword(1:11) .eq. '}') exit
             if (j .eq. nkey-i) then
                write(*,*) "The DE-EVB section has no second delimiter! (})"
@@ -584,45 +628,29 @@ end if
 !     In case of a reaction path EVB (RP-EVB), check if the method shall be 
 !     activated
 !
-do i = 1, nkey
-   next = 1
-   record = keyline(i)
-   call gettext (record,keyword,next)
-   call upcase (keyword)
-   string = record(next:120)
-   if (keyword(1:11) .eq. 'TREQ ') then
-      read(record,*) names,rp_evb_points
-      treq=.true.
-      names="grad_hess.dat"
-      inquire(file=names,exist=exist)
-      if (rank .eq. 0) then
-         if (.not. exist) then
-            treq=.false.
-            write(*,*) "You have ordered a TREQ calculation,"
-            write(*,*) "but the file ", trim(names)," containing the reference informations"
-            write(*,*) "is not availiable!"
-            write(*,*) "Look into the manual for further informations."
-            call fatal
-         end if
-      end if
-   end if
-end do
-!
-!     In case you want to optimize the coupling-strength in dependance of the 
-!     difference between current structure and transition-state (dQ-coupling)
-!
-do i = 1, nkey
-   next = 1
-   record = keyline(i)
-   call gettext (record,keyword,next)
-   call upcase (keyword)
-   string = record(next:120)
-   if (keyword(1:11) .eq. 'EVB_DQ ') then
-      read(record,*) names,filets
-      evb_dq=.true.
-      inquire(file=filets,exist=ts_xyz)
-   end if
-end do
+!do i = 1, nkey
+!   next = 1
+!   record = keyline(i)
+!   call gettext (record,keyword,next)
+!   call upcase (keyword)
+!   string = record(next:120)
+!   if (keyword(1:11) .eq. 'TREQ ') then
+!      read(record,*) names,rp_evb_points
+!      treq=.true.
+!      names="grad_hess.dat"
+!      inquire(file=names,exist=exist)
+!      if (rank .eq. 0) then
+!         if (.not. exist) then
+!            treq=.false.
+!            write(*,*) "You have ordered a TREQ calculation,"
+!            write(*,*) "but the file ", trim(names)," containing the reference informations"
+!            write(*,*) "is not availiable!"
+!            write(*,*) "Look into the manual for further informations."
+!            call fatal
+!         end if
+!      end if
+!   end if
+!end do
 if (evb_dq .and. .not. ts_xyz) then
    if (psize .gt. 1) then
       if (rank .eq. 0) then

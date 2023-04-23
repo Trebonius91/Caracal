@@ -217,14 +217,14 @@ if (mode.eq.1) then
       i=i+1
    end do
    if (i.eq.1) then
-      write(*,*) "The file coord_def.inp contains no useful lines!"
+      write(*,*) "The file 'coord_def.inp' with internal coordinates is corrupted!"
       call fatal
    end if
 !
 !    only if the coordinates are not used for the rpmd.x program..
 !
    if ((i.eq.2) .and. (.not. use_rpmd)) then
-      write(*,*) "At least two internal coordinates are needed in coord_def.inp!"
+      write(*,*) "At least two internal coordinates are needed in 'coord_def.inp'!"
       call fatal
    end if
    nat6=i-1

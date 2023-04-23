@@ -125,10 +125,6 @@ use_mpi=.false.
 use_rpmd=.true.
 
 !
-!     no RPMDrate is used
-!
-use_rpmdrate = 0
-!
 !
 !     set up the structure and molecular mechanics calculation
 !

@@ -123,6 +123,7 @@ write(15,'(a,f10.5,f10.5)') " * Bounds for spawning of new parameters: ", lower_
 !   and convert it to internal coordinates for later use 
 !
 has_next=.true.
+allocate(int_ts(nat6))
 open(unit=33,file=filets,status='old')
 call next_geo(coord_ts,natoms,33,has_next)
 call xyz_2int(coord_ts,int_ts,nat)
@@ -384,7 +385,7 @@ write(15,*)
 !     Write the evb.info file with the optimized coupling parameters
 !
 open(unit=67,file="evb_pars.dat",status="unknown")
-write(67,*) "** This file contains parameters for a EVB-dQ-calculation **"
+write(67,*) "** This file contains parameters for a EVB-dQ-calculation (",trim(off_basis),"-function) **"
 do i=1,par_num
    write(67,*) par_vec(i)
 end do

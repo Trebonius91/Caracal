@@ -75,10 +75,6 @@ rank=0
 !
 use_mpi=.false.
 !
-!     no RPMDrate is used
-!
-use_rpmdrate = 0
-!
 !     set up the structure and mechanics calculation
 !
 call initial(rank)
@@ -108,7 +104,7 @@ call read_pes(rank)
 !
 !    Read in the structures of a reactionpath
 !
-filegeo="xyasdfdud"
+filegeo="abcdefghij33"
 do i = 1, nkey
    next = 1
    record = keyline(i)

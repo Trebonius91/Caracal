@@ -175,6 +175,8 @@ integer::kt_avg  ! number of k(T) calculations per temperature to be averaged
 !   Manual read in of RPMD internal coordinates 
 character(len=100)::coord_file 
 logical::manual_ints
+real(kind=8)::start,finish
+integer::starti,finishi
 !
 !     No MPI parallelization is needed!
 !
@@ -190,9 +192,7 @@ end if
 !
 !    Measure the needed time for initialization of the system
 !
-if (rank .eq. 0) then
-   call cpu_time(time(1))
-end if
+call system_clock(time_int(1))
 
 
 !
@@ -851,14 +851,14 @@ dt=0.2d0
 r_inf=10.d0
 k_force=0.1
 umbr_lo=-0.05d0
-umbr_hi=1.03d0
+umbr_hi=1.10d0
 umbr_dist=0.01d0
 gen_step=10000
 equi_step=10000
 umbr_step=25000
 umbr_traj=2
 xi_min=-0.02
-xi_max=1.02
+xi_max=1.10d0
 nbins=5000
 pmf_method="integration"
 thermo="andersen"
@@ -886,14 +886,34 @@ do i = 1, nkey
    string = record(next:120)
    if (keyword(1:15) .eq. 'BEAD_NUMBER ') then
       read(record,*,iostat=readstat) prefix,nbeads
+      if (readstat .ne. 0) then
+         write(*,*) "Correct format: BEAD_NUMBER [No. of beads]"
+         call fatal
+      end if
    else if (keyword(1:13) .eq. 'DELTAT ') then
       read(record,*,iostat=readstat) prefix,dt
+      if (readstat .ne. 0) then
+         write(*,*) "Correct format: DELTAT [time step (fs)]"
+         call fatal
+      end if
    else if (keyword(1:18) .eq. 'RPMD_EN_TOL ') then
       read(record,*,iostat=readstat) prefix,energy_tol
+      if (readstat .ne. 0) then
+         write(*,*) "Correct format: RPMD_EN_TOL [energy tolerance (kJ/mol)]"
+         call fatal
+      end if
    else if (keyword(1:13) .eq. 'MAX_ERROR ') then
       read(record,*,iostat=readstat) prefix,err_max
+      if (readstat .ne. 0) then
+         write(*,*) "Correct format: MAX_ERROR [Max. number of errors]"
+         call fatal
+      end if
    else if (keyword(1:13) .eq. 'SCAN_PATH ') then
       scan_path=.true.
+      if (readstat .ne. 0) then
+         write(*,*) "Correct format: SCAN_PATH "
+         call fatal
+      end if
    end if
 end do
 
@@ -1758,9 +1778,7 @@ else if (software_irc .eq. "O") then
 
 end if
 
-if (rank .eq. 0) then
-   call cpu_time(time(2))
-end if
+call system_clock(time_int(2))
 
 
 !
@@ -2563,9 +2581,7 @@ end if
 
 
 
-if (rank .eq. 0) then
-   call cpu_time(time(3))
-end if
+call system_clock(time_int(3))
 
 !
 !    TASK 3 : GENERATE THE QMDFFs
@@ -2673,9 +2689,7 @@ sys_stat=chdir("..")
 !    will be started and the results will be collected 
 !
 
-if (rank .eq. 0) then
-   call cpu_time(time(4))
-end if
+call system_clock(time_int(4))
 
 write(*,*)
 write(*,*) "---- TASK 4: Generate the reference data for TREQ  ----------"
@@ -3154,9 +3168,7 @@ else if (software_gf .eq. "O") then
 
 end if
 
-if (rank .eq. 0) then
-   call cpu_time(time(5))
-end if
+call system_clock(time_int(5))
 
 
 !
@@ -3697,9 +3709,7 @@ end do
 
 
 
-if (rank .eq. 0) then
-   call cpu_time(time(6))
-end if
+call system_clock(time_int(6))
 
 !
 !     TASK 6 : Generate input folder for dynamic calculations
@@ -3720,7 +3730,7 @@ call prepare ("reactants.qmdff","products.qmdff","dummy",2)
 ! 
 !     For later usage: read in the qmdff energies!
 !
-open(unit=15,file="qmdff.key",status="old")
+open(unit=15,file="caracal.key",status="old")
 do 
    read(15,'(a)',iostat=lastline) a80
    if (lastline .ne. 0) exit
@@ -4252,13 +4262,13 @@ do i=1,temp_num
       write(15,'(a)') " "
       write(15,'(a)') "# number of equivalent reaction paths:"
       write(15,'(a,i3)') "    n_paths ",npaths
-      write(15,'(a)') " }"
       if ((umbr_type .eq. "CYCLOREVER") .or. (umbr_type .eq. "REARRANGE") .or.&
             &  (umbr_type .eq. "DECOM_1BOND")) then
          write(15,'(a)') " "
          write(15,'(a)') "# file with reactants structure for unimolecular reactions"
          write(15,'(a)') "      reactants_struc reactants.xyz "
       end if
+      write(15,'(a)') " }"
       write(15,'(a)') " "
       write(15,'(a)') "###################################"
       write(15,'(a)') "# umbrella sampling settings"
@@ -4663,20 +4673,21 @@ if (temp_num .ge. 2) then
 end if
 
 
-if (rank .eq. 0) then
-   call cpu_time(time(7))
-end if
+call system_clock(time_int(7))
 !
 !    Print out the calculation time partitioning and the final messages
 !    Print out time measuring for better informations 
 !
 
-tot_time=int(time(8)-time(1))
+do i=1,10
+   time(i)=real(time_int(i))/1000
+end do
+
+tot_time=int(time(7)-time(1))
 ndays=tot_time/86400
 nhours=(tot_time-86400*ndays)/3600
 nminutes=(tot_time-86400*ndays-3600*nhours)/60
 nseconds=tot_time-86400*ndays-3600*nhours-60*nminutes
-
 
 write(*,*)
 write(*,*) " Timings: "
@@ -4692,7 +4703,6 @@ write(*,'(A, F12.3, A)') " The calculation needed a total time of   ",time(7)-ti
 write(*,'(A, I6,A,I2,A,I2,A,I2,A)') " These are: ",ndays," days, ",nhours," hours, ",nminutes,&
           & " minutes and ",nseconds," seconds."
 write(*,*)
-
 
 
 

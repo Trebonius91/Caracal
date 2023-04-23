@@ -215,6 +215,8 @@ do p=1,maxstart
    if (info.eq.0) then
       write(15,*) "FATAL ERROR: The input parameters for Levenberg-Marquardt are improper!"
       write(15,*) "Contact Julien Steffen to solve this problem!"
+      write(*,*) "FATAL ERROR: The input parameters for Levenberg-Marquardt are improper!"
+      write(*,*) "Contact Julien Steffen to solve this problem!"
       call fatal
    else if ((info.eq.1) .or. (info.eq.2) .or. (info .eq.3)) then
       write(15,*) "The Levenberg-Marquardt run has converged!"
@@ -326,7 +328,7 @@ write(15,*)
 !     Write the evb.info file with the optimized coupling parameters
 !
 open(unit=67,file="evb_pars.dat",status="unknown")
-write(67,*) "** This file contains parameters for a EVB-dE-calculation **"
+write(67,*) "** This file contains parameters for a EVB-dE-calculation (",trim(off_basis),"-function) **"
 do i=1,par_num
    write(67,*) par_vec(i)
 end do

@@ -344,4 +344,5 @@ real(kind=8)::no_evb_xi  ! maximum xi value for pure QMDFF for no-evb
 ! for time measuring 
 real(kind=8)::time1,time2
 real(kind=8)::time(10),duration
+integer::time_int(10)
 end module evb_mod

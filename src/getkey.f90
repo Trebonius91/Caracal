@@ -80,15 +80,9 @@ end do
 !     check for keyfile specified on command line
 !     loop over all command line arguments
 !
-!     special case: use no command line arguments if RPMDRate 
-!     is used
-!
 narg=1
-if (use_rpmdrate .ne. 1) then
-   exist = .false.
-else 
-   exist = .true.
-end if
+exist = .false.
+
 do i = 1, narg
    string = arg(i)
    keyfile = string 

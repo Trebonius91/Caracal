@@ -77,6 +77,11 @@ end do
 if ((umbr_type .eq. "CYCLOREVER") .or. (umbr_type .eq. "REARRANGE") .or.&
            &  (umbr_type .eq. "DECOM_1BOND") .or. (umbr_type .eq. "ELIMINATION")) then
    allocate(form_reac(form_num),break_reac(break_num))
+   if (size(reac_ref) .lt. 2) then
+      write(*,*) "Please add the keyword REACTANTS_STRUC!"
+      call fatal
+   end if
+
    do i=1,form_num
       atom1=bond_form(i,1)
       atom2=bond_form(i,2)

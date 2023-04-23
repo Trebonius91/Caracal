@@ -91,10 +91,6 @@ rank=0
 use_mpi=.false.
  
 !
-!     no RPMDrate is used
-!
-use_rpmdrate = 0
-!
 !     Show the nice promo-banner at the beginning!
 !
 call promo
@@ -217,7 +213,7 @@ if (.not. read_software) then
    software="X"
    do while (.not. exist)
       write(iout,'(/," Used Software for reference calculations:",/, &
-        &  " (O = orca, G = gaussian, T = turbomole,C = CP2K): ",$)')
+        &  " (O = orca, G = gaussian, C = CP2K): ",$)')
       read (*,'(A1)')  software
       if ((software .eq. "O") .or. (software .eq. "G") .or. &
          &  (software .eq. "T") .or. (software .eq. "C")) then
@@ -229,6 +225,8 @@ if (.not. read_software) then
                write(*,*) "Reference is read in from GAUSSIAN output"
             case("T")
                write(*,*) "Reference is read in from TURBOMOLE output"
+               write(*,*) "This is currently not supported!"
+               call fatal
             case("C")
                write(*,*) "Reference is read in from CP2K output"
             case default
@@ -761,32 +759,32 @@ if (qmdffnumber.eq.3) then
    e3_shifted=e3_ref-e3
 end if
 !
-!    Write the energies in a generic tinker.key file for evb-optimization
+!    Write the energies in a generic caracal.key file for EVB-optimization
 !
-open(unit=81,file="qmdff.key",status='unknown')
-write(81,'(a)')"# This is an automatically generated keyword file for EVB-QMDFF optimizations"
-write(81,'(a)')"# with the program evbopt.x"
+open(unit=81,file="caracal.key",status='unknown')
+write(81,'(a)')"# This is an automatically generated keyword file for CARACAL "
+write(81,'(a)')"# EVB-QMDFF optimizations with the program evbopt.x"
 write(81,*)
 !
 !    Which kind of EVB coupling is used: for 2 QMDFFs always de_evb as default
 !
 if (qmdffnumber .eq. 1) then
-   write(81,*) "PES qmdff"
+   write(81,*) "pes qmdff"
 else if (qmdffnumber .eq. 2) then
-   write(81,*) "PES de_evb"
+   write(81,*) "pes de_evb"
 end if
 !
 !    QMDFF information
 !
 if (qmdffnumber.eq.1) then
-   write(81,*)"QMDFFNAMES  ",prefix1 // ".qmdff"
-   write(81,*)"ESHIFT",e1_shifted
+   write(81,*)"qmdffnames  ",prefix1 // ".qmdff"
+   write(81,*)"eshift",e1_shifted
 else if (qmdffnumber.eq.2) then
-   write(81,*)"QMDFFNAMES  ",prefix1 // ".qmdff  ",prefix2 // ".qmdff"
-   write(81,*)"ESHIFT ",e1_shifted,e2_shifted
+   write(81,*)"qndffnames  ",prefix1 // ".qmdff  ",prefix2 // ".qmdff"
+   write(81,*)"eshift ",e1_shifted,e2_shifted
 else if (qmdffnumber.eq.3) then
-      write(81,*)"QMDFFNAMES  ",prefix1 // ".qmdff  ",prefix2 // ".qmdff  ",prefix3 // ".qmdff"
-   write(81,*)"ESHIFT",e1_shifted,e2_shifted,e3_shifted
+      write(81,*)"qmdffnames  ",prefix1 // ".qmdff  ",prefix2 // ".qmdff  ",prefix3 // ".qmdff"
+   write(81,*)"eshift",e1_shifted,e2_shifted,e3_shifted
 end if 
 !
 !    calculate the needed time for optimization

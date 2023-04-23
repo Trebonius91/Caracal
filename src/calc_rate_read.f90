@@ -27,7 +27,7 @@
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 !
-!     subroutine calc_rate_read: read in several settings from qmdff.key file 
+!     subroutine calc_rate_read: read in several settings from caracal.key file 
 !      for the rpmd.x program
 !
 !     part of EVB
@@ -658,7 +658,7 @@ do i = 1, nkey
 !
 !     For unimoleculae reactions: read in structure of reactant molecule!
 !
-         else if (keyword(1:20) .eq. 'EDUCTS_STRUC ') then
+         else if (keyword(1:20) .eq. 'REACTANTS_STRUC ') then
             if (sum_reacs .eq. 1) then
               ! fix_atoms=.true.
                read(record,*) names,reactants_file

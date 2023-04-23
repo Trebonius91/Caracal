@@ -73,6 +73,7 @@ do i=1,nat6
       internal(i)=oop(coord_def(i,2),coord_def(i,3),coord_def(i,4),coord_def(i,5),xyz5)
    end if
 end do
+
 return
 end subroutine xyz_2int
 
