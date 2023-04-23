@@ -391,7 +391,7 @@ do i=1,par_num
 end do
 close(67)
 write(*,*)
-write(*,*) "Energies of the reactionpath are written to energies.qmdff."
+write(*,*) "Energies of the reactionpath are written to energies_final.dat."
 write(*,*)
 write(*,*) "evb_pars.dat file written. Use this file for further calculations."
 write(*,*) "Exiting normally..."

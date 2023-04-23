@@ -750,7 +750,7 @@ if (rank .eq. 0) then
       alph=alph_opt
       b_vec=b_opt
    end if
-   123 open(unit=33,file="gradients.qmdff",status="unknown")
+   123 open(unit=33,file="gradients_final.dat",status="unknown")
 
    alph_opt=alph
 !
@@ -762,7 +762,7 @@ if (rank .eq. 0) then
 !
    call mat_diag(mat_size)
 
-   open(unit=31,file="energies.qmdff",status="unknown")
+   open(unit=31,file="energies_final.dat",status="unknown")
 
    do i=1,points
       write(33,*) "structure No.",i
@@ -784,8 +784,8 @@ if (rank .eq. 0) then
 
    end do
    write(*,*)
-   write(*,*) "Energies of the reactionpath are written to energies.qmdff,"
-   write(*,*) "gradients are written to gradients.qmdff"
+   write(*,*) "Energies of the reactionpath are written to energies_final.dat,"
+   write(*,*) "gradients are written to gradients_final.dat"
    close(33)
    close(31)
 !

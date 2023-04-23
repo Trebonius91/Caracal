@@ -834,7 +834,7 @@ if (qmdffnumber.eq.2) then
 
 !   write the EVB-QMDFF-energies for the optimized parameters
 !
-         open(unit=17,file="energies.qmdff",status="unknown")
+         open(unit=17,file="energies_final.dat",status="unknown")
          do i=1,reference_counter 
             write(17,*) energies_result(i)
          end do      
@@ -852,7 +852,7 @@ if (qmdffnumber.eq.2) then
          call optimize_dQ(energies_qmdff,natoms,fileenergy,filegeo,filets,&
               reference_counter,energies_result)
 
-         open(unit=17,file="energies.qmdff",status="unknown")
+         open(unit=17,file="energies_final.dat",status="unknown")
          do i=1,reference_counter
             write(17,*) energies_result(i)
          end do
@@ -1019,7 +1019,7 @@ else if (qmdffnumber.eq.3) then
 !   Write the path-energies of the optimized parameters
 !
    if (rank .eq. 0) then
-      open(unit=17,file="energies.qmdff",status="unknown")
+      open(unit=17,file="energies_final.dat",status="unknown")
       do i=1,reference_counter
          write(17,*) energies_result(i)
       end do
