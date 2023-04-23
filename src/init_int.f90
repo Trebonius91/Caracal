@@ -156,22 +156,39 @@ end do
 
 !
 !     A: read the coordinates from file coord_def.inp
+!       If the Wilson matrix shall be calculated in explore.x, the coordinates will
+!       be read in from 'coord_wilson.inp'.
 !
 if (mode.eq.1) then
-   if (rank .eq. 0) then
-      write(*,*) "The set of internal coordinates needed for DG-EVB/EVB-dQ coupling"
-      write(*,*) "is read from the file 'coord_def.inp'"
-   end if
-   allocate(coord_tmp(1000000,5))
-   coord_tmp=0
-   open (unit=165,file="coord_def.inp",status="old",iostat=readstat)
-   if (readstat .ne. 0) then
-      if (rank .eq. 0) then
-         write(*,*) "The file coord_def.inp doesn´t exist!"
-         call fatal
+   if (filegeo .eq. "wilson") then
+      write(*,*) "The set of internal coordinates for the calculation of a Wilson"
+      write(*,*) " matrix will be read in from 'coord_wilson.inp'."
+      allocate(coord_tmp(1000000,5))
+      coord_tmp=0
+      open (unit=165,file="coord_wilson.inp",status="old",iostat=readstat)
+      if (readstat .ne. 0) then
+         if (rank .eq. 0) then
+            write(*,*) "The file coord_wilson.inp doesn´t exist!"
+            call fatal
+         end if
       end if
+      i=1
+   else 
+      if (rank .eq. 0) then
+         write(*,*) "The set of internal coordinates needed for DG-EVB/EVB-dQ coupling"
+         write(*,*) "is read from the file 'coord_def.inp'"
+      end if
+      allocate(coord_tmp(1000000,5))
+      coord_tmp=0
+      open (unit=165,file="coord_def.inp",status="old",iostat=readstat)
+      if (readstat .ne. 0) then
+         if (rank .eq. 0) then
+            write(*,*) "The file coord_def.inp doesn´t exist!"
+            call fatal
+         end if
+      end if
+      i=1
    end if
-   i=1
 !
 !   Use this temporary array for memory of coordinate types
 !   Up to five integers: 2 for bonds, 3 for angles, 5 for torsions and out-of-plane 

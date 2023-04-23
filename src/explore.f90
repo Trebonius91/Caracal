@@ -131,7 +131,7 @@ end if
 !
 
 open (unit=15,file="explore.log",status="unknown")
-write(15,*) "--- EXPLORE CALCULATION ON SINGLE STRUCTURE ---"
+write(15,*) "--- EXPLORE CALCULATION  ---"
 write(15,*)
 write(15,*) "Calculation initiated at: "
 call timestamp ( )
@@ -558,7 +558,7 @@ if (calc_egrad) then
 !     shall be calculated for each structure
 !
    if (print_wilson) then
-      call init_int("dummy",0,0,1)
+      call init_int("wilson",0,0,1)
       allocate(internal(nat6),B_mat(nat6,3*natoms))
       open(unit=215,file="wilson_mat.dat",status="replace")
       write(215,*) "# No. int. coord.(i)   No. cart. coord(j)        B(i,j)"
@@ -717,6 +717,10 @@ if (calc_egrad) then
       close(288)
       close(289)
       close(290)
+   end if
+   write(*,*) "Energies written to 'energies.dat', gradients written to 'gradients.dat'."
+   if ((.not. treq) .and. (.not. pot_ana) .and. (nqmdff .gt. 1) ) then
+      write(*,*) "Energies of QMDFFs written to 'single_qmdff.dat'."
    end if
    goto 389
 end if
@@ -998,6 +1002,11 @@ end if
 
 call cpu_time(time2)
 duration=time2-time1
+
+write(15,*)
+write(15,*) "Calculation finished at: "
+call timestamp ( )
+
 
 write(*,*)  ".. .----. -- -.. --- -. . "
 write(*,*) "Calculation successfully finished!"

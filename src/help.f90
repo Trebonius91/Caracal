@@ -196,39 +196,6 @@ if (trim(progname) .eq. "evbopt") then
    write(*,*) "------------------------------------------------------------------"
 end if
 !
-!     Program EGRAD: general infos and list of all keywords
-!
-if (trim(progname) .eq. "egrad") then
-   write(*,*) "------------------------------------------------------------------"
-   write(*,*) "------ PROGRAM EGRAD.X : SHORT OVERVIEW AND HELP -----------------"
-   write(*,*) "------------------------------------------------------------------"
-   write(*,*) "--- PART A: basic usage:------------------------------------------"
-   write(*,*) "This is the simplest program of the whole package: energies and"
-   write(*,*) "gradients are calculated for a given number of structures."
-   write(*,*) "The basic usage is: egrad.x caracal.key"
-   write(*,*) "First, the QMDFFs and the EVB coupling must be calculated with"
-   write(*,*) "with qmdffgen.x and evbopt.x, all output of these is used here."
-!
-!     General EVB infos (same for all programs)
-!
-   call help_evb()
-!
-!     end of general section for EVB infos
-!     start with keywords for EGRAD subprogram
-!
-   write(*,*) " * COORDS_FILE [.xyz file with structures (Angstrom)]: an"
-   write(*,*) "    arbitrary number of structures which energies and gradients"
-   write(*,*) "    shall be computed. (usual trajectory format) "
-   write(*,*) " * DEBUG: print out single components of QMDFF energies to look"
-   write(*,*) "    of it might cause problems.."
-   write(*,*) " * PRINT_WILSON [1 or 2]: calculate the Wilson matrix for each "
-   write(*,*) "    in the trajectory. The file 'coord_def.inp' defining the "
-   write(*,*) "    internal coordinate set must be there as well. If 1 is chosen,"
-   write(*,*) "    only the Wilson matrices are written to 'wilson_mat.dat', if "
-   write(*,*) "    2 is chosen, the Wilson matrix derivatives are written as well,"
-   write(*,*) "    to the file 'wilson_deriv.dat'"
-end if
-!
 !     Program EXPLORE: general infos and list of all keywords
 !
 if (trim(progname) .eq. "explore") then
@@ -272,7 +239,8 @@ if (trim(progname) .eq. "explore") then
    write(*,*) "       as well. If 1 is chosen, only the Wilson matrices are"
    write(*,*) "       written to 'wilson_mat.dat', if 2 is chosen, the Wilson"
    write(*,*) "       matrix derivatives are written as well, to the file"
-   write(*,*) "      'wilson_deriv.dat'."
+   write(*,*) "       'wilson_deriv.dat'. For these calculations, internal"
+   write(*,*) "       coordinates must be given in the file 'coord_wilson.inp."
    write(*,*) " * OPT { \n [COMMANDS] \n}: Details for MIN/TS optimization."
    write(*,*) "    - MAXITER [number]: maximal number of optimization"
    write(*,*) "       steps. (def.: 500) "
