@@ -66,9 +66,10 @@ logical::path_struc,path_energy,coupl,params
 logical::evb1,evb2,evb3,ffname1,ffname2,ffname3,defqmdff
 logical::exist,exists,has_next,coupl1
 logical::read_name
+logical::ts_xyz
 integer::rank ! the current MPI rank
 character(len=80)::corr_name,method
-
+character(len=100)::orca_filename
 
 evb1=.false.
 evb2=.false.
@@ -153,7 +154,12 @@ if (method .eq. "QMDFF")  then
       qmdffnumber=1
    end if
 else if (method .eq. "DE_EVB")  then
+   evb_de=.true.
    if (rank .eq. 0) then
+      write(15,*) "The dE-EVB (energy) coupling term will be used!"
+      write(15,*)
+      write(*,*) "The dE-EVB (energy) coupling term will be used!"
+      write(*,*)
    end if
 else if (method .eq. "DQ_EVB")  then
    evb_dq=.true.
@@ -193,9 +199,6 @@ else if (method .eq. "WATER_SPC") then
 else if (method .eq. "ORCA") then
    orca=.true.
    if (rank .eq. 0) then
-      write(*,*) "The keyword orca was found!"
-      write(*,*) "Ab-initio MD will be conducted!"
-      write(*,*) "Input commands will be read in from 'orca_com.dat'"
    end if
 
 !
@@ -508,12 +511,76 @@ end if
 
 
 !
-!     Read in orca command line if orca shall be used to calculate the gradients
+!     For orca calculations: Read in the orca header line of the orca 
+!       input file 
+!      It must contain everything above the charge and multiplicity line:
+!    ! PALx MP2 ....
+!    %scf ... [special settings]
+!      end
 !
 if (orca) then
-   open(unit=261,file="orca_com.dat",status="old")
-   read(261,'(a)') orca_com
-   close(261)
+
+   if (rank .eq. 0) then
+      write(*,*) 
+      write(*,*) "Used PES: direct call to orca QM package"
+      write(*,*) "Each structure will be submitted to an external orca"
+      write(*,*) " calculation for each bead, separately!"
+   end if
+!
+!      Set default values 
+!
+   dg_evb_mode=0
+   dg_evb_points=0
+   dg_ref_file="grad_hess.dat"
+   g_thres=1E-10
+   do i = 1, nkey
+      next = 1
+      record = keyline(i)
+      call gettext (record,keyword,next)
+      call upcase (keyword)
+      call upcase (record)
+      string = record(next:120)
+      if (trim(adjustl(record(1:11))) .eq. 'ORCA {' .or. trim(adjustl(record(1:11))) &
+              &  .eq. 'ORCA{') then
+
+         do j=1,nkey-i+1
+            next=1
+            record = keyline(i+j)
+            call gettext (record,keyword,next)
+            call upcase (keyword)
+            record=adjustl(record)
+            if (keyword(1:18) .eq. 'HEADER_FILE ') then
+               read(record,*) names,orca_filename
+            else if (keyword(1:16) .eq. 'CHARGE ') then
+               read(record,*) names,orca_charge
+            else if (keyword(1:16) .eq. 'MULTI ') then
+               read(record,*) names,orca_multi
+            else if (keyword(1:16) .eq. 'SYMLINK ') then
+               read(record(8:120),'(a)') call_orca
+            end if
+            if (keyword(1:11) .eq. '}') exit
+            if (j .eq. nkey-i) then
+               write(*,*) "The ORCA section has no second delimiter! (})"
+               call fatal
+            end if
+
+         end do
+      end if
+   end do
+   open(unit=78,file=orca_filename,status="old",iostat=readstat)
+   if (readstat .ne. 0) then
+      write(*,*) "The file ",trim(orca_filename)," with the orca commands is not"
+      write(*,*) " there or corrupted!"
+      call fatal
+   end if
+   orca_com_num=1
+   do 
+      read(78,'(a)',iostat=readstat) orca_com(orca_com_num)
+      if (readstat .ne. 0) exit
+      orca_com_num=orca_com_num+1
+   end do
+   close(78)
+
    goto 678
 end if
 evb2=.false.
@@ -655,6 +722,103 @@ end if
 !
 if (qmdffnumber.eq.2) then
 
+   if (evb_de) then
+!
+!      Set default values 
+!
+      off_basis="1g"
+      do i = 1, nkey
+         next = 1
+         record = keyline(i)
+         call gettext (record,keyword,next)
+         call upcase (keyword)
+         call upcase (record)
+         string = record(next:120)
+         if (trim(adjustl(record(1:11))) .eq. 'DE_EVB {' .or. trim(adjustl(record(1:11))) &
+              &  .eq. 'DE_EVB{') then
+
+            do j=1,nkey-i+1
+               next=1
+               record = keyline(i+j)
+               call gettext (record,keyword,next)
+               call upcase (keyword)
+               if (keyword(1:11) .eq. 'COUPLING ') then
+                  read(record,*) names,off_basis
+                  if (off_basis .eq. "1g" .or. off_basis.eq."2g" &
+                      & .or. off_basis.eq."3g" &
+                      & .or.off_basis.eq."sp" .or. off_basis.eq."sd" &
+                      & .or. off_basis.eq."sd2" .or. off_basis.eq."sp2d3" &
+                      & .or. off_basis.eq."sp2d"  ) then
+                  else
+                     if (rank .eq. 0) then
+                        write(*,*) "No valid coupling function was defined."
+                        write(*,*) "We will use the simple 1g-dE coupling instead."
+                     end if
+                     off_basis="1g"
+                  end if
+               end if
+               if (keyword(1:11) .eq. '}') exit
+               if (j .eq. nkey-i) then
+                  write(*,*) "The DE-EVB section has no second delimiter! (})"
+                  call fatal
+               end if
+            end do
+         end if
+      end do
+      goto 289
+   end if
+
+!
+!      Read in the detailed settings for the dE-EVB coupling term
+!      Loop over structure with brackets
+!
+   if (evb_dq) then
+!
+!      Set default values 
+!
+      off_basis="1g"
+      do i = 1, nkey
+         next = 1
+         record = keyline(i)
+         call gettext (record,keyword,next)
+         call upcase (keyword)
+         call upcase (record)
+         string = record(next:120)
+         if (trim(adjustl(record(1:11))) .eq. 'DQ_EVB {' .or. trim(adjustl(record(1:11))) &
+              &  .eq. 'DQ_EVB{') then
+
+            do j=1,nkey-i+1
+               next=1
+               record = keyline(i+j)
+               call gettext (record,keyword,next)
+               call upcase (keyword)
+               if (keyword(1:11) .eq. 'COUPLING ') then
+                  read(record,*) names,off_basis
+                  if (off_basis .eq. "1g" .or. off_basis.eq."2g" &
+                      & .or. off_basis.eq."sd2") then
+                  else
+                     if (rank .eq. 0) then
+                        write(*,*) "No valid coupling function was defined."
+                        write(*,*) "We will use the simple 1g-dQ coupling instead."
+                     end if
+                     off_basis="1g"
+                  end if
+               else if (keyword(1:11) .eq. 'TS_FILE ') then
+                  read(record,*) names,filets
+                  inquire(file=filets,exist=ts_xyz)
+               end if
+
+
+               if (keyword(1:11) .eq. '}') exit
+               if (j .eq. nkey-i) then
+                  write(*,*) "The DE-EVB section has no second delimiter! (})"
+                  call fatal
+               end if
+            end do
+         end if
+      end do
+      goto 289
+   end if
 
 
 
@@ -1181,137 +1345,72 @@ if (qmdffnumber.eq.2) then
 !
       goto 678
    end if
-!
-!     read in other coupling-terms: if there is no known term,
-!     use the 1g-dE-coupling as default.
-!
-
-   do i = 1, nkey
-      next = 1
-      record = keyline(i)
-      call gettext (record,keyword,next)
-      call upcase (keyword)
-      string = record(next:120)
-      if (keyword(1:11) .eq. 'EVB_DQ ') then
-         read(record,*) names,filets
-         use_dq = .true.
-      end if
-   end do
-
-   if (.not. dg_evb) then
-      do i = 1, nkey
-         next = 1
-         record = keyline(i)
-         call gettext (record,keyword,next)
-         call upcase (keyword)
-         string = record(next:120)
-         if (keyword(1:11) .eq. 'COUPLING ') then
-            read(record,*) names,off_basis
-            coupl=.true.
-            if (use_dq) then
-                if ((off_basis .eq."1g") .or. (off_basis .eq."3g") .or. &
-                    &(off_basis .eq."sd2")) then
-                else
-                   if (rank .eq. 0) then 
-                      write(*,*) "You do not have submitted a valid coupling basis."
-                      write(*,*) "Please use evbopt with a valid coupling basis first!"
-                      call fatal
-                   end if
-                end if
-            else 
-
- 
-            end if
-               if ((off_basis.eq."1g") .or. (off_basis.eq."2g") &
-                   & .or. (off_basis .eq."3g") &
-                   & .or. (off_basis .eq."sp") .or. (off_basis .eq."sd") &
-                   & .or. (off_basis .eq."sd2") .or. (off_basis .eq."sp2d") &
-                   & .or. (off_basis .eq."sp2d3")) then
-               else
-                  if (rank .eq. 0) then
-                     write(*,*) "You do not have submitted a valid coupling basis."
-                     write(*,*) "Please use evbopt with a valid coupling basis first!"
-                     call fatal
-                  end if
-               end if 
-                 
-         end if
-      end do
-      if (.not.coupl) then
-         off_basis="1g"
-      end if
-     
+   289 continue
 !    
 !     Initialize the dE/dQ couplingterms and their parameters
 !     Read them from the evb_pars.dat file obtained from EVB optimization
 !  
 
-      open (unit=443,file="evb_pars.dat",status="old",iostat=readstat)
-      if (readstat .ne. 0) then
-         write(*,*) "The file evb_pars.dat containing the parameters for the EVB"
-         write(*,*) " coupling term is not there! Please generate it using evbobt.x!"
-         call fatal
-      end if
-      read(443,*,iostat=readstat) names
-      read(443,*,iostat=readstat) offa
-      read(443,*,iostat=readstat) offb
-      if (off_basis .ne. "1g") then
-         read(443,*,iostat=readstat) offc
-         read(443,*,iostat=readstat) offd
-      end if
-      if (off_basis .eq. "2g") then
-         read(443,*,iostat=readstat) offm
-      else if (off_basis .eq. "3g") then
-         read(443,*,iostat=readstat) offe
-         read(443,*,iostat=readstat) offf
-         read(443,*,iostat=readstat) offm
-         read(443,*,iostat=readstat) offn
-      else if (off_basis .eq. "sd2") then
-         read(443,*,iostat=readstat) offe
-         read(443,*,iostat=readstat) offf
-      else if (off_basis .eq. "sp2d") then
-         read(443,*,iostat=readstat) offe
-         read(443,*,iostat=readstat) offf
-         read(443,*,iostat=readstat) offg
-         read(443,*,iostat=readstat) offh
-      else if (off_basis .eq. "sp2d3") then
-         read(443,*,iostat=readstat) offe
-         read(443,*,iostat=readstat) offf
-         read(443,*,iostat=readstat) offg
-         read(443,*,iostat=readstat) offh
-         read(443,*,iostat=readstat) offi
-         read(443,*,iostat=readstat) offj
-         read(443,*,iostat=readstat) offk
-         read(443,*,iostat=readstat) offl
-      end if
-      close(443) 
-      if (readstat .ne. 0) then
-         write(*,*) "The evb_pars.dat file contains too few lines or has a wrong formate!"
-         call fatal
-      end if
-!  
-!     The coupling with respect to the geometrical coordinate (dQ)
-!     Read in the structure of a reference structure (mostly the TS)
-!
-      if (use_dq .eqv. .true.) then
-         allocate(ts_coordinates_a(3,natoms))
-         allocate(ts_coordinates(3*natoms-6))
-         open(unit=33,file=filets,status='old')
-         call next_geo(ts_coordinates_a,natoms,33,has_next)
-         call xyz_2int(ts_coordinates_a,ts_coordinates,natoms)
-         close(33)
-         if (rank .eq. 0) then
-            write(*,*) "Used coupling method: EVB-dQ"
-         end if
-      else 
-         if (rank .eq. 0) then
-            write(*,*) "Used coupling method: EVB-dE"
-         end if
-      end if
-      if (rank .eq. 0) then
-         write(*,*) "The chosen coupling function: ",off_basis
-      end if
+   open (unit=443,file="evb_pars.dat",status="old",iostat=readstat)
+   if (readstat .ne. 0) then
+      write(*,*) "The file evb_pars.dat containing the parameters for the EVB"
+      write(*,*) " coupling term is not there! Please generate it using evbobt.x!"
+      call fatal
    end if
+   read(443,*,iostat=readstat) names
+   read(443,*,iostat=readstat) offa
+   read(443,*,iostat=readstat) offb
+   if (off_basis .ne. "1g") then
+      read(443,*,iostat=readstat) offc
+      read(443,*,iostat=readstat) offd
+   end if
+   if (off_basis .eq. "2g") then
+      read(443,*,iostat=readstat) offm
+   else if (off_basis .eq. "3g") then
+      read(443,*,iostat=readstat) offe
+      read(443,*,iostat=readstat) offf
+      read(443,*,iostat=readstat) offm
+      read(443,*,iostat=readstat) offn
+   else if (off_basis .eq. "sd2") then
+      read(443,*,iostat=readstat) offe
+      read(443,*,iostat=readstat) offf
+   else if (off_basis .eq. "sp2d") then
+      read(443,*,iostat=readstat) offe
+      read(443,*,iostat=readstat) offf
+      read(443,*,iostat=readstat) offg
+      read(443,*,iostat=readstat) offh
+   else if (off_basis .eq. "sp2d3") then
+      read(443,*,iostat=readstat) offe
+      read(443,*,iostat=readstat) offf
+      read(443,*,iostat=readstat) offg
+      read(443,*,iostat=readstat) offh
+      read(443,*,iostat=readstat) offi
+      read(443,*,iostat=readstat) offj
+      read(443,*,iostat=readstat) offk
+      read(443,*,iostat=readstat) offl
+   end if
+   close(443) 
+   if (readstat .ne. 0) then
+      write(*,*) "The evb_pars.dat file contains too few lines or has a wrong formate!"
+      call fatal
+   end if
+!
+!   The coupling with respect to the geometrical coordinate (dQ)
+!   Read in the structure of a reference structure (mostly the TS)
+!
+   if (use_dq .eqv. .true.) then
+      allocate(ts_coordinates_a(3,natoms))
+      allocate(ts_coordinates(3*natoms-6))
+      open(unit=33,file=filets,status='old')
+      call next_geo(ts_coordinates_a,natoms,33,has_next)
+      call xyz_2int(ts_coordinates_a,ts_coordinates,natoms)
+      close(33)
+   else 
+   end if
+   if (rank .eq. 0) then
+      write(*,*) "The chosen coupling function: ",off_basis
+   end if
+end if
 
 !
 !-------3 QMDFFs-----------------------------------------------------------------
@@ -1321,7 +1420,7 @@ if (qmdffnumber.eq.2) then
 !     for 3x3-EVB: if numerical gradients should be used
 !
 
-else if (qmdffnumber.eq.3) then
+if (qmdffnumber.eq.3) then
    do i = 1, nkey
       next = 1
       record = keyline(i)

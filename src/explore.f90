@@ -78,6 +78,7 @@ character(len=80) date
 real(kind=8),allocatable::internal(:),B_mat(:,:),dB_mat(:,:,:)
 logical::path_struc,print_wilson
 integer::wilson_mode,ref_count
+integer::time_int1,time_int2
 ! for manual internal coordinates
 integer,dimension(:,:),allocatable::coord_tmp
 integer,dimension(:),allocatable::coord_types
@@ -483,7 +484,7 @@ else
 end if 
 
 
-call cpu_time(time1)
+call system_clock(time_int1)
 
 !
 !    For energy+gradient calculations: start here!
@@ -586,7 +587,7 @@ if (calc_egrad) then
 
    open(unit=44,file="energies.dat",status='unknown')
    open(unit=45,file="gradients.dat",status='unknown')
-   write(*,*)  " . ...- -... --.- -- -.. ..-. ..-."
+   write(*,*)  " -.-. .- .-. .- -.-. .- .-.. "
    write(*,*) "Calculating energy and gradient ..."
    allocate(g_evb(3,natoms))
    allocate(coord(3,natoms))
@@ -1000,8 +1001,8 @@ end if
 
 389 continue
 
-call cpu_time(time2)
-duration=time2-time1
+call system_clock(time_int2)
+duration=real(time_int2)/1000-real(time_int1)/1000
 
 write(15,*)
 write(15,*) "Calculation finished at: "

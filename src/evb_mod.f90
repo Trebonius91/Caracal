@@ -304,7 +304,10 @@ real(kind=8)::newmass
 character(len=2)::elem_mass
 ! for orca calculations (ab initio MD)
 logical::orca
-character(len=100)::orca_com
+integer::orca_charge,orca_multi   ! charge and multiplicity of the system
+character(len=100)::orca_com(10)   ! orca commands in name.inp header
+integer::orca_com_num   ! number of orca command lines for header
+character(len=80)::call_orca  ! symlink for calling orca 
 ! for the water SPC model
 logical::water_spc
 real(kind=8),allocatable::water_pars(:) ! all needed parameters

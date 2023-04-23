@@ -47,15 +47,17 @@ integer::i,j
 !     write orca input file
 !
 open (unit=19,file="egrad.inp",status="replace")
-write (19,*) orca_com
-write (19,*) "*xyz 0 1"
+do i=1,orca_com_num-1
+   write(19,*) orca_com(i)
+end do
+write (19,'(a,i4,a,i4)') "*xyz ",orca_charge," ",orca_multi
 do i=1,natoms
    write(19,*) name(i),xyz2(:,i)*bohr
 end do
 write(19,*) "*"
 close(19)
 
-call system("orca egrad.inp > egrad.out")
+call system(trim(call_orca)//" egrad.inp > egrad.out")
 
 !
 !    read in orca output file
