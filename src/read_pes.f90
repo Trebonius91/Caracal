@@ -1588,7 +1588,8 @@ if (rank .eq. 0) then
       write(*,*) " - The gradient will be calculated numerically."
    end if
 end if
-
-write(*,*)
+if (rank .eq. 0) then
+   write(*,*)
+end if
 return
 end subroutine read_pes

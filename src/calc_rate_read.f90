@@ -1216,7 +1216,7 @@ do i=1,sum_reacs
    if (at_reac(i,1) .eq. 0) then
       if (rank .eq. 0) then
          write(*,'(a,i1,a,i1,a)') "No atom for reactant ",i," is given! &
-              &  Add the keyword EDUCT",i,"!"
+              &  Add the keyword REACTANT",i,"!"
          call fatal
       end if
    end if

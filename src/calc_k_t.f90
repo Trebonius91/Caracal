@@ -213,13 +213,14 @@ else if ((umbr_type .eq. "CYCLOREVER") .or. (umbr_type .eq. "REARRANGE") .or. &
    write(15,*) " in the next version of CARACAL."
    write(15,*) "Until then, the simple TST rate formula (with kappa) will be used:"
    write(15,*)
-   write(15,*) "k(T)=kappa*k_B*T/h*exp(-(W(xi_TS)-W(xi_min))/(k_B*T)) "
+   write(15,*) "k(T)=kappa*n_paths*k_B*T/h*exp(-(W(xi_TS)-W(xi_min))/(k_B*T)) "
    write(15,*) " where T=temperature, k_B=Boltzmann constant, h=Plancks constant"
    write(15,*) "  W(xi_TS), W(xi_min)=free energies at the TS and the reactants minimum."
 
    write(*,*) "- The parameters are defined as (in atomic units):"
    write(*,*)
    write(*,'(a,f12.8)') "   * kappa = ",kappa
+   write(*,'(a,i3)') "   * n_paths = ",npaths
    write(*,'(a,f15.8,a)') "   * T = ",kelvin," K"
 !
 !     convert free energies to kcal/mol
@@ -232,7 +233,7 @@ else if ((umbr_type .eq. "CYCLOREVER") .or. (umbr_type .eq. "REARRANGE") .or. &
 !
 !     calculate the rate constant in atomic units 
 !
-   k_t=kappa*1.3806485E-23*kelvin/6.62607E-34*exp(-(pmf_max-pmf_min)/(0.00831447*kelvin))
+   k_t=kappa*npaths*1.3806485E-23*kelvin/6.62607E-34*exp(-(pmf_max-pmf_min)/(0.00831447*kelvin))
 !
 !     convert the rate constant into usual units (s^(-1))
 !

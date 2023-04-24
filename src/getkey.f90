@@ -42,6 +42,8 @@ use general
 use qmdff
 
 implicit none
+
+include 'mpif.h'
 integer::i,ikey
 integer::next,length
 integer::freeunit
@@ -52,6 +54,7 @@ character(len=120)::comment
 character(len=120)::record
 character(len=120)::string
 character(len=20)::blank
+integer::ierr
 integer::rank  ! the current MPI rank
 !
 !     obtain all command line arguments
@@ -90,14 +93,19 @@ do i = 1, narg
    if (keyfile .eq. "-details") exit
    inquire (file=keyfile,exist=exist)
    if (.not. exist) then
-      write (iout,*) "The keyfile that was specified on command", &
-           &  " line was not found!"
-      call fatal
+      if (rank .eq. 0) then
+         write(*,*)
+         write (iout,*) "The keyfile that was specified on command", &
+              &  " line was not found!"
+         call mpi_barrier(mpi_comm_world,ierr)
+         call fatal
+      end if
    end if
 end do
 if (.not. exist) then
    if (rank .eq. 0) then
       if (whichprog .ne. 1) then
+         write(*,*)
          write(iout,*) "No keyfile was specified on command line!"
          call fatal
       end if

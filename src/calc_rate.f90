@@ -244,7 +244,7 @@ end if
 use_rpmd=.true.  ! for init_int etc.
 call read_pes(rank)
 
-!
+
 !     Read in settings for the rate calculation
 !
 
