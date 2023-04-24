@@ -100,7 +100,7 @@ andersen_step=0
 if (andersen_step .eq. 0) then
    andersen_step=int(dsqrt(dble(recr_equi)))
 end if
-
+err_count=0
 if (rank .eq. 0) then
 !
 !     first reset point

@@ -130,13 +130,13 @@ if ((umbr_type .eq. "BIMOLEC") .or. (umbr_type .eq. "CYCLOADD") .or. &
    k_t=k_t*1e6 * ((5.2917721092e-11)**3 / 2.418884326505e-17)*6.02214179E23
    write(15,*)
    write(15,*) "----------------------------------------------"
-   write(15,'(a)') "  The final value of the rate coefficient is: "
+   write(15,'(a)') "  The value of the reaction rate constant is: "
    write(15,'(a,es16.8,a)') "    ",k_t,"  cm^3/(mol*s)"
    write(15,'(a,es16.8,a)') "    ",k_t/avogadro,"  cm^3/(molec*s)"
    write(15,*) "----------------------------------------------"
    write(*,*) 
    write(*,*) "----------------------------------------------"
-   write(*,'(a)') "  The final value of the rate coefficient is: "
+   write(*,'(a)') "  The value of the reaction rate constant is: "
    write(*,'(a,es16.8,a)') "    ",k_t,"  cm^3/(mol*s)"
    write(*,'(a,es16.8,a)') "    ",k_t/avogadro,"  cm^3/(molec*s)"
    write(*,*) "----------------------------------------------"
@@ -177,12 +177,12 @@ else if (umbr_type .eq. "ATOM_SHIFT") then
 !   k_t=k_t*1e3 * ((5.2917721092e-11)**3 / 2.418884326505e-17)*6.02214179E23
    write(15,*)
    write(15,*) "----------------------------------------------"
-   write(15,'(a)') "  The final value of the rate coefficient is: "
+   write(15,'(a)') "  The value of the reaction rate constant is: "
    write(15,'(a,es16.8,a)') "    ",k_t,"  s^(-1)"
    write(15,*) "----------------------------------------------"
    write(*,*)
    write(*,*) "----------------------------------------------"
-   write(*,'(a)') "  The final value of the rate coefficient is: "
+   write(*,'(a)') "  The value of the reaction rate constant is: "
    write(*,'(a,es16.8,a)') "    ",k_t,"  s^(-1)"
    write(*,*) "----------------------------------------------"
 else if ((umbr_type .eq. "CYCLOREVER") .or. (umbr_type .eq. "REARRANGE") .or. &
@@ -239,12 +239,12 @@ else if ((umbr_type .eq. "CYCLOREVER") .or. (umbr_type .eq. "REARRANGE") .or. &
 !
    write(15,*)
    write(15,*) "----------------------------------------------"
-   write(15,'(a)') "  The final value of the rate coefficient is: "
+   write(15,'(a)') "  The value of the reaction rate constant is: "
    write(15,'(a,es16.8,a)') "    ",k_t,"  s^(-1)"
    write(15,*) "----------------------------------------------"
    write(*,*)
    write(*,*) "----------------------------------------------"
-   write(*,'(a)') "  The final value of the rate coefficient is: "
+   write(*,'(a)') "  The value of the reaction rate constant is: "
    write(*,'(a,es16.8,a)') "    ",k_t,"  s^(-1)"
    write(*,*) "----------------------------------------------"
 else 
