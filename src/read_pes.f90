@@ -200,6 +200,15 @@ else if (method .eq. "ORCA") then
    orca=.true.
    if (rank .eq. 0) then
    end if
+!
+!     If the energy/gradient shall be calculated on the fly with an arbitrary 
+!      external program
+!
+else if (method .eq. "EXTERNAL") then
+   call_ext=.true.
+   if (rank .eq. 0) then
+   end if
+
 
 !
 !     The analytical potential energy surfaces! Mainly for benchmark reasons(?)
@@ -529,10 +538,6 @@ if (orca) then
 !
 !      Set default values 
 !
-   dg_evb_mode=0
-   dg_evb_points=0
-   dg_ref_file="grad_hess.dat"
-   g_thres=1E-10
    do i = 1, nkey
       next = 1
       record = keyline(i)
@@ -583,6 +588,51 @@ if (orca) then
 
    goto 678
 end if
+!
+!    For calculations with external arbitrary programs: read in the 
+!     link/symlink of that program
+!
+
+if (call_ext) then
+
+   if (rank .eq. 0) then
+      write(*,*)
+      write(*,*) "Used PES: direct call to an external program"
+      write(*,*) "Each structure will be submitted to an external "
+      write(*,*) " calculation for each bead, separately!"
+   end if
+   do i = 1, nkey
+      next = 1
+      record = keyline(i)
+      call gettext (record,keyword,next)
+      call upcase (keyword)
+      call upcase (record)
+      string = record(next:120)
+      if (trim(adjustl(record(1:13))) .eq. 'EXTERNAL {' .or. trim(adjustl(record(1:13))) &
+              &  .eq. 'EXTERNAL{') then
+
+         do j=1,nkey-i+1
+            next=1
+            record = keyline(i+j)
+            call gettext (record,keyword,next)
+            call upcase (keyword)
+            record=adjustl(record)
+            if (keyword(1:16) .eq. 'SYMLINK ') then
+               read(record(8:120),'(a)') call_ext
+            end if
+            if (keyword(1:11) .eq. '}') exit
+            if (j .eq. nkey-i) then
+               write(*,*) "The EXTERNAL section has no second delimiter! (})"
+               call fatal
+            end if
+
+         end do
+      end if
+   end do
+   goto 678
+end if
+
+
 evb2=.false.
 evb3=.false.
 read_name=.false.

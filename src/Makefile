@@ -88,6 +88,7 @@ OBJS = general.o evb_mod.o qmdff.o lm_module.o debug.o h2co_mod.o \
        ewald_recip.o bsplgen.o setchunk.o ewald_adjust.o ewald_fft.o \
        bspline.o dftmod.o exp_switch.o nhc_npt.o opt_qmdff_ser.o \
        lm_qmdff.o water_init.o egrad_water.o ev_coord_init.o \
+       external_grad.o \
        \
        egrad_ch4oh.o util_ch4oh.o egrad_h3.o \
        numeral.o getnumb.o getstring.o torphase.o egrad_ch4h.o \
@@ -96,10 +97,10 @@ OBJS = general.o evb_mod.o qmdff.o lm_module.o debug.o h2co_mod.o \
        egrad_mueller.o egrad_o3.o egrad_ch4cn.o util_ch4cn.o  \
        egrad_nh3oh.o util_nh3oh.o main_h2co.o util_h2co.o \
        \
-       qmdffgen.o evbopt.o egrad.o dynamic.o explore.o calc_rate.o \
+       qmdffgen.o evbopt.o dynamic.o explore.o calc_rate.o \
        black_box.o mult_qmdff.o #qmdffopt.o
  
-EXES = qmdffgen.x dynamic.x egrad.x evbopt.x explore.x calc_rate.x \
+EXES = qmdffgen.x dynamic.x evbopt.x explore.x calc_rate.x \
        black_box.x mult_qmdff.x #qmdffopt.x
 
 all: $(OBJS)  $(EXES)

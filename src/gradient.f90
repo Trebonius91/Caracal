@@ -244,6 +244,13 @@ if (orca) then
    g_evb=pot_grad(:,:,1)
    return
 end if
+!
+!     Invoke the call to the chosen external program, if desired
+!
+if (call_ext) then
+   call external_grad(xyz2,pot_grad,e_evb)
+   return
+end if
 
 
 !
