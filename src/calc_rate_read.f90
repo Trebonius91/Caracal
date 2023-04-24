@@ -1324,12 +1324,14 @@ do i = 1, nkey
     string = record(next:120)
     if (keyword(1:11) .eq. 'ADD_FORCE ') then
        add_force=.true.
-       write(*,*) "The keyword ADD_FORCE was found!"
-       write(*,*) "Therefore a mechanochemistry trajectory will be"
-       write(*,*) "calculated, until a rupture event is monitored and"
-       write(*,*) "the user will be informed."
-       write(*,*) "The keywords FORCE1 and FORCE2 must be present, which the formate:"
-       write(*,*) "FORCE1/2 [atom index] [force constant (N)] [vector (x,y,z)]"
+       if (rank .eq. 0) then
+          write(*,*) "The keyword ADD_FORCE was found!"
+          write(*,*) "Therefore a mechanochemistry trajectory will be"
+          write(*,*) "calculated, until a rupture event is monitored and"
+          write(*,*) "the user will be informed."
+          write(*,*) "The keywords VEC1 and VEC2 must be present, which the formate:"
+          write(*,*) "FORCE1/2 [atom index] [force constant (N)] [vector (x,y,z)]"
+       end if
        exit
     end if
 end do
@@ -1354,20 +1356,16 @@ if (add_force) then
       write(*,*) " not part of the system!"
       call fatal
    end if
-  !  write(*,*) "FORCE setup:"
-  !  write(*,*) "At atom",force1_at," a force of",force1_k," N is applied."
-  !  write(*,*) "At atom",force2_at," a force of",force2_k," N is applied."
-   write(*,*) newton2au
    force1_k=force1_k*newton2au
    force2_k=force2_k*newton2au
 !
 !     Open file in which distances between the atoms with attached force will 
 !     be written  
 !
-   write(*,*) "Distances between atoms with attached force will be written to"
-   write(*,*) "file force_distances.dat"
-   open(unit=78,file="force_distances.dat",status="replace")
-   write(78,*) "# distances between the atoms with attached force, in Angstrom:"
+!   write(*,*) "Distances between atoms with attached force will be written to"
+!   write(*,*) "file force_distances.dat"
+!   open(unit=78,file="force_distances.dat",status="replace")
+!   write(78,*) "# distances between the atoms with attached force, in Angstrom:"
 end if
 
 

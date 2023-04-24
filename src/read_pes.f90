@@ -658,11 +658,12 @@ do i = 1, nkey
          ffname2=.true.
          defqmdff=.true.
          if (readstat .ne. 0) then
-            if (qmdffnumber .ne. 1) then
-               write(*,*) "Please give two or three QMDFFs as diabatic surfaces in "
-               write(*,*) "  the command QMDFFNAMES!"
-               call fatal 
-            end if
+            qmdffnumber=1
+       !     if (qmdffnumber .ne. 1) then
+       !        write(*,*) "Please give two or three QMDFFs as diabatic surfaces in "
+       !        write(*,*) "  the command QMDFFNAMES!"
+       !        call fatal 
+       !     end if
          else if (readstat .eq. 0) then
             evb2=.true.
             qmdffnumber=2
