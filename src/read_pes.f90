@@ -456,7 +456,8 @@ else
    if (rank .eq. 0) then
       write(*,*) "No valid potential energy surface was chosen!"
       write(*,*) "Choose a valid one:"
-      write(*,*) "QMDFF, DE_EVB, DQ_EVB, DG_EVB, TREQ, ORCA (QM call), "
+      write(*,*) "QMDFF, DE_EVB, DQ_EVB, DG_EVB, TREQ, ORCA (QM call),"
+      write(*,*) "EXTERNAL (providing your own energy/gradient program),"
       write(*,*) "analytical PES (ANA_H3, ANA_BRH2, ANA_O3, ANA_OH3, "
       write(*,*) " ANA_CH4H, ANA_NH3OH, ANA_CH4OH, ANA_GEH4OH, ANA_C2H7) "
       call fatal
@@ -466,7 +467,7 @@ end if
 if (pot_ana) then
    if (rank .eq. 0) then
       write(*,*) "You have chosen one of the analytical PES functions."
-      write(*,*) "The following surfaces are availiable as well (ascending atom number)"
+      write(*,*) "The following surfaces are available as well (ascending atom number)"
       write(*,*) "1)   H2 + H    (H3)      (3 atoms: H, H, H)"
       write(*,*) "2)   BrH + H   (BrH2)    (3 atoms: H, Br, H)"
       write(*,*) "3)   O2 + O    (OH3)     (3 atoms: O, O, O)"

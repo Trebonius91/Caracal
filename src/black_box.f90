@@ -849,14 +849,14 @@ rp_mid_tot=0.6d0
 rp_mid_trans=0.1d0
 dt=0.2d0
 r_inf=10.d0
-k_force=0.1
+k_force=0.1d0
 umbr_lo=-0.05d0
 umbr_hi=1.10d0
 umbr_dist=0.01d0
 gen_step=10000
 equi_step=10000
-umbr_step=25000
-umbr_traj=2
+umbr_step=10000
+umbr_traj=10
 xi_min=-0.02
 xi_max=1.10d0
 nbins=5000
@@ -4693,11 +4693,11 @@ write(*,*)
 write(*,*) " Timings: "
 write(*,*) " ----------"
 write(*,'(A, F12.3, A)') " Read in of settings and initialization:  ",time(2)-time(1)," s."
-write(*,'(A, F12.3, A)') " QMDFF reference calculation :            ",time(3)-time(2)," s."
-write(*,'(A, F12.3, A)') " QMDFF generation                         ",time(4)-time(3)," s."
-write(*,'(A, F12.3, A)') " TREQ reference data calculation          ",time(5)-time(4)," s."
-write(*,'(A, F12.3, A)') " Additional energy calculations           ",time(6)-time(5)," s."
-write(*,'(A, F12.3, A)') " Rate constant calculations + Arrhenius   ",time(7)-time(6)," s."
+write(*,'(A, F12.3, A)') " QMDFF reference calculation:             ",time(3)-time(2)," s."
+write(*,'(A, F12.3, A)') " QMDFF generation:                        ",time(4)-time(3)," s."
+write(*,'(A, F12.3, A)') " TREQ reference data calculation:         ",time(5)-time(4)," s."
+write(*,'(A, F12.3, A)') " Additional energy calculations:          ",time(6)-time(5)," s."
+write(*,'(A, F12.3, A)') " Rate constant calculations + Arrhenius:  ",time(7)-time(6)," s."
 write(*,*)
 write(*,'(A, F12.3, A)') " The calculation needed a total time of   ",time(7)-time(1)," seconds."
 write(*,'(A, I6,A,I2,A,I2,A,I2,A)') " These are: ",ndays," days, ",nhours," hours, ",nminutes,&

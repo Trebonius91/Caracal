@@ -1,5 +1,5 @@
-# Makefile for compiling the EVB-QMDFF program
-# Edited by Julien Steffen, 2021
+# Makefile for compiling Caracal
+# Edited by Julien Steffen, 2023
 
 #  Fortran compiler for serial version:
 #FC = gfortran  # GNU Fortran
@@ -98,10 +98,10 @@ OBJS = general.o evb_mod.o qmdff.o lm_module.o debug.o h2co_mod.o \
        egrad_nh3oh.o util_nh3oh.o main_h2co.o util_h2co.o \
        \
        qmdffgen.o evbopt.o dynamic.o explore.o calc_rate.o \
-       black_box.o mult_qmdff.o #qmdffopt.o
+       black_box.o poly_qmdff.o 
  
 EXES = qmdffgen.x dynamic.x evbopt.x explore.x calc_rate.x \
-       black_box.x mult_qmdff.x #qmdffopt.x
+       black_box.x poly_qmdff.x 
 
 all: $(OBJS)  $(EXES)
 
