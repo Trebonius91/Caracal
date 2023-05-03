@@ -1,4 +1,4 @@
-# CARACAL
+# Caracal
 Ring polymer molecular dynamics and rate constant calculations on black-box potential energy surfaces
 
 ## About Caracal
