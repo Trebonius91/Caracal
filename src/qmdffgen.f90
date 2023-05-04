@@ -166,7 +166,7 @@ do i = 1, nkey
    call gettext (record,keyword,next)
    call upcase (keyword)
    string = record(next:120)
-   if (keyword(1:11) .eq. 'EQMDFF ') then
+   if (keyword(1:11) .eq. '1QMDFF ') then
       qmdffnumber=1
       read(record,*) prefix,pre1
       allocate(character(len=LEN(TRIM(pre1))) :: prefix1)

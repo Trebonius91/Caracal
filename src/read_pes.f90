@@ -922,7 +922,7 @@ if (qmdffnumber.eq.2) then
                   double_alpha=.true.
                else if (keyword(1:16) .eq. 'READ_COORD ') then
                   read_coord=.true.
-               else if (keyword(1:16) .eq. 'POINT_REF ') then
+               else if (keyword(1:16) .eq. 'POINTS_REF ') then
                   read(record,*) names,dg_ref_file
                else if (keyword(1:16) .eq. 'DG_MAT_NUM ') then
                   dg_mat_num=.true.

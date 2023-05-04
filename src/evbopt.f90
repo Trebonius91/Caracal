@@ -451,7 +451,7 @@ end do
 !
 !      Measure the needed time for optimization
 !
-call cpu_time(time1) 
+call system_clock(time_int(1))
 !
 !      Read in the detailed settings for the dE-EVB coupling term
 !      Loop over structure with brackets
@@ -584,7 +584,7 @@ if (dg_evb) then
                double_alpha=.true.
             else if (keyword(1:16) .eq. 'READ_COORD ') then
                read_coord=.true.
-            else if (keyword(1:16) .eq. 'POINT_REF ') then
+            else if (keyword(1:16) .eq. 'POINTS_REF ') then
                read(record,*) names,dg_ref_file
             else if (keyword(1:16) .eq. 'DG_MAT_NUM ') then
                dg_mat_num=.true.
@@ -1034,10 +1034,16 @@ end if
 !
 !    calculate the needed time for optimization
 !
-if (rank .eq. 0) then
-   call cpu_time(time2)
 
-   duration=time2-time1
+if (rank .eq. 0) then
+   call system_clock(time_int(2))
+
+   do i=1,10
+      time(i)=real(time_int(i))/1000
+   end do
+
+
+   duration=time(2)-time(1)
 
    write(*,'(A, F12.3, A)') " The calculation needed a time of",duration," seconds."
    write(15,'(A, F12.3, A)') " The calculation needed a time of",duration," seconds."

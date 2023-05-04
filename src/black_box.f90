@@ -884,10 +884,10 @@ do i = 1, nkey
    call gettext (record,keyword,next)
    call upcase (keyword)
    string = record(next:120)
-   if (keyword(1:15) .eq. 'BEAD_NUMBER ') then
+   if (keyword(1:15) .eq. 'RPMD_BEADS ') then
       read(record,*,iostat=readstat) prefix,nbeads
       if (readstat .ne. 0) then
-         write(*,*) "Correct format: BEAD_NUMBER [No. of beads]"
+         write(*,*) "Correct format: RPMD_BEADS [No. of beads]"
          call fatal
       end if
    else if (keyword(1:13) .eq. 'DELTAT ') then
@@ -4184,7 +4184,7 @@ do i=1,temp_num
       write(15,'(a)') "# xyz file with start structure of TS:"
       write(15,'(a)') "    ts_struc ts.xyz"
       write(15,'(a)') "# number of ring polymer beads in the system:"
-      write(15,'(a,i4)') "    bead_number ",nbeads 
+      write(15,'(a,i4)') "    rpmd_beads ",nbeads 
       write(15,'(a)') "##################################"
       write(15,'(a)') "# potential energy surface settings"
       write(15,'(a)') "##################################"

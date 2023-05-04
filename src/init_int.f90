@@ -146,9 +146,9 @@ do i = 1, nkey
    if (keyword(1:15) .eq. 'NUM_WILSON ') then
       num_wilson=.true.
       if (rank .eq. 0) then
-         write(*,*) "You have activated NUM_WILSON, therefore the Wilson coordinate"
-         write(*,*) "transformation matrix will be calculated numerically (test mode)."
-         write(*,*)
+!         write(*,*) "You have activated NUM_WILSON, therefore the Wilson coordinate"
+!         write(*,*) "transformation matrix will be calculated numerically (test mode)."
+!         write(*,*)
       end if
    end if
 end do

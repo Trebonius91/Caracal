@@ -1,4 +1,4 @@
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !
 !   CARACAL - Ring polymer molecular dynamics and rate constant calculations
 !             on black-box generated potential energy surfaces
@@ -220,7 +220,7 @@ do i = 1, nkey
    if (keyword(1:11) .eq. 'XYZSTART ') then
       read(record,*) names,xyzfile
 !    Number of RPMD beads
-   else if (keyword(1:20) .eq. 'BEAD_NUMBER ') then
+   else if (keyword(1:20) .eq. 'RPMD_BEADS ') then
       read(record,*) names,nbeads
 !    Which thermodynamic ensemble is used
    else if (keyword(1:13) .eq. 'ENSEMBLE ') then

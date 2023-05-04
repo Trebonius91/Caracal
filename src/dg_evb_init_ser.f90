@@ -210,7 +210,6 @@ do i=1,points
 end do
 
 close(126)
-write(*,*) "##################  QMDFFs!"
 do i=1,dg_evb_points
 !
 !   Read in the reference structures for every fixpoint
@@ -601,7 +600,7 @@ call build_dmat(dg_evb_mode,mat_size,alph)
 !
 call mat_diag(mat_size)
 
-open(unit=31,file="energies.qmdff",status="unknown")
+open(unit=31,file="energies_final.dat",status="unknown")
 
 do i=1,points
    write(33,*) "structure No.",i
@@ -623,8 +622,7 @@ do i=1,points
 
 end do
 write(*,*)
-write(*,*) "Energies of the reactionpath are written to energies.qmdff,"
-write(*,*) "gradients are written to gradients.qmdff"
+write(*,*) "Energies of the reactionpath are written to energies_final.dat."
 close(33)
 close(31)
 !

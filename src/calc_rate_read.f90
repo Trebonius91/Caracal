@@ -203,10 +203,10 @@ do i = 1, nkey
          write(*,*) "Correct format: TS_STUC [filename]"
          call fatal
       end if
-   else if (keyword(1:20) .eq. 'BEAD_NUMBER ') then
+   else if (keyword(1:20) .eq. 'RPMD_BEADS ') then
       read(record,*,iostat=readstat) names,nbeads
       if (readstat .ne. 0) then
-         write(*,*) "Correct format: BEAD_NUMBER [Number of RPMD beads]"
+         write(*,*) "Correct format: RPMD_BEADS [Number of RPMD beads]"
          call fatal
       end if
    else if (keyword(1:11) .eq. 'DELTAT ') then

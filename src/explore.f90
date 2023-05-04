@@ -603,7 +603,7 @@ if (calc_egrad) then
       call next_geo(coord,natoms,166,has_next)
       if (.not.has_next) exit
 ! 
-!     Distunguish between debug and normal calculation
+!     Distinguish between debug and normal calculation
 !
       coord=coord/bohr
       call gradient(coord,e_evb,g_evb,1)  ! else calculate the usual gradient
