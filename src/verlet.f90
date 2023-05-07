@@ -508,6 +508,28 @@ end if
 !     of the force constant
 !
 call get_centroid(centroid)
+
+
+!
+!     Write out the current centroid trajectory frame for more than one bead, if iwrite 
+!
+if (constrain .lt. 0) then
+   if ((mod(istep,iwrite) .eq. 0) .and. (nbeads .gt. 1)) then
+      write(128,*) natoms*nbeads
+      if (npt) then
+         write(128,*) boxlen_x*bohr,boxlen_y*bohr,boxlen_z*bohr
+      else
+         write(128,*)
+      end if
+      do k=1,nbeads
+         do i=1,natoms
+            write(128,*) name(i),centroid(:,i)*bohr
+         end do
+      end do
+   end if
+end if
+
+
 !
 !     constrain the system to the xi value if desired
 !

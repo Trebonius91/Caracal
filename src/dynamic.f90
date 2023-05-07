@@ -1245,6 +1245,10 @@ end if
 !     write trajectory in tdump-intervals: open file
 !
 open(unit=28,file="trajectory.xyz",status="unknown")
+if (nbeads .gt. 1) then
+   open(unit=128,file="traj_centroid.xyz",status="unknown")
+end if
+
 !
 if (verbose) then
 !     verbose output: also write gradients of all atoms to file 
@@ -1446,6 +1450,9 @@ else
    else 
       write(*,*) " Trajectory written to 'trajectory.xyz', temperatures to 'temperature.dat'."
    end if
+   if (nbeads .gt. 1) then
+      write(*,*) " Centroid positions trajectory written to 'traj_centroid.xyz'."
+   end if
 end if
 
 write(*,*)
@@ -1456,6 +1463,9 @@ if (energycon .eqv. .true.) then
    close(123)
 end if
 close(28)
+if (nbeads .gt. 1) then
+   close(128)
+end if
 close(29)
 close(30)
 

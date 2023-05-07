@@ -397,7 +397,6 @@ if (.not. ewald) then
                   e0=q(i1)*q(i2)*((erfc(zahn_a*r)*oner)-zahn_par*(r-coul_cut))
                else
                   e0=q(i1)*q(i2)*oner*switch
-                  write(*,*) "e01",e0
                end if
 
 !
