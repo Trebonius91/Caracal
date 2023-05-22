@@ -619,7 +619,7 @@ if (call_ext) then
             call upcase (keyword)
             record=adjustl(record)
             if (keyword(1:16) .eq. 'SYMLINK ') then
-               read(record(8:120),'(a)') call_ext
+               read(record(8:120),'(a)') symlink_ext
             end if
             if (keyword(1:11) .eq. '}') exit
             if (j .eq. nkey-i) then

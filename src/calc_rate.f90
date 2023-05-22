@@ -40,6 +40,37 @@
 !     Call the program with: mpirun -np [nproc] ~/bin/calc_rate.x
 !
 !
+!     Disclaimer (general structure/idea and code snippets taken from):
+!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!     
+!   RPMDrate - Bimolecular reaction rates via ring polymer molecular dynamics
+!     
+!   Copyright (c) 2012 by Joshua W. Allen (jwallen@mit.edu)
+!                         William H. Green (whgreen@mit.edu)
+!                         Yury V. Suleimanov (ysuleyma@mit.edu, ysuleyma@princeton.edu)
+!
+!   Permission is hereby granted, free of charge, to any person obtaining a
+!   copy of this software and associated documentation files (the "Software"),
+!   to deal in the Software without restriction, including without limitation
+!   the rights to use, copy, modify, merge, publish, distribute, sublicense,
+!   and/or sell copies of the Software, and to permit persons to whom the
+!   Software is furnished to do so, subject to the following conditions:
+!  
+!   The above copyright notice and this permission notice shall be included in
+!   all copies or substantial portions of the Software.
+!
+!   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+!   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+!   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+!   THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+!   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+!   FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+!   DEALINGS IN THE SOFTWARE.
+!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!
+!
 program calc_rate
 use general
 use evb_mod
@@ -1608,6 +1639,12 @@ if (int_coord_plot) close(191)
 !     CALCULATE THE RECROSSING FACTOR
 !     SAMPLE PARENT TRAJECTORYi AND CHILDREN 
 ! --------------------------------------------------------!
+if (skip_recross) then
+   write(*,*) "The recrossing part will be skipped, since no child"
+   write(*,*) " trajectories shall be sampled. Kappa set to 1."
+   kappa=1
+   goto 333
+end if
 if (rank .eq. 0) then
    write(15,*)
    write(15,*) "-------------------PART   4-------------------"
@@ -1818,6 +1855,7 @@ else
       end if
    end if
 end if
+333 continue
 recross_calc=.false.
 call mpi_barrier(mpi_comm_world,ierr)
 ! --------------------------------------------------------!

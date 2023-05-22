@@ -224,6 +224,7 @@ integer::afm_steps
 ! for the new RPMD program
 integer::nbeads   ! the number of ring polymer beads to be sampled
 integer::npaths  ! number of equivalent reaction paths
+logical::skip_recross
 real(kind=8),dimension(:,:,:),allocatable::p_i,q_i  ! positions and momenta of the system
 logical::use_rpmd  ! if the rpmd.x program is used, allow also 1 internal coordinate..
 integer,allocatable::rpmd_atoms(:) ! if not all atoms shall be treated with RPMD, define the active ones

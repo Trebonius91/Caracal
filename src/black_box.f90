@@ -2989,13 +2989,13 @@ else if (software_gf .eq. "O") then
 end if
 write(*,*) " --> done!"
 !
-!     Start RP-EVB point calculations! If more processors are availiable than needed 
+!     Start RP-EVB point calculations! If more processors are available than needed 
 !     for a single calculation, start some of them in parallel.
 !     Check if calculations are done, if its so, start new ones 
 !
 
 write(*,*) "Start QM reference calculations for all RP-EVB gradient+hessian points!"
-write(*,*) " If enough processors are availiable, this might be done in parallel!"
+write(*,*) " If enough processors are available, this might be done in parallel!"
 
 ncalcs_round=nprocs_tot/rp_procs
 if (mod(n_rp_pts,ncalcs_round) .eq. 0) then
@@ -3005,7 +3005,7 @@ else
 end if
 
 write(*,'(a,i3)') " Number of needed reference calculations: ",n_rp_pts
-write(*,'(a,i3)') " Total processors availiable: ",nprocs_tot
+write(*,'(a,i3)') " Total processors available: ",nprocs_tot
 write(*,'(a,i2)') " Processors per calculation: ",rp_procs
 write(*,'(a,i2)') " Calculations to be done simultaneously: ",ncalcs_round
 write(*,'(a,i2)') " Rounds of calculations to be done: ",nrounds
@@ -4353,8 +4353,8 @@ end do
 write(*,*)
 write(*,*) "---- TASK 7: start k(T) calculations for all temperatures -------"
 write(*,*)
-write(*,*) "rpmd.x calculations are parallelized quite well, therefore only one"
-write(*,*) " will be started simultenously with all cores availiable!"
+write(*,*) "calc_rate.x calculations are parallelized quite well, therefore only "
+write(*,*) " one will be started simultenously with all cores available!"
 
 
 !
@@ -4364,8 +4364,6 @@ write(adum_nprocs,'(i3)') nprocs_tot
 write(*,'(a,i3)') " Number of needed reference calculations: ",n_rp_pts
 write(*,'(a,i3)') " Total processors available: ",nprocs_tot
 write(*,'(a,i2)') " Processors per calculation: ",nprocs_tot
-write(*,'(a,i2)') " Calculations to be done simultaneously: ",ncalcs_round
-write(*,'(a,i2)') " Rounds of calculations to be done: ",nrounds
 
 do i=1,temp_num
 !
@@ -4507,7 +4505,7 @@ do i=1,temp_num
       do 
          read(16,'(a)',iostat=lastline) a80
          if (lastline .ne. 0) exit
-         if (index(a80,'The final value of the rate coefficient is:') .ne. 0) then
+         if (index(a80,'The value of the reaction rate constant is:') .ne. 0) then
             read(16,*) rates_mol(i,k)
             read(16,*) rates_molec(i,k)    
             exit

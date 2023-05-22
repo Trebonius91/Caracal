@@ -249,6 +249,7 @@ end if
 !
 if (call_ext) then
    call external_grad(xyz2,pot_grad,e_evb)
+   g_evb=pot_grad(:,:,1)
    return
 end if
 

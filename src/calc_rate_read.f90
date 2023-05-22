@@ -891,6 +891,7 @@ write(15,*) "... done!"
 ! -------------------------------------------------------------------
 
 section=.false.
+skip_recross=.false.
 write(15,*) "E) The RECROSS section..."
 do i = 1, nkey
    next = 1
@@ -920,6 +921,15 @@ do i = 1, nkey
             if (readstat .ne. 0) then
                write(*,*) "Correct format: CHILD_TOTAL [Number of child trajs.]"
                call fatal
+            end if
+            if (child_tot .eq. 0) then
+               if (rank .eq. 0) then
+                  write(*,*) "Zero child trajectories shall be calculated, therefore,"
+                  write(*,*) " the recrossing calculation will be skipped and a transmission "
+                  write(*,*) " of 1.0 will be assumed."
+               end if
+               skip_recross=.true.
+               exit
             end if
 !     Number of parent MD steps between child spawnings
          else if (keyword(1:20) .eq. 'CHILD_INTERVAL ') then
@@ -1129,31 +1139,36 @@ if (rank .eq. 0) then
 !
 !     check parameters for recrossing calculation
 !
-   if (recr_equi .eq. 0) then
-      write(*,*) "No timestep number for the equilibration of the recrossing parent"
-      write(*,*) "trajectory is given! Add the keyword RECROSS_EQUI!"
-      call fatal
-   else if (child_tot .eq. 0) then
-      write(*,*) "No total number of child trajectories for the recrossing calculation"
-      write(*,*) "is given! Add the keywod CHILD_TOTAL!"
-      call fatal
-   else if (child_interv .eq. 0) then
-      write(*,*) "No interval between a new couple of child trajectories shall be spawned"
-      write(*,*) "is given! Add the keyword CHILD_INTERVAL!"
-      call fatal
-   else if (child_point .eq. 0) then
-      write(*,*) "No number of child trajectories that shall be spawned together at each"
-      write(*,*) "spawining time is given! Add the keyword CHILD_PERPOINT!"
-      call fatal
-   else if (child_evol .eq. 0) then
-      write(*,*) "No timestep number for each single child trajectory is given!"
-      write(*,*) "Add the keyword CHILD_EVOL!"
-   end if
-   child_times=child_tot/child_point
-   if (child_times .ne. real(child_tot/child_point)) then
-      write(*,*) "The total number of child trajectories is no multiplicity of the child"
-      write(*,*) "number per sampling point! Alter keywords CHILD_TOTAL and/or CHILD_PERPOINT!"
-      call fatal
+   if (.not. skip_recross) then
+      if (recr_equi .eq. 0) then
+         write(*,*) "No timestep number for the equilibration of the recrossing parent"
+         write(*,*) "trajectory is given! Add the keyword RECROSS_EQUI!"
+         call fatal
+      else if (child_tot .eq. 0) then
+         write(*,*) "No total number of child trajectories for the recrossing calculation"
+         write(*,*) "is given! Add the keywod CHILD_TOTAL!"
+         call fatal
+      else if (child_interv .eq. 0) then
+         write(*,*) "No interval between a new couple of child trajectories shall be spawned"
+         write(*,*) "is given! Add the keyword CHILD_INTERVAL!"
+         call fatal
+      else if (child_point .eq. 0) then
+         write(*,*) "No number of child trajectories that shall be spawned together at each"
+         write(*,*) "spawining time is given! Add the keyword CHILD_PERPOINT!"
+         call fatal
+      else if (child_evol .eq. 0) then
+         write(*,*) "No timestep number for each single child trajectory is given!"
+         write(*,*) "Add the keyword CHILD_EVOL!"
+      end if
+      child_times=child_tot/child_point
+      if (child_times .ne. real(child_tot/child_point)) then
+         write(*,*) "The total number of child trajectories is no multiplicity of the child"
+         write(*,*) "number per sampling point! Alter keywords CHILD_TOTAL and/or CHILD_PERPOINT!"
+         call fatal
+      end if
+   else 
+      child_times=100
+!      recr_equi=1000
    end if
 !
 !      Check print polymer setting for printout of one trajectory: needs to be 

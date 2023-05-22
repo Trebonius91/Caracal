@@ -26,13 +26,42 @@
 !   DEALINGS IN THE SOFTWARE.
 !
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
 !
 !     subroutine verlet: Main subroutine for performing a time step in an 
 !      arbitrary MD trajectory calculation (unbiased or biased)
 !
 !     part of EVB
 !
+!     Disclaimer (parts (RPMD integration) were taken from):
+!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!
+!   RPMDrate - Bimolecular reaction rates via ring polymer molecular dynamics
+!
+!   Copyright (c) 2012 by Joshua W. Allen (jwallen@mit.edu)
+!                         William H. Green (whgreen@mit.edu)
+!                         Yury V. Suleimanov (ysuleyma@mit.edu, ysuleyma@princeton.edu)
+!
+!   Permission is hereby granted, free of charge, to any person obtaining a
+!   copy of this software and associated documentation files (the "Software"),
+!   to deal in the Software without restriction, including without limitation
+!   the rights to use, copy, modify, merge, publish, distribute, sublicense,
+!   and/or sell copies of the Software, and to permit persons to whom the
+!   Software is furnished to do so, subject to the following conditions:
+!
+!   The above copyright notice and this permission notice shall be included in
+!   all copies or substantial portions of the Software.
+!
+!   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+!   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+!   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+!   THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+!   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+!   FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+!   DEALINGS IN THE SOFTWARE.
+!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 subroutine verlet (istep,dt,derivs,epot,ekin,afm_force,xi_ideal,xi_real,&
           & dxi_act,round,constrain,analyze)
 use general 
@@ -515,16 +544,14 @@ call get_centroid(centroid)
 !
 if (constrain .lt. 0) then
    if ((mod(istep,iwrite) .eq. 0) .and. (nbeads .gt. 1)) then
-      write(128,*) natoms*nbeads
+      write(128,*) natoms
       if (npt) then
          write(128,*) boxlen_x*bohr,boxlen_y*bohr,boxlen_z*bohr
       else
          write(128,*)
       end if
-      do k=1,nbeads
-         do i=1,natoms
-            write(128,*) name(i),centroid(:,i)*bohr
-         end do
+      do i=1,natoms
+         write(128,*) name(i),centroid(:,i)*bohr
       end do
    end if
 end if

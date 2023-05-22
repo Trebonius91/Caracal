@@ -55,7 +55,6 @@ end do
 close(19)
 
 call system(trim(symlink_ext))
-
 !
 !    read in energy and gradient of the external calculation
 !
