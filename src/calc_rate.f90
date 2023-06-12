@@ -310,9 +310,9 @@ nbeads_store=nbeads
 !
 !      calculate how many child spwaning events will occur 
 !
-
-child_times=child_tot/child_point
-
+if ((child_tot .gt. 0) .and. (child_point .gt. 0)) then
+   child_times=child_tot/child_point
+end if
 !     
 !     Convert the energy tolerance to hartree 
 !
@@ -1639,10 +1639,64 @@ if (int_coord_plot) close(191)
 !     CALCULATE THE RECROSSING FACTOR
 !     SAMPLE PARENT TRAJECTORYi AND CHILDREN 
 ! --------------------------------------------------------!
+
+!
+!     first, determine the maximum and minimum of the free energy and the 
+!     respective xi coordinate
+!     The minimum needs to be at approx xi=0 in order to fulfill the 
+!     prerequisites of the QTST k(T) formula!
+!     For unimolecular reactions, it is more useful to determine the minimum 
+!     position freely!
+!
+if ((umbr_type .eq. "ATOM_SHIFT") .or. (umbr_type .eq. "CYCLOREVER") .or. &
+          & (umbr_type .eq. "REARRANGE") .or. (umbr_type .eq. "DECOM_1BOND") .or. &
+          & (umbr_type .eq. "ELIMINATION")) then
+   pmf_minloc="PMF_MIN"
+   if (add_force) then
+     pmf_minloc="ZERO"
+   end if
+end if
+!
+!    Measure the needed time for the recrossing calculation
+!
+if (rank .eq. 0) then
+   call cpu_time(time(6))
+end if
+
+if (rank .eq. 0) then
+!   MOD 11.02.2023: Replaced complicated maxloc formula by simple one..
+   maxlocate=maxloc(pmf(:),dim=1)
+!   maxlocate=maxloc(pmf(-int(xi_min/((xi_max-xi_min)/(nbins)))+1:nbins-1),dim=1)
+   xi_barrier=bin_coord(maxlocate)
+!
+!     Take the reactant asymptotic (xi=zero) as lowest PMF value
+!
+   if (pmf_minloc .eq. 'ZERO') then
+      minlocate=-int(xi_min/((xi_max-xi_min)/(nbins)))+1
+!
+!     Take the lowest PMF value left the TS as the lowest one 
+!
+   else
+      minlocate=minloc(pmf(1:maxlocate),dim=1)
+   end if
+!
+!     Calculate the Xi value for the lowest bin
+!
+   xi_minimum=bin_coord(minlocate)
+end if
+
 if (skip_recross) then
-   write(*,*) "The recrossing part will be skipped, since no child"
-   write(*,*) " trajectories shall be sampled. Kappa set to 1."
-   kappa=1
+   if (rank .eq. 0) then
+      write(*,*)
+      write(*,*) "The recrossing part will be skipped, since no child"
+      write(*,*) " trajectories shall be sampled. Kappa set to 1."
+      write(*,*)
+      write(15,*)
+      write(15,*) "The recrossing part will be skipped, since no child"
+      write(15,*) " trajectories shall be sampled. Kappa set to 1."
+      write(15,*)
+   end if
+   kappa=1.0
    goto 333
 end if
 if (rank .eq. 0) then
@@ -1674,51 +1728,6 @@ end if
 !
 !!
 
-!
-!    Measure the needed time for the recrossing calculation
-!
-if (rank .eq. 0) then
-   call cpu_time(time(6))
-end if
-
-!
-!     first, determine the maximum and minimum of the free energy and the 
-!     respective xi coordinate
-!     The minimum needs to be at approx xi=0 in order to fulfill the 
-!     prerequisites of the QTST k(T) formula!
-!     For unimolecular reactions, it is more useful to determine the minimum 
-!     position freely!
-!
-if ((umbr_type .eq. "ATOM_SHIFT") .or. (umbr_type .eq. "CYCLOREVER") .or. &
-          & (umbr_type .eq. "REARRANGE") .or. (umbr_type .eq. "DECOM_1BOND") .or. &
-          & (umbr_type .eq. "ELIMINATION")) then
-   pmf_minloc="PMF_MIN"
-   if (add_force) then
-     pmf_minloc="ZERO"
-   end if
-end if
-if (rank .eq. 0) then
-!   MOD 11.02.2023: Replaced complicated maxloc formula by simple one..
-   maxlocate=maxloc(pmf(:),dim=1)
-!   maxlocate=maxloc(pmf(-int(xi_min/((xi_max-xi_min)/(nbins)))+1:nbins-1),dim=1)
-   xi_barrier=bin_coord(maxlocate)
-!
-!     Take the reactant asymptotic (xi=zero) as lowest PMF value
-!
-   if (pmf_minloc .eq. 'ZERO') then
-      minlocate=-int(xi_min/((xi_max-xi_min)/(nbins)))+1
-!
-!     Take the lowest PMF value left the TS as the lowest one 
-!
-   else 
-      minlocate=minloc(pmf(1:maxlocate),dim=1)
-   end if
-!
-!     Calculate the Xi value for the lowest bin
-!
-   xi_minimum=bin_coord(minlocate)
-end if
-!write(*,*) "xi_min",xi_minimum
 !
 !     Read in all equilibrated structures in order to find that next to the TS
 !
@@ -1788,7 +1797,7 @@ if (.not. dont_del) then
       end if
 !
 !     Avoid strange values of the recrossing coefficient: If the value is too
-!     low (2% or less) , set it to 0.5 and print warning message
+!     low (2% or less) , set it to 1.0 and print warning message
 !
    if (rank .eq. 0) then
       if (kappa .lt. 0.02d0) then
@@ -1796,17 +1805,17 @@ if (.not. dont_del) then
          write(15,*) "Warning! The computed recrossing coefficient is very low!"
          write(15,*) "The value is just:",kappa
          write(15,*) "In order to avoid strange k(T) results, the kappa value will"
-         write(15,*) "be set to 0.5! Check your calculation settings or contact"
+         write(15,*) "be set to 1.0! Check your calculation settings or contact"
          write(15,*) "Julien Steffen if this warning occurs!"
          write(15,*) 
          write(*,*) 
          write(*,*) "Warning! The computed recrossing coefficient is very low!"
          write(*,*) "The value is just:",kappa
          write(*,*) "In order to avoid strange k(T) results, the kappa value will"
-         write(*,*) "be set to 0.5! Check your calculation settings or contact"
+         write(*,*) "be set to 1.0! Check your calculation settings or contact"
          write(*,*) "Julien Steffen if this warning occurs!"
          write(*,*)
-         kappa=0.5d0
+         kappa=1.0d0
       end if
    end if
 
@@ -1836,22 +1845,22 @@ else
    read(33,*) kappa
    close(33)
    if (rank .eq. 0) then
-      if (kappa .lt. 1.02d0) then
+      if (kappa .lt. 0.02d0) then
          write(15,*)
          write(15,*) "Warning! The computed recrossing coefficient is very low!"
          write(15,*) "The value is just:",kappa
          write(15,*) "In order to avoid strange k(T) results, the kappa value will"
-         write(15,*) "be set to 0.5! Check your calculation settings or contact"
+         write(15,*) "be set to 1.0! Check your calculation settings or contact"
          write(15,*) "Julien Steffen if this warning occurs!"
          write(15,*)
          write(*,*)
          write(*,*) "Warning! The computed recrossing coefficient is very low!"
          write(*,*) "The value is just:",kappa
          write(*,*) "In order to avoid strange k(T) results, the kappa value will"
-         write(*,*) "be set to 0.5! Check your calculation settings or contact"
+         write(*,*) "be set to 1.0! Check your calculation settings or contact"
          write(*,*) "Julien Steffen if this warning occurs!"
          write(*,*)
-         kappa=0.5d0
+         kappa=1.0d0
       end if
    end if
 end if
@@ -1880,17 +1889,18 @@ end if
 !     Calculate the integral of exp(beta W(s)) for the unimolecular 
 !     rate constants 
 !
-pmf_int=0.d0
-if ((umbr_type .eq. "ATOM_SHIFT") .or. (umbr_type .eq. "CYCLOREVER") .or. &
+if (rank .eq. 0) then
+   pmf_int=0.d0
+   if ((umbr_type .eq. "ATOM_SHIFT") .or. (umbr_type .eq. "CYCLOREVER") .or. &
        & (umbr_type .eq. "REARRANGE") .or. (umbr_type .eq. "DECOM_1BOND") .or.&
        & (umbr_type .eq. "ELIMINATION")) then
-   pmf_int=0.d0
-   do i=minlocate,maxlocate
-      pmf_int=pmf_int+exp(-beta*pmf(i))
-   end do
-   pmf_int=pmf_int*bin_size
+      pmf_int=0.d0
+      do i=minlocate,maxlocate
+         pmf_int=pmf_int+exp(-beta*pmf(i))
+      end do
+      pmf_int=pmf_int*bin_size
+   end if
 end if
-
 !
 !    Measure the needed time the rate constant calculation
 !
@@ -1903,13 +1913,18 @@ end if
 !    --> The minimum and maximum of the free energy surface 
 !    new: the minimum is now the 
 !
+
+call mpi_barrier(mpi_comm_world,ierr)
 if (rank .eq. 0) then
    pmf_max=pmf(maxlocate)
-   pmf_min=pmf(minlocate )
+   pmf_min=pmf(minlocate)
    call calc_k_t(pmf_max,pmf_min,xi_barrier,xi_minimum,kappa,pmf_int)
 end if
+
 call chdir("..")
 call mpi_barrier(mpi_comm_world,ierr)
+
+
 !
 !
 !    Determine the total time of calculation

@@ -47,7 +47,6 @@ real(kind=8)::k_t  ! the final rate constant
 real(kind=8)::pi  ! pi
 
 pi=3.1415926535897932384d0    ! the pi
-
 !
 !     for the bimolecular reactions: use the formula from RPMDrate
 !
