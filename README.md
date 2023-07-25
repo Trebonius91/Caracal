@@ -1,6 +1,4 @@
-<p align="center">
-  <img src="https://github.com/Trebonius91/CARACAL/blob/main/manual/figures/logo.png" alt="logo" width="350"/>
-</p>
+
 
 
 # Caracal
