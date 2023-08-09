@@ -5,7 +5,6 @@
 </p>
 
 <p align="center">
-   <font size=”1”>(Logo reprinted with permission from https://doi.org/10.1021/acs.jctc.3c00568. Copyright 2023 American Chemical Society.)</font>
 <sub><sup>(Logo reprinted with permission from https://doi.org/10.1021/acs.jctc.3c00568. Copyright 2023 American Chemical Society.)</sup></sub>
 </p>
 
