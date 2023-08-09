@@ -2,6 +2,7 @@
 
 <p align="center">
 <img src="https://github.com/Trebonius91/Caracal/blob/main/manual/figures/logo.png" alt="drawing" width="340"/>
+   
 <sub><sup>(Logo reprinted with permission from https://doi.org/10.1021/acs.jctc.3c00568. Copyright 2023 American Chemical Society.)</sup></sub>
 </p>
 
