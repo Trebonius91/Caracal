@@ -15,11 +15,12 @@ Ring polymer molecular dynamics and rate constant calculations on black-box pote
 
 Caracal is a free open-source software package that enables a wide variety of molecular dynamics applications.
 Unbiased and biased molecular dynamics trajectories can be sampled, unperiodic as well as periodic (NVE, NVT, NpT) setups are possible.
+Classical (Newtonian) as well as ring polymer molecular dynamics (RPMD) can be used.
 A central feature is the automized setup of potential energy surfaces for gas phase reactions using the EVB-QMDFF methodology.
 Quantum mechanical derived force fields (QMDFFs) can be generated in black box fashion for arbitrary chemical systems, two QMDFFs can be coupled by
 different EVB (Empirical Valence Bond) coupling methods.
 Simple energy difference coupling methods as well as more sophisticated methods like distributed gaussian (DG)-EVB or transition region corrected reaction path EVB-QMDFF (TREQ) are availabe for that purpose.
-Especially the TREQ method allows for black-box generation of high quality PES descriptions, the whole process of PES setup and rate constant calculation with ring polymer molecular dynamics (RPMD) is realized in the black-box program within Caracal.
+Especially the TREQ method allows for black-box generation of high quality PES descriptions, the whole process of PES setup and rate constant calculation with RPMD is realized in the black-box program within Caracal.
 QMDFFs of single molecules can be polymerized to describe complex multicomponent mixtures or solutions, containing molecules like transition metal complexes for which it is hard to get force field parametrizations but are easy to setup with QMDFF.
 Further, a steadily growing number of analytical PES representations of gas phase reaction systems from the literature is integrated into Caracal, mainly for the calculation of rate constants. Alternatively, you can couple your own
 PES routine to the program and perform biased or unbiased RPMD with it.
@@ -77,7 +78,7 @@ For compilation, the following dependencies are required:
 ## Compiling from Source
 
 The Makefile, which is located in the main directory, should be modified to meet your sytem requirements
-(a separate configure file will be added in the future). After, this, copy ot tp the src directory and run
+(a separate configure file will be added in the future). After, this, copy it to the src directory and run
 ```
 $ make
 ```
@@ -94,6 +95,10 @@ Now, general instructions how to use the program as well as a list of available 
 ## Tutorials and Examples
 
 A detailed set of tutorials describing the different programs, including a set of different examples covering relevant application cases can be found in the [Caracal Wiki](https://github.com/Trebonius91/CARACAL/wiki)
+
+## Further Questions or Bugs
+
+If you have further questions or detected a bug / unexpected behavior within Caracal, please do not hesitate to contact me! (either here on github, or via mail (mail@j-steffen.org)).        
 
 ## Future improvements
 
