@@ -1,7 +1,10 @@
 
 
 <p align="center">
-<img src="https://github.com/Trebonius91/Caracal/blob/main/manual/figures/logo.png" alt="drawing" width="340"/>
+<img src="https://github.com/Trebonius91/Caracal/blob/main/manual/figures/logo.png" alt="drawing" width="300"/>
+</p>
+
+<p align="center">
 <sub><sup>(Logo reprinted with permission from https://doi.org/10.1021/acs.jctc.3c00568. Copyright 2023 American Chemical Society.)</sup></sub>
 </p>
 
@@ -12,12 +15,15 @@ Ring polymer molecular dynamics and rate constant calculations on black-box pote
 
 Caracal is a free open-source software package that enables a wide variety of molecular dynamics applications.
 Unbiased and biased molecular dynamics trajectories can be sampled, unperiodic as well as periodic (NVE, NVT, NpT) setups are possible.
+Classical (Newtonian) as well as ring polymer molecular dynamics (RPMD) can be used.
 A central feature is the automized setup of potential energy surfaces for gas phase reactions using the EVB-QMDFF methodology.
 Quantum mechanical derived force fields (QMDFFs) can be generated in black box fashion for arbitrary chemical systems, two QMDFFs can be coupled by
 different EVB (Empirical Valence Bond) coupling methods.
 Simple energy difference coupling methods as well as more sophisticated methods like distributed gaussian (DG)-EVB or transition region corrected reaction path EVB-QMDFF (TREQ) are availabe for that purpose.
-Especially the TREQ method allows for black-box generation of high quality PES descriptions, the whole process of PES setup and rate constant calculation with ring polymer molecular dynamics (ROMD) is realized in the black-box program within Caracal.
-Further, a number of analytical PES representations of gas phase reaction systems are integrated, they can directly be called for MD or rate constant calculations on them.
+Especially the TREQ method allows for black-box generation of high quality PES descriptions, the whole process of PES setup and rate constant calculation with RPMD is realized in the black-box program within Caracal.
+QMDFFs of single molecules can be polymerized to describe complex multicomponent mixtures or solutions, containing molecules like transition metal complexes for which it is hard to get force field parametrizations but are easy to setup with QMDFF.
+Further, a steadily growing number of analytical PES representations of gas phase reaction systems from the literature is integrated into Caracal, mainly for the calculation of rate constants. Alternatively, you can couple your own
+PES routine to the program and perform biased or unbiased RPMD with it.
 
 If you use Caracal for your research, I would be very glad if you could cite the ***original Caracal paper*** ([DOI: 10.1021/acs.jctc.3c00568](https://pubs.acs.org/doi/10.1021/acs.jctc.3c00568)). 
 Within it and its supporting information, more details concerning the underlying theory and algorithms can be found as well.
@@ -72,7 +78,7 @@ For compilation, the following dependencies are required:
 ## Compiling from Source
 
 The Makefile, which is located in the main directory, should be modified to meet your sytem requirements
-(a separate configure file will be added in the future). After, this, copy ot tp the src directory and run
+(a separate configure file will be added in the future). After, this, copy it to the src directory and run
 ```
 $ make
 ```
@@ -89,6 +95,10 @@ Now, general instructions how to use the program as well as a list of available 
 ## Tutorials and Examples
 
 A detailed set of tutorials describing the different programs, including a set of different examples covering relevant application cases can be found in the [Caracal Wiki](https://github.com/Trebonius91/CARACAL/wiki)
+
+## Further Questions, Suggestions or Bug Reports
+
+If you have further questions, suggestions what shall be added to Caracal, or detected a bug / unexpected behavior within Caracal, please do not hesitate to contact me! (either here on github, or via mail (mail@j-steffen.org)).        
 
 ## Future improvements
 
