@@ -1,5 +1,5 @@
-# Makefile for compiling the EVB-QMDFF program
-# Edited by Julien Steffen, 2021
+# Makefile for compiling the Caracal program package
+# Edited by Julien Steffen, 2023
 
 #  Fortran compiler for serial version:
 #FC = gfortran  # GNU Fortran
