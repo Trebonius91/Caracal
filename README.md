@@ -19,8 +19,10 @@ A central feature is the automized setup of potential energy surfaces for gas ph
 Quantum mechanical derived force fields (QMDFFs) can be generated in black box fashion for arbitrary chemical systems, two QMDFFs can be coupled by
 different EVB (Empirical Valence Bond) coupling methods.
 Simple energy difference coupling methods as well as more sophisticated methods like distributed gaussian (DG)-EVB or transition region corrected reaction path EVB-QMDFF (TREQ) are availabe for that purpose.
-Especially the TREQ method allows for black-box generation of high quality PES descriptions, the whole process of PES setup and rate constant calculation with ring polymer molecular dynamics (ROMD) is realized in the black-box program within Caracal.
-Further, a number of analytical PES representations of gas phase reaction systems are integrated, they can directly be called for MD or rate constant calculations on them.
+Especially the TREQ method allows for black-box generation of high quality PES descriptions, the whole process of PES setup and rate constant calculation with ring polymer molecular dynamics (RPMD) is realized in the black-box program within Caracal.
+QMDFFs of single molecules can be polymerized to describe complex multicomponent mixtures or solutions, containing molecules like transition metal complexes for which it is hard to get force field parametrizations but are easy to setup with QMDFF.
+Further, a steadily growing number of analytical PES representations of gas phase reaction systems from the literature is integrated into Caracal, mainly for the calculation of rate constants. Alternatively, you can couple your own
+PES routine to the program and perform biased or unbiased RPMD with it.
 
 If you use Caracal for your research, I would be very glad if you could cite the ***original Caracal paper*** ([DOI: 10.1021/acs.jctc.3c00568](https://pubs.acs.org/doi/10.1021/acs.jctc.3c00568)). 
 Within it and its supporting information, more details concerning the underlying theory and algorithms can be found as well.
