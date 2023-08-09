@@ -1,7 +1,7 @@
 
 
 <p align="center">
-<img src="https://github.com/Trebonius91/Caracal/blob/main/manual/figures/logo.png" alt="drawing" width="340"/>
+<img src="https://github.com/Trebonius91/Caracal/blob/main/manual/figures/logo.png" alt="drawing" width="300"/>
 </p>
 
 <p align="center">
