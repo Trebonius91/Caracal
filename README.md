@@ -15,7 +15,7 @@ Simple energy difference coupling methods as well as more sophisticated methods 
 Especially the TREQ method allows for black-box generation of high quality PES descriptions, the whole process of PES setup and rate constant calculation with ring polymer molecular dynamics (ROMD) is realized in the black-box program within Caracal.
 Further, a number of analytical PES representations of gas phase reaction systems are integrated, they can directly be called for MD or rate constant calculations on them.
 
-If you use Caracal for your research, I would be very glad if you could cite the original Caracal paper: [DOI: 10.1021/acs.jctc.3c00568][https://pubs.acs.org/doi/10.1021/acs.jctc.3c00568]
+If you use Caracal for your research, I would be very glad if you could cite the original Caracal paper: [DOI: 10.1021/acs.jctc.3c00568](https://pubs.acs.org/doi/10.1021/acs.jctc.3c00568)
 
 
 ## License
