@@ -96,9 +96,9 @@ Now, general instructions how to use the program as well as a list of available 
 
 A detailed set of tutorials describing the different programs, including a set of different examples covering relevant application cases can be found in the [Caracal Wiki](https://github.com/Trebonius91/CARACAL/wiki)
 
-## Further Questions or Bugs
+## Further Questions, Suggestions or Bug Reports
 
-If you have further questions or detected a bug / unexpected behavior within Caracal, please do not hesitate to contact me! (either here on github, or via mail (mail@j-steffen.org)).        
+If you have further questions, suggestions what shall be added to Caracal, or detected a bug / unexpected behavior within Caracal, please do not hesitate to contact me! (either here on github, or via mail (mail@j-steffen.org)).        
 
 ## Future improvements
 
