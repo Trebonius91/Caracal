@@ -542,6 +542,14 @@ write(10,'(A,I4)') "  - Number of torsions:",ntors
 write(10,'(A,I4)') " * Non-covalent terms total: ",nnci
 write(10,*) 
 
+!
+!     If the CHECK_COORD mode is activated, skip the Hessian read in and 
+!     jump directy to the end!
+!
+if (check_coord) then
+   goto 1111
+end if
+
 !     If no variable is defined (fatal...)
 if (nvar.eq.0) goto 1999
 

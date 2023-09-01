@@ -103,6 +103,10 @@ if (trim(progname) .eq. "qmdffgen") then
    write(*,*) "    calculated reference data."
    write(*,*) " * 2QMDFF [name1,name2]: Two QMDFFs shall be generated, prefixes."
    write(*,*) " * 3QMDFF [name1,name2,name3]; Three QMDFFs, prefixes."
+   write(*,*) " * CHECK_COORD: No QMDFF is generated, internal coordinates are "
+   write(*,*) "    are determined from Wiberg-Mayer bond orders and written out, "
+   write(*,*) "    as well as the Wilson Matrix and its derivative. No Hessian"
+   write(*,*) "    is needed as input in this mode."
 end if
 !
 !     Program EVBOPT: general infos and list of all keywords

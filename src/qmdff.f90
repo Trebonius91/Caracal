@@ -203,6 +203,10 @@ real(kind=8),allocatable::corr_factor(:)
 !    for detailed printout of QMDFF and EVB parameters etc.
 logical::details
 
+!    If qmdffgen shall not generate a QMDFF but only determine coordinates based 
+!    on Wiberg-Mayer bond orders and print out Wilson matrix/derivatives
+logical::check_coord
+
 ! For box simulations with periodic boundary conditions
 logical::periodic
 ! Lengths of the cartesian box dimensions

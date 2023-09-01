@@ -159,7 +159,7 @@ end do
 !
 !     If the QMDFF names are stored already in a file
 !
-
+check_coord=.false.
 do i = 1, nkey
    next = 1
    record = keyline(i)
@@ -206,6 +206,19 @@ do i = 1, nkey
       l2=LEN(TRIM(pre2))
       l3=LEN(TRIM(pre3))
       prefix_key=.true.
+!
+!     No QMDFF will be generated, instead, the internal coordinates 
+!      of the given structure will be built and the Wilson matrix 
+!      and its derivative will be generated
+!
+   else if (keyword(1:11) .eq. 'CHECK_COORD ') then
+      check_coord=.true.
+      write(*,*) 
+      write(*,*) "The CHECK_COORD option was activated! No Hessian will be "
+      write(*,*) "  read in and no QMDFF will be generated, instead, the internal"
+      write(*,*) "  coordinates of the structure will be obtained from the Wiberg-"
+      write(*,*) "  Mayer bond orders and the Wilson matrix as well as its derivative"
+      write(*,*) "  will be written."
    end if
 end do
 if (.not. read_software) then
@@ -283,15 +296,28 @@ if (.not. prefix_key) then
 !
    exist=.false.
    do while (.not. exist)
-      if (software .eq. "O") then
-         write(iout,'(/, " Prefix of the first reference (name.hess &
-              and name.out must be in this folder!: ",$)')
-      else if (software .eq. "G") then
-         write(iout,'(/, " Prefix of the first reference (name.out &
-              and name.chk must be in this folder!: ",$)')
-      else if (software .eq. "C") then
-         write(iout,'(/, " Prefix of the first reference (name.out &
-              must be in this folder!: ",$)')
+      if (.not. check_coord) then
+         if (software .eq. "O") then
+            write(iout,'(/, " Prefix of the first reference (name.hess &
+                 and name.out must be in this folder!: ",$)')
+         else if (software .eq. "G") then
+            write(iout,'(/, " Prefix of the first reference (name.out &
+                 and name.chk must be in this folder!: ",$)')
+         else if (software .eq. "C") then
+            write(iout,'(/, " Prefix of the first reference (name.out &
+                 must be in this folder!: ",$)')
+         end if
+      else 
+         if (software .eq. "O") then
+            write(iout,'(/, " Prefix of the first reference (name.out &
+                 must be in this folder!: ",$)')
+         else if (software .eq. "G") then
+            write(iout,'(/, " Prefix of the first reference (name.out &
+                 and name.chk must be in this folder!: ",$)')
+         else if (software .eq. "C") then
+            write(iout,'(/, " Prefix of the first reference (name.out &
+                 must be in this folder!: ",$)')
+         end if
       end if
       read (*,'(A80)')  line
       allocate(character(len=LEN(TRIM(line))) :: prefix1)
@@ -536,7 +562,7 @@ call xyz_2int(xyz,internal1,n_one)
 !
 !    Third, calculcate the Wilson matrix and its derivative
 !
-if (n_one .lt. 20) then
+if (check_coord) then
    call calc_wilson(xyz,internal1,wilson)
    call calc_dwilson(xyz,internal1,dwilson)
 !
@@ -585,7 +611,7 @@ if (n_one .lt. 20) then
          end do
       end do
    end do
-   write(*,*) "Internal coordinate details written to 'coord_analysis.dat'"
+   write(*,*) "Internal coordinate details (+Wilson matrix) written to 'coord_analysis.dat'"
 end if
 
 close(45)
