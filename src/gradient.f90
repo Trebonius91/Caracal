@@ -36,12 +36,13 @@
 !
 !     part of EVB
 !
-subroutine gradient (xyz2,e_evb,g_evb,act_bead)
+subroutine gradient (xyz2,e_evb,g_evb,act_bead,rank)
 use general
 use evb_mod
 implicit none
 integer i,j,t,n2 
 integer::act_bead  ! the actual bead number/index to calculate
+integer::rank  ! the actual MPI rank
 real(kind=8)::xyz2(3,natoms),e_evb,g_evb(3,natoms),g_test(3,natoms) 
 real(kind=8)::e1_shifted,e2_shifted,e3_shifted,e_two,gnorm_two
 real(kind=8)::e_three,gnorm_three
@@ -106,6 +107,7 @@ real(kind=8)::deltxyz(3*natoms)  ! the cartesian analogue to deltq
 integer::khi,klo    ! for interpolation gradient
 real(kind=8)::pi
 character(len=100)::adum  ! for bug prevention
+character(len=4)::rank_char  ! for separate folders of MPI ranks (call external)
 !    complex numbers for analytical DG-EVB gradient (V12*dV12)
 complex(kind=16)::rootV,V_lower,V_upper,V12_comp,dV12_comp
 real(kind=8),allocatable::alph1(:)
@@ -246,9 +248,25 @@ if (orca) then
 end if
 !
 !     Invoke the call to the chosen external program, if desired
+!     Is several MPI ranks are used, go to the folder for each rank!
 !
 if (call_ext) then
-   call external_grad(xyz2,pot_grad,e_evb)
+   if (use_calc_rate) then
+      if (rank .lt. 10) then
+         write(rank_char,'(i1)') rank
+      else if (rank .lt. 100) then
+         write(rank_char,'(i2)') rank
+      else if (rank .lt. 1000) then
+         write(rank_char,'(i3)') rank
+      else
+         write(rank_char,'(i4)') rank
+      end if
+      call chdir("rank"//trim(rank_char))
+      call external_grad(xyz2,pot_grad,e_evb)
+      call chdir("..")
+   else 
+      call external_grad(xyz2,pot_grad,e_evb)
+   end if
    g_evb=pot_grad(:,:,1)
    return
 end if

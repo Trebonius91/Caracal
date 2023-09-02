@@ -140,12 +140,12 @@ if (rank .eq. 0) then
            & " for",real(recr_equi)*dt_info," ps."
    write(*,'(a,f11.4,a,f11.4,a)') " Evolving parent trajectory at Xi= ",xi_ideal, &
            & " for",real(recr_equi)*dt_info," ps."
-   call mdinit(derivs,xi_ideal,dxi_act,2)
+   call mdinit(derivs,xi_ideal,dxi_act,2,rank)
 !
 !     do dynamics with the verlet subroutine, constrain is activated
 !
    do i=1,recr_equi
-      call verlet(i,dt,derivs,en_act,0d0,0d0,xi_ideal,xi_real,dxi_act,j,1,.false.)
+      call verlet(i,dt,derivs,en_act,0d0,0d0,xi_ideal,xi_real,dxi_act,j,1,.false.,rank)
 !
 !     check the trajectory, if failed, go to beginning of trajectory
 !     --> check after some equilibration time first!
@@ -339,7 +339,7 @@ else
 !
             do l=1,nbeads
                q_1b=q_i(:,:,l)
-               call gradient (q_1b,vpot,derivs_1d,l)
+               call gradient (q_1b,vpot,derivs_1d,l,rank)
                derivs(:,:,l)=derivs_1d
             end do
 
@@ -378,7 +378,7 @@ else
 ! 
             do l=1,child_evol
      !          write(*,*) "centroid3!",q_i
-               call verlet(l,dt,derivs,en_act,0d0,0d0,xi_ideal,xi_real,dxi_act,m,2,.false.)
+               call verlet(l,dt,derivs,en_act,0d0,0d0,xi_ideal,xi_real,dxi_act,m,2,.false.,rank)
                if (xi_real .gt.0) then
                   kappa_num(l)=kappa_num(l)+vs/fs
                end if
@@ -409,14 +409,14 @@ else
 !
 !     Also redo the initialization of the dynamics
 !   
-     call mdinit(derivs,xi_ideal,dxi_act,2)
+     call mdinit(derivs,xi_ideal,dxi_act,2,rank)
 
 !
 !     Sample the parent trajectory to generate a new starting configuration
 !     for the children
 
       do j=1,child_interv
-         call verlet(i,dt,derivs,en_act,0d0,0d0,xi_ideal,xi_real,dxi_act,j,1,.false.)
+         call verlet(i,dt,derivs,en_act,0d0,0d0,xi_ideal,xi_real,dxi_act,j,1,.false.,rank)
 !
 !     check the trajectory, if failed, go to beginning of trajectory
 !

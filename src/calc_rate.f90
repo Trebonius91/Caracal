@@ -173,6 +173,7 @@ integer::reset_prob  ! after how many steps a reset should occur, fraction of er
 real(kind=8)::energy_ts,energ,energy_act ! energy of the TS and the actual energy, check if current 
 real(kind=8),dimension(:),allocatable::equi_energy               ! energies of equilibrated structures
 real(kind=8)::average_store,variance_store ! backup values for averages,variances
+character(len=4)::rank_char  ! for separate folders of MPI ranks (call external)
 !     for debug reasons
 integer::gnu_xi_unit  ! for optional plot of Xi distributions
 integer::xi_real_unit  ! for print of real Xi values for umbrella start structures
@@ -229,6 +230,10 @@ use_mpi=.true.
 !
 recross_calc=.false.
 !
+!     The program calc_rate is used: needed for PES setup of external PES
+!
+use_calc_rate=.true.
+!
 !     set up the structure and molecular mechanics calculation
 !
 call initial(rank)
@@ -274,8 +279,7 @@ end if
 !
 use_rpmd=.true.  ! for init_int etc.
 call read_pes(rank)
-
-
+!
 !     Read in settings for the rate calculation
 !
 
@@ -423,7 +427,31 @@ end if
 !     calculate energy of the starting point; the TS (times number of beads)!
 !
 allocate(error_vec_ens(nat6),error_vec_v12(nat6))
-call gradient(ts_ref,energy_ts,derivs,1)
+
+
+!
+!     If an external PES shall be used, generate a folder for each MPI rank such that
+!     no problems with collisions occur
+!
+if (call_ext) then
+   if (rank .lt. 10) then
+      write(rank_char,'(i1)') rank
+   else if (rank .lt. 100) then
+      write(rank_char,'(i2)') rank
+   else if (rank .lt. 1000) then
+      write(rank_char,'(i3)') rank
+   else
+      write(rank_char,'(i4)') rank
+   end if
+
+   inquire(file="rank"//rank_char, exist=dont_del)
+   if (.not. dont_del) then
+      call system("mkdir rank"//trim(rank_char))
+   end if
+end if
+
+
+call gradient(ts_ref,energy_ts,derivs,1,rank)
 if (rank .eq. 0) then
    write(15,*)
    write(15,*) "You are starting a rate constant calculation with connected"
@@ -540,11 +568,33 @@ end if
 call mpi_barrier(mpi_comm_world,impi_error)
 
 call chdir(foldername)
+
 !
 !     signalize that the calculation is under way: If it is canceled before
 !     the resulting folder won´t be erased!
 !
 call system ("touch current_calc") 
+!
+!     If an external PES shall be used, generate a folder for each MPI rank such that
+!     no problems with collisions occur
+!
+call mpi_barrier(mpi_comm_world,impi_error)
+if (call_ext) then
+   if (rank .lt. 10) then
+      write(rank_char,'(i1)') rank
+   else if (rank .lt. 100) then
+      write(rank_char,'(i2)') rank
+   else if (rank .lt. 1000) then
+      write(rank_char,'(i3)') rank
+   else 
+      write(rank_char,'(i4)') rank
+   end if
+
+   inquire(file="rank"//rank_char, exist=dont_del)
+   if (.not. dont_del) then
+      call system("mkdir rank"//trim(rank_char))
+   end if
+end if
 !
 !     in case that umbrella integration will be used, allocate arrays
 !     (also when wham is active, due to small amount of work..)
@@ -658,9 +708,9 @@ if ((.not. dont_equi) .and. (rank .eq. 0)) then
 !         stop "no GLE implemented!"
 !      end if
   !    call mdinit_bias(xi_val,dxi_act,derivs,1,2)
-      call mdinit(derivs,xi_val,dxi_act,2)
+      call mdinit(derivs,xi_val,dxi_act,2,rank)
       do istep = 1, gen_step
-         call verlet(istep,dt,derivs,energy_act,0d0,0d0,xi_val,xi_real,dxi_act,i,0,.false.)
+         call verlet(istep,dt,derivs,energy_act,0d0,0d0,xi_val,xi_real,dxi_act,i,0,.false.,rank)
     !     call verlet_bias (istep,dt,xi_val,xi_real,dxi_act,energy_act,derivs,i,0)
 !
 !          call verlet_bias (istep,dt,xi_val,xi_real,dxi_act,energy_act,derivs,i,0)
@@ -754,7 +804,7 @@ if ((.not. dont_equi) .and. (rank .eq. 0)) then
 !     Reinitialize the dynamics (momenta etc.)
 !
  !     call mdinit_bias(xi_val,dxi_act,derivs,1,2)
-      call mdinit(derivs,xi_val,dxi_act,2)
+      call mdinit(derivs,xi_val,dxi_act,2,rank)
       do istep = 1, gen_step
          if (istep .eq. 1) then
 !
@@ -762,7 +812,7 @@ if ((.not. dont_equi) .and. (rank .eq. 0)) then
 !
             write(a80,'(a,3e14.7)') "theq",q_i(:,1,1)
          end if
-         call verlet(istep,dt,derivs,energy_act,0d0,0d0,xi_val,xi_real,dxi_act,i,0,.false.) 
+         call verlet(istep,dt,derivs,energy_act,0d0,0d0,xi_val,xi_real,dxi_act,i,0,.false.,rank) 
 !         call verlet_bias (istep,dt,xi_val,xi_real,dxi_act,energy_act,derivs,i,0)
          if (istep .eq. 1) then
 !
@@ -1163,7 +1213,7 @@ if (.not. dont_umbr) then
 !     Reinitialize the dynamics (momenta etc.)
 !
        !        call mdinit_bias(xi_val,dxi_act,derivs,1,2) 
-               call mdinit(derivs,xi_val,dxi_act,2)
+               call mdinit(derivs,xi_val,dxi_act,2,rank)
 !
 !     Run the current umbrella trajectory for equilibration
 !     
@@ -1178,7 +1228,7 @@ if (.not. dont_umbr) then
          !         stop "No GLE implemented!"
          !      end if
                do istep = 1, equi_step
-                  call verlet(istep,dt,derivs,energy_act,0d0,0d0,xi_val,xi_real,dxi_act,j,0,.false.)
+                  call verlet(istep,dt,derivs,energy_act,0d0,0d0,xi_val,xi_real,dxi_act,j,0,.false.,rank)
                !   call verlet_bias (istep,dt,xi_val,xi_real,dxi_act,energy_act,derivs,j,0)
 !
 !     check the trajectory, if failed, go to beginning of trajectory
@@ -1230,12 +1280,12 @@ if (.not. dont_umbr) then
 !
                do i=1,nbeads
                   q_1b=q_i(:,:,i)
-                  call gradient (q_1b,epot,derivs_1d,i)
+                  call gradient (q_1b,epot,derivs_1d,i,rank)
                   derivs(:,:,i)=derivs_1d
                end do
                do istep = 1, umbr_step
 
-                  call verlet(istep,dt,derivs,energy_act,0d0,0d0,xi_val,xi_real,dxi_act,k,0,.false.)
+                  call verlet(istep,dt,derivs,energy_act,0d0,0d0,xi_val,xi_real,dxi_act,k,0,.false.,rank)
             !      call verlet_bias (istep,dt,xi_val,xi_real,dxi_act,energy_act,derivs,k,0)
 !
 !     check the trajectory, if failed, go to beginning of the equilibration trajectory
@@ -1921,8 +1971,48 @@ if (rank .eq. 0) then
    call calc_k_t(pmf_max,pmf_min,xi_barrier,xi_minimum,kappa,pmf_int)
 end if
 
+!
+!     If an external PES has been used, remove the folders for each for each MPI rank
+!
+if (call_ext) then
+   if (rank .lt. 10) then
+      write(rank_char,'(i1)') rank
+   else if (rank .lt. 100) then
+      write(rank_char,'(i2)') rank
+   else if (rank .lt. 1000) then
+      write(rank_char,'(i3)') rank
+   else
+      write(rank_char,'(i4)') rank
+   end if
+
+   inquire(file="rank"//rank_char, exist=dont_del)
+   if (dont_del) then
+      call system("rm -r  rank"//trim(rank_char))
+   end if
+end if
+
+
 call chdir("..")
 call mpi_barrier(mpi_comm_world,ierr)
+
+!
+!     If an external PES has been used, remove the folders for each for each MPI rank
+!
+if (call_ext) then
+   if (rank .lt. 10) then
+      write(rank_char,'(i1)') rank
+   else if (rank .lt. 100) then
+      write(rank_char,'(i2)') rank
+   else if (rank .lt. 1000) then
+      write(rank_char,'(i3)') rank
+   else 
+      write(rank_char,'(i4)') rank
+   end if
+   inquire(file="rank"//rank_char, exist=dont_del)
+   if (dont_del) then
+      call system("rm -r  rank"//trim(rank_char))
+   end if
+end if
 
 
 !

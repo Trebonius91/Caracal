@@ -120,7 +120,7 @@ do i=1,n_all+1
             & " for",real(gen_step)*dt_info," ps."
    do istep=1,gen_step
 
-      call verlet(istep,dt,derivs,en_act,0d0,0d0,xi_val,xi_real,dxi_act,i,3,.false.)
+      call verlet(istep,dt,derivs,en_act,0d0,0d0,xi_val,xi_real,dxi_act,i,3,.false.,1)
    end do
    pre_equi(i,:,:)=q_i(:,:,1)
 end do

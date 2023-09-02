@@ -121,7 +121,7 @@ if (irc_method .eq. "euler") then
 !
 !     Calculate potential energy of starting point
 !
-   call gradient(xyz2,e_ts,grad,1)
+   call gradient(xyz2,e_ts,grad,1,1)
 
 !
 !     Do big loop with two steps: follow both directions of the IRC
@@ -178,7 +178,7 @@ if (irc_method .eq. "euler") then
       steps_corr=0
       do 
          act_struc=act_struc-euler_step*act_step/grad_abs
-         call gradient(act_struc,epot,grad,1)
+         call gradient(act_struc,epot,grad,1,1)
 !
 !     if goal was archived, leave the loop
 ! 
@@ -244,7 +244,7 @@ if (irc_method .eq. "euler") then
 !
 !     calculate gradient of actual structure
 !         
-         call gradient(act_struc,epot,grad,1)
+         call gradient(act_struc,epot,grad,1,1)
 !
 !     mass-weight the gradient!--> actual step
 !

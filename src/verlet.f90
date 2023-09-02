@@ -63,13 +63,14 @@
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 subroutine verlet (istep,dt,derivs,epot,ekin,afm_force,xi_ideal,xi_real,&
-          & dxi_act,round,constrain,analyze)
+          & dxi_act,round,constrain,analyze,rank)
 use general 
 use evb_mod
 use qmdff
 !  ambigious reference of z-coord to qmdff z(94) array!!
 implicit none
 integer::i,j,k,l,istep   ! loop indices and actual step number
+integer::rank   ! the current MPI rank
 real(kind=8)::dt,dt_2
 real(kind=8)::etot,epot,ekin,epot1
 real(kind=8)::eksum
@@ -584,7 +585,7 @@ end if
 xi_test=xi_real  ! TEST TEST
 do i=1,nbeads 
    q_1b=q_i(:,:,i) 
-   call gradient (q_1b,epot1,derivs_1d,i)
+   call gradient (q_1b,epot1,derivs_1d,i,rank)
    derivs(:,:,i)=derivs_1d
    epot=epot+epot1
 end do

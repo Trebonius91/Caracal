@@ -136,7 +136,7 @@ do niter=1,maxiter
 !
 !     calculate actual cartesian gradient
 !
-   call gradient(xyz2,energy,grad,1)
+   call gradient(xyz2,energy,grad,1,1)
 !   write(*,*) "grad_xyz",grad
 !
 !     convert gradient to internal coordinates

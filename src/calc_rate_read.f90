@@ -1250,7 +1250,7 @@ do l=1,sum_reacs
          active=.false.
       else if ((at_reac(l,i) .gt. natoms) .or. (at_reac(l,i) .lt. 0)) then
          if (rank .eq. 0) then
-            write(*,'(a,i1,a)') "Educt ",l," has an atom out of range!"
+            write(*,'(a,i1,a)') "Reactant ",l," has an atom out of range!"
             call fatal
          end if
       else

@@ -123,7 +123,10 @@ use_mpi=.false.
 !     Activate the RPMD switch for correct application of gradient calculations
 !
 use_rpmd=.true.
-
+!
+!     The program calc_rate is not used..
+!
+use_calc_rate=.false.
 !
 !
 !     set up the structure and molecular mechanics calculation
@@ -1223,7 +1226,7 @@ end if
 !     call the initialization routine
 !
 
-call mdinit(derivs,xi_ideal,dxi_act,bias_mode)
+call mdinit(derivs,xi_ideal,dxi_act,bias_mode,1)
 !
 !     if you want to control if the total energy is conserved
 !
@@ -1301,7 +1304,7 @@ do istep = 1, nstep
    round=0
    constrain=-1
    call verlet (istep,dt,derivs,epot,ekin,afm_force,xi_ideal,xi_real,dxi_act, &
-            & round,constrain,analyze)
+            & round,constrain,analyze,1)
 !
 !     TEST: write out bondlengths to bonds.log
 !

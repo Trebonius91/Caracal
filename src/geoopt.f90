@@ -109,7 +109,7 @@ do icycle=1,nmax
 !     calculate energy and gradient      
 !
    
-   call gradient(coord,epot,grd,1)
+   call gradient(coord,epot,grd,1,1)
 !
 !     Write current structure to trajectory file
 !
@@ -206,7 +206,7 @@ do icycle=1,nmax
 !
 !     energy only     
 ! 
-      call gradient(xyz2,el,g_dummy,1)   
+      call gradient(xyz2,el,g_dummy,1,1)   
       if (el .lt. emin) then
          alpha=alp
          emin=el   

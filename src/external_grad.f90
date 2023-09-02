@@ -40,6 +40,7 @@ implicit none
 real(kind=8)::xyz2(3,natoms)
 real(kind=8)::pot_grad(3,natoms,1)
 real(kind=8)::e_evb
+integer::readstat
 integer::i,j
 
 
@@ -58,12 +59,22 @@ call system(trim(symlink_ext))
 !
 !    read in energy and gradient of the external calculation
 !
-open(unit=29,file="egrad_out.dat",status="old")
-read(29,*) e_evb
+open(unit=29,file="egrad_out.dat",status="old",iostat=readstat)
+read(29,*,iostat=readstat) e_evb
 do i=1,natoms
-   read(29,*) pot_grad(:,i,1)
+   read(29,*,iostat=readstat) pot_grad(:,i,1)
 end do
 close(29)
+
+if (readstat .ne. 0) then
+   write(*,*) "ERROR! The output of the external program in 'egrad_out.dat' could not"
+   write(*,*) " read in by external_grad! Check your external program!"
+   write(*,*) "The current path is:"
+   call system("pwd")
+   call fatal
+end if
+
+
 return
 
 end subroutine external_grad

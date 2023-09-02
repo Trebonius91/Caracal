@@ -49,7 +49,7 @@ integer::qmdff_index   ! number of QMDFF for corrections
 character(len=120)::string
 character(len=20)::keyword
 character(len=120)::record
-character(len=70)::fileinfo,filegeo
+character(len=70)::fileinfo,filegeo,ts_file
 character(len=70)::file_irc_struc
 character(len=70)::file_irc_ens
 character(len=70)::filets,filets2,names
@@ -206,7 +206,43 @@ else if (method .eq. "ORCA") then
 !
 else if (method .eq. "EXTERNAL") then
    call_ext=.true.
+!
+!     If the program calc_rate is used, the number of atoms must be read in from the 
+!     start structure (TS) since the number of atoms is not clear from the beginning!
+!
+   if (use_calc_rate) then
+      do i = 1, nkey
+         next = 1
+         record = keyline(i) 
+         call gettext (record,keyword,next)
+         call upcase (keyword)
+         string = record(next:120)
+!  
+!     reset the read status to successful (check it for each keyword)
+!
+         readstat= 0
+         if (keyword(1:20) .eq. 'TS_STRUC ') then
+            read(record,*,iostat=readstat) names,ts_file
+            if (readstat .ne. 0) then
+               write(*,*) "Correct format: TS_STUC [filename]"
+               call fatal
+            end if
+            exit
+         end if
+      end do
+!
+!     If the TS file has been found, read in the number of atoms from its first line
+!
+      open(unit=37,file=ts_file,status="old")
+      read(37,*) natoms
+      close(37)
+   end if
+
    if (rank .eq. 0) then
+      write(15,*) "An external potential energy function will be used!"
+      write(15,*)
+      write(*,*) "An external potential energy function will be used!"
+      write(*,*)
    end if
 
 

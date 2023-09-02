@@ -37,7 +37,7 @@
 !
 !     part of EVB
 !
-subroutine mdinit(derivs,xi_ideal,dxi_act,bias_mode)
+subroutine mdinit(derivs,xi_ideal,dxi_act,bias_mode,rank)
 use general
 use qmdff
 use evb_mod
@@ -77,7 +77,7 @@ end if
 !
 do i=1,nbeads
    q_1b=q_i(:,:,i)
-   call gradient (q_1b,epot,derivs_1d,i)
+   call gradient (q_1b,epot,derivs_1d,i,rank)
     
    derivs(:,:,i)=derivs_1d
 end do

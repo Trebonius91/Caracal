@@ -93,7 +93,7 @@ allocate(d4(np),g4(np),gold(np),xparam(np),hesinv(np*(np+1)/2), &
 !        additionally, calculate the gradient for hessian conversion
 !
 call hessevb(coord,h)
-call gradient(coord,epot,grd)
+call gradient(coord,epot,grd,1,1)
 
 !
 !     convert gradient and hessian to internal coordinates
@@ -128,7 +128,7 @@ do icycle=1,nmax
 !     calculate energy and gradient      
 !
    
-   call gradient(coord,epot,grd)
+   call gradient(coord,epot,grd,1,1)
    call grad2int(coord,coord_int,grd_int,grd)
 !
 !     Write current structure to trajectory file
@@ -221,7 +221,7 @@ do icycle=1,nmax
 !
 !     energy only     
 ! 
-      call gradient(xyz2,el,g_dummy)   
+      call gradient(xyz2,el,g_dummy,1,1)   
       if (el .lt. emin) then
          alpha=alp
          emin=el   

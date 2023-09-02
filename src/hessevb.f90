@@ -72,10 +72,10 @@ do ia = 1, natoms
       ii = (ia-1)*3+ic
       xyz2(ic,indi(ia))=xyz2(ic,indi(ia))+step
 
-      call gradient(xyz2,e,gr,1)
+      call gradient(xyz2,e,gr,1,1)
       xyz2(ic,indi(ia))=xyz2(ic,indi(ia))-2.*step
 
-      call gradient(xyz2,e,gl,1)
+      call gradient(xyz2,e,gl,1,1)
       xyz2(ic,indi(ia))=xyz2(ic,indi(ia))+step
       do ja = 1, natoms
          do jc = 1, 3

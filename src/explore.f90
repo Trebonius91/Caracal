@@ -109,6 +109,10 @@ rank=0
 !
 use_mpi=.false.
 !
+!     The program calc_rate is not used..
+!
+use_calc_rate=.false.
+!
 !     set up the structure and mechanics calculation
 !
 call initial(rank)
@@ -606,7 +610,7 @@ if (calc_egrad) then
 !     Distinguish between debug and normal calculation
 !
       coord=coord/bohr
-      call gradient(coord,e_evb,g_evb,1)  ! else calculate the usual gradient
+      call gradient(coord,e_evb,g_evb,1,1)  ! else calculate the usual gradient
 !
 !     If desired, calculate the Wilson matrix the structure and print it to file
 !
@@ -778,7 +782,7 @@ write(15,*)
 !
 allocate(g_evb(3,natoms))
 if (grad) then
-   call gradient(coord,e_evb,g_evb,1)
+   call gradient(coord,e_evb,g_evb,1,1)
    if (opt_min) then
       write(15,*)"*The optimized structure has the coordinates:"
       do i=1,nats
