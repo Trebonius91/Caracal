@@ -31,27 +31,50 @@
 !
 !     part of QMDFF
 !
-subroutine rdo0(fname,n)
+subroutine rdo0(fname,outname,n,check_coord)
 implicit real(kind=8) (a-h,o-z)
-character(len=128)::line
-character(len=*)::fname
-logical::ex
-
+character(len=128)::line,adum
+character(len=*)::fname,outname
+logical::ex,check_coord
+!
+!     If the check_coord mode is activated, no Hessian is required, and 
+!      therefore, no name.hess file must be there, name.out will be opened 
+!      instead
+!
 n=0
-inquire(file=fname,exist=ex)
-if(.not.ex) return
 ich=142
-open(unit=ich,file=fname)
-do
-   read(ich,'(a)') line
-   if (index(line,'$atoms').ne.0) then
-      read(ich,*) n
-      close(ich)
-      return
-   end if
-end do
 
-close(ich)
+if (check_coord) then
+   inquire(file=outname,exist=ex)
+   if(.not.ex) return
+   open(unit=ich,file=outname)
+   do
+      read(ich,'(a)') line
+      if (index(line,'Number of atoms').ne.0) then
+         read(line,*) adum,adum,adum,adum,n
+         close(ich)
+         return
+      end if
+   end do
+   close(ich)
+!
+!     Normal mode: read in the name.hess file
+!
+else 
+   inquire(file=fname,exist=ex)
+   if(.not.ex) return
+   open(unit=ich,file=fname)
+   do
+      read(ich,'(a)') line
+      if (index(line,'$atoms').ne.0) then
+         read(ich,*) n
+         close(ich)
+         return
+      end if
+   end do
+   close(ich)
+end if
+
 return
 
 end subroutine rdo0

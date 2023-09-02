@@ -30,34 +30,70 @@
 !
 !     part of QMDFF
 !
-subroutine rdo(echo,fname,n,xyz,iat)
+subroutine rdo(echo,fname,outname,n,xyz,iat,check_coord)
 implicit real(kind=8) (a-h,o-z)
 dimension::xyz(3,n),iat(n),xx(10)
-character(len=128)::line
+integer::idum,readstat
+real(kind=8)::rdum
+character(len=128)::line,adum
 character(len=2)::a2
-character(len=*)::fname
-logical::echo
-
-if (echo) then
-   write(10,*) '========================='
-   write(10,*) 'reading ... ',trim(fname)
-   write(10,*) '========================='
-end if
+character(len=*)::fname,outname
+logical::echo,check_coord,struc_exist
 
 ich=142
-open(unit=ich,file=fname)
-do
-   read(ich,'(a)') line
-   if(index(line,'$atoms').ne.0) then
-      read(ich,'(a)')line
-      do i=1,n
-         read(ich,*) a2,dum,xyz(1:3,i)
-         call elem(a2,iat(i))
-      end do
-      exit
+if (check_coord) then
+   if (echo) then
+      write(10,*) '========================='
+      write(10,*) 'reading ... ',trim(outname)
+      write(10,*) '========================='
    end if
-end do
 
-close(ich)
+   ich=142
+   struc_exist=.false.
+   open(unit=ich,file=outname)
+   do
+      read(ich,'(a)',iostat=readstat) line
+      if (readstat .ne. 0) then
+         exit
+      end if
+      if(index(line,'CARTESIAN COORDINATES (A.U.)').ne.0) then
+         read(ich,'(a)')line
+         read(ich,'(a)')line
+         do i=1,n
+            read(ich,*) idum,a2,rdum,idum,rdum,xyz(1:3,i)
+            call elem(a2,iat(i))
+         end do
+         struc_exist=.true.
+        ! exit
+      end if
+   end do
+   close(ich)
+   if (.not. struc_exist) then
+      write(*,*) "The file ",trim(outname)," seems to be corrupted!"
+      call fatal
+   end if
+else 
+   if (echo) then
+      write(10,*) '========================='
+      write(10,*) 'reading ... ',trim(fname)
+      write(10,*) '========================='
+   end if
+
+   ich=142
+   open(unit=ich,file=fname)
+   do
+      read(ich,'(a)') line
+      if(index(line,'$atoms').ne.0) then
+         read(ich,'(a)')line
+         do i=1,n
+            read(ich,*) a2,dum,xyz(1:3,i)
+            call elem(a2,iat(i))
+         end do
+         exit
+      end if
+   end do
+   close(ich)
+end if
+
 return
 end subroutine rdo

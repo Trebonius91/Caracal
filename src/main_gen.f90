@@ -64,6 +64,7 @@ integer::i,j,k,l,nvar,nst,izero,nn,i1,i2,iz1,iz2
 integer::mol1,nbf,nel,m,mm,time,icode,mdmode,mtors
 integer::length
 character(len=80)::a,hname,rcfile,homedir,method,fname1,fname,fname2
+character(len=80)::outname
 character(len=80)::fname3
 character(len=length+6)::solvname
 character(len=length)::fname_pre
@@ -91,6 +92,7 @@ integer::finished ! if formchk should be executed
 
 if (software .eq. "O") then
    fname=fname_pre//'.hess'
+   outname=fname_pre//'.out'
 else if (software .eq. "C") then
    fname=fname_pre//'.out'
 else if (software .eq. "G") then
@@ -175,6 +177,11 @@ write(10,*) '==================================='
 write(10,*) 'QMDFF GENERATION:'
 write(10,*) 'Program written by S.Grimme'
 write(10,*) 'Fortran90 translation by J. Steffen'
+if (check_coord) then
+   write(10,*) 'The CHECK_COORD option was activated.'
+   write(10,*) 'Only coordinate analysis done, QMDFF'
+   write(10,*) 'generation will be skipped!'
+end if
 write(10,*) '==================================='
 write(10,'('' '',I2,''.'',I2,''.'',I4,'', '',I2,'':'',I2,'':'',I2)') & 
     & values(3),values(2),values(1),values(5),values(6),values(7)
@@ -198,7 +205,7 @@ write(10,*)
 !     name as well as number of atoms in system
 !     options: O = orca, G = gaussian, T = turbomole,C = CP2K
 !
-if (software .eq. "O") call rdo0  (fname,n)
+if (software .eq. "O") call rdo0  (fname,outname,n,check_coord)
 if (software .eq. "T") call rd0   (fname,n)
 if (software .eq. "G") call gaurd0(fname,n)
 if (software .eq. "C") call rdc0 (fname,n)
@@ -215,9 +222,9 @@ allocate(at(n),xyz(3,n),g(3,n),nb(20,n),q(n),c6xy(n,n),h(3*n,3*n), &
 !     after allocation, read in coordinates, hessian, charges and 
 !     Wiberg-Mayer bond orders from same files as above
 !
-if (software .eq. "O") call rdo(.true.,fname,n,xyz,at)
+if (software .eq. "O") call rdo(.true.,fname,outname,n,xyz,at,check_coord)
 if (software .eq. "T") call rd (.true.,fname,n,xyz,at)
-if (software .eq. "G") call gaurd(fname,n,at,h,xyz,chir,wbo)
+if (software .eq. "G") call gaurd(fname,n,at,h,xyz,chir,wbo,check_coord)
 if (software .eq. "C") call rdc(.true.,fname,n,xyz,at)
 !write(*,*) "summmm",sum(wbo)
 !
@@ -259,7 +266,6 @@ call setZETAandIP
 !     interpolate C6 parameters according to D3
 !     loop over all atoms in the system (i1) and their atomtypes (at(i1))
 !
-
 do i1=1,n
    iz1=at(i1)
    do i2=1,i1
@@ -305,35 +311,42 @@ if (n.eq.2.and.at(1).eq.9.and.at(2).eq.1) qscal=1.6
 !     read Hirshfeld charges from charge file
 !     only if Gaussian isn´t used!
 !
+!     Skip the whole process if the check_coord option is activated!
+!     In that case, simply set charges to zero..
+!
 fname2=fname_pre//'.out'
 fname3=fname_pre//'.log'
-if (index(fname_pre,'.out' ).eq.0) then
-   call gethirsh(n,chir,ex,fname2,fname3)  !modificated
-   ! ex is set true if read in was successfull
-else
-   ex=.true.
-end if
+if (check_coord .and. software .ne. "G") then
+   q=0.0
+else 
+   if (index(fname_pre,'.out' ).eq.0) then
+      call gethirsh(n,chir,ex,fname2,fname3)  !modificated
+      ! ex is set true if read in was successfull
+   else
+      ex=.true.
+   end if
 !
 !     In the case of Gaussian input: charges were already read in
 !
-if (software .eq. "G") then
-   q=chir
-   ex = .true.
-end if
+   if (software .eq. "G") then
+      q=chir
+      ex = .true.
+   end if
 !write(*,*) "qjdh",chir(1:3)
-if (ex) then
+   if (ex) then
 !
 !     calculate the CM5 chagres from the Hirshfeld charges
 !
-   call docm5(n,at,.true.,xyz,chir,q)
-else
-   stop 'no charges!'
-endif
-write(method,'(''CM5*'',F4.2)')qscal
-write(10,*)
-write(10,'('' SCALING CM5 charges by '',F5.2)')qscal
-write(10,*)'and as such written to FF file'
-write(10,*)
+      call docm5(n,at,.true.,xyz,chir,q)
+   else
+      stop 'no charges!'
+   endif
+   write(method,'(''CM5*'',F4.2)')qscal
+   write(10,*)
+   write(10,'('' SCALING CM5 charges by '',F5.2)')qscal
+   write(10,*)'and as such written to FF file'
+   write(10,*)
+end if
 !
 !    Scale the obtained CM5 charges!
 !
@@ -390,6 +403,7 @@ end if
 !     reference data!!!
 !
 !ex=.false.
+
 if (.not.ex) then
    write(10,*)
    write(10,*) 'No Wiberg Mayer bond orders found in reference output!!!!'
@@ -401,12 +415,14 @@ if (.not.ex) then
 !
    call basis0(n,at,nel,nbf)
    call basis (n,at,nbf,okbas)
+
+
+
    if (.not.okbas) stop 'TB Hamiltonian incomplete'
    nel=nel-chrg
 !
 !     Do the EHT calculation 
 ! 
-  
    call ehtfull(n,at,xyz,q,nel,nbf,el,wbo,1.0d0)
    write(10,*) "Wiberg-Mayer bond orders were calculated "
    write(10,*) "   based on EHT hamiltonian!"

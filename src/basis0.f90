@@ -42,6 +42,7 @@ real(kind=8)::z1(n) !is now in qmdff.f90!
 nbf=0
 nel=0
 z1=0
+
 !     
 !      same procedure as in subroutine valel (ff_tool.f90)
 !      (at least for the z(n) array...)

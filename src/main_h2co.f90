@@ -3193,7 +3193,7 @@ subroutine initialize_h2co()
    call edis(r(5),y(5),cood(:,2),cood(:,4))
    call edis(r(6),y(6),cood(:,1),cood(:,2))
 
-   call basis(bas,y)
+   call basis_h2co(bas,y)
 
     if (r(3)< r(4)) then
        smallCH=r(3)
@@ -3252,7 +3252,7 @@ subroutine initialize_h2co()
              call edis(r(6),y(6),cood(:,1),cood(:,2))
 
 
-             call basis(bas,y)
+             call basis_h2co(bas,y)
 
              if (r(3)< r(4)) then
                 smallCH=r(3)
@@ -3320,7 +3320,7 @@ subroutine initialize_h2co()
    return
  end subroutine edis
 
- subroutine basis(bas,y)
+ subroutine basis_h2co(bas,y)
    use h2co_mod
    integer m,n,p,q,i,j,k
    real(kind=8)::bas(coff)

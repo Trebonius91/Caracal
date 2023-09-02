@@ -49,7 +49,7 @@ use evb_mod ! evb coupling parameters
 
 implicit none
 integer::next,freeunit,i,qmdffnumber,asciinum
-integer::length
+integer::length,readstat
 integer::iz1_two,iz1_three,iz2_two,iz2_three,ndummy
 integer::parameters
 real(kind=8)::dens_two,dens_three,c6_two,c6_three
@@ -273,19 +273,21 @@ if (.not. prefix_key) then
    exist=.false.
    do while (.not. exist)
       write(iout,'(/," Number of QMDFF´s to generate: ",$)')
-      read (*,'(A1)')  qmdffnum
-      asciinum = ICHAR(qmdffnum)
+      read (*,*,iostat=readstat)  qmdffnumber
+      if (readstat .ne. 0) cycle
+!      asciinum = ICHAR(qmdffnum)
 !
 !     Convert vom ASCII to the real number (1=49,2=50,3=51)
 !
-      select case (asciinum)
-      case (49)
-         qmdffnumber=1
-      case (50)
-         qmdffnumber=2
-      case (51)
-         qmdffnumber=3
-      end select
+!      select case (asciinum)
+!      case (49)
+!         qmdffnumber=1
+!      case (50)
+!         qmdffnumber=2
+!      case (51)
+!         qmdffnumber=3
+!      end select
+  !    write(*,*) "num",qmdffnumber
       if (qmdffnumber.eq.1 .or. qmdffnumber.eq.2 .or. qmdffnumber.eq.3) then
          exist=.true.
       end if 
@@ -294,6 +296,7 @@ if (.not. prefix_key) then
 !     Get the names of input files
 !     --> distinguish between the different software packages 
 !
+   write(*,*) qmdffnum
    exist=.false.
    do while (.not. exist)
       if (.not. check_coord) then
@@ -437,11 +440,13 @@ call main_gen(prefix1,length)
 fffilen1= prefix1 // ".qmdff"
 call rdsolvff0(n_one,fffilen1)
 natoms=n_one
+
 allocate(at(n_one),xyz(3,n_one),at2(n_one),g_one(3,n_one),q(n_one),&
         c6xy(n_one,n_one),cn(n_one),imass(n_one),xyz2(3,n_one))
 call copyc6 ! not molecule/FF specific
 call setnonb(scalehb,scalexb,vz,sr42,zab,r0ab)
 r094_mod=r094
+
 
 call rdsolvff(n_one,xyz,at,q,imass,dens,scalehb,scalexb,fffilen1)
 call ncoord(n_one,rcov,at,xyz,cn,5000.0d0)
@@ -460,6 +465,8 @@ e1=0
 call ff_nonb(n_one,at,xyz,q,r0ab,zab,r094_mod,sr42,c6xy,e1,g_one)
 e1=0
 call ff_hb(n_one,at,xyz,e1,g_one)
+
+
 if (software .eq. "O") then
    open(unit=42,file=prefix1 // ".out")
 100   read(42,'(a)',end=99)a80
@@ -704,7 +711,6 @@ if (qmdffnumber.eq.2 .or. qmdffnumber.eq.3) then
          call system("rm "//prefix2//".fchk")
          call system("sleep 0.2")
       end if
-
       call system("formchk "//prefix2//".chk "//prefix2//".fchk", fchkstat)
       if (fchkstat .ne. 0) then
          write(*,*) "The formchk command couldn´t be executed! Check if all is set correctly!"

@@ -55,7 +55,6 @@ ok=.true.
 parip=ip
 parz=zet
 
-
 do i=1,n
 !     H-He
    if (at(i).le.2) then

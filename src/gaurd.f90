@@ -32,7 +32,7 @@
 !
 !     part of QMDFF
 !
-subroutine gaurd(fname,nat,at,h,xyz,q,wbo)
+subroutine gaurd(fname,nat,at,h,xyz,q,wbo,check_coord)
 implicit none
 integer::nat
 character(len=*) fname
@@ -43,7 +43,7 @@ integer::k1,k2,j1,ir,n,nkpb,ibl,j2,kk,kd,k1s,j,i,k,iuout,jdum,nn
 character(len=80)::adum
 real(kind=8)::xx(10)
 real(kind=8)::r(3*nat*(3*nat+1)/2)
-logical::hread
+logical::hread,check_coord
 
 hread=.false.
 n=3*nat
@@ -170,7 +170,7 @@ end do
 !
 !     try to read the specific fchk file   
 !   
-if (.not.hread) then
+if (.not.hread .and. .not. check_coord) then
    do i=1,len(fname)
       if(fname(i:i).ne.' ')j=i
    end do
