@@ -245,6 +245,15 @@ else if (method .eq. "EXTERNAL") then
       write(*,*)
    end if
 
+!
+!     If a new PES has been included by a user, this is the preferred way to connect
+!     it to the code
+!
+else if (method .eq. "CUSTOM") then
+!
+!     A general flag is activated, indicating the usage of the imported method
+!   
+   call_cust=.true.
 
 !
 !     The analytical potential energy surfaces! Mainly for benchmark reasons(?)
@@ -668,6 +677,65 @@ if (call_ext) then
    end do
    goto 678
 end if
+
+!
+!     For calculation with a custom PES routine: If you want to use 
+!     several PESs with one Caracal program, simply choose the right one 
+!     with the integer
+!
+
+if (call_cust) then
+
+   if (rank .eq. 0) then
+      write(*,*)
+      write(*,*) "Used PES: call to (one of) your custom routines"
+      write(*,*) "The right routine will be chosen based on the specifier"
+      write(*,*) " given after the keyword PES_NUMBER"
+   end if
+   cust_number = 0
+   do i = 1, nkey
+      next = 1
+      record = keyline(i)
+      call gettext (record,keyword,next)
+      call upcase (keyword)
+      call upcase (record)
+      string = record(next:120)
+      if (trim(adjustl(record(1:13))) .eq. 'CUSTOM {' .or. trim(adjustl(record(1:13))) &
+              &  .eq. 'CUSTOM{') then
+
+         do j=1,nkey-i+1
+            next=1
+            record = keyline(i+j)
+            call gettext (record,keyword,next)
+            call upcase (keyword)
+            record=adjustl(record)
+            if (keyword(1:17) .eq. 'PES_NUMBER ') then
+               read(record,*) names, cust_number
+            end if
+            if (keyword(1:11) .eq. '}') exit
+            if (j .eq. nkey-i) then
+               write(*,*) "The CUSTOM section has no second delimiter! (})"
+               call fatal
+            end if
+         end do
+      end if
+   end do
+   if (cust_number .lt. 1) then
+      write(*,*) "You have chosen to use a custom PES routine, but did not specify"
+      write(*,*) " its index with the keyword PES_NUMBER!"
+      call fatal
+   else 
+!
+!     The initialization management routine is called, where global
+!     PES parameters are defined or read in if needed
+!
+      call custom_init
+
+   end if
+   goto 678
+end if
+
+
 
 
 evb2=.false.

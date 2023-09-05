@@ -313,6 +313,9 @@ character(len=80)::call_orca  ! symlink for calling orca
 ! for calls to an arbitrary external program
 logical::call_ext
 character(len=80)::symlink_ext  ! symlink for calling the external program
+! for calls to a custom routine 
+logical::call_cust
+integer::cust_number
 ! for the water SPC model
 logical::water_spc
 real(kind=8),allocatable::water_pars(:) ! all needed parameters

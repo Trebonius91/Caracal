@@ -169,22 +169,22 @@ C     $                  dRdX(3,9),dBdR(3,56)
 C      common /msprmt/   a,ab,ra,rb
 
 C Read cartesian coordinate from input file
-      call coord_convt(X)
+      call coord_convt_o3(X)
 
       if (igrad .le. 1) then
 C Call subroutine EvV to evaluate potential energy V
-        call evv(V)
+        call evv_o3(V)
 
         if (igrad .eq. 1) then
 C Call EvdVdX to evaluate the derivatives of V w.r.t. X
-          call evdvdx(X,dVdX)
+          call evdvdx_o3(X,dVdX)
         endif
       else
         write (*,*) 'Only igrad = 0, 1 is allowed!'
       endif
 
       end 
-      subroutine coord_convt(X)
+      subroutine coord_convt_o3(X)
 ***********************************************************************
 *  Program to calculate the six interatomic distance 
 *  by reading XYZ coordinate
@@ -194,7 +194,7 @@ C Call EvdVdX to evaluate the derivatives of V w.r.t. X
       integer i
       double precision X(9)
 
-      common /coord/    R(3)
+      common /coord_o3/    R(3)
       
 ***********************************************************************
 *  Now, calculate the inter-atomic distance
@@ -210,7 +210,7 @@ C Call EvdVdX to evaluate the derivatives of V w.r.t. X
       return
 
       end
-      subroutine EvV(V)
+      subroutine EvV_o3(V)
 ***********************************************************************
 * Subroutine to evaluate V for giving R 
 * V(R) = C*P
@@ -233,32 +233,32 @@ C Call EvdVdX to evaluate the derivatives of V w.r.t. X
       integer i,j,k
       double precision dist,dv2dr,V,V2,disp,dispdr(6)
 
-      common /coord/    R(3)
-      common /epot/     rMs(3),rM(0:7),P(0:66),C(56),B(56)
+      common /coord_o3/    R(3)
+      common /epot_o3/     rMs(3),rM(0:7),P(0:66),C(56),B(56)
 
 C Calculate the six MEG terms for each point
-      call evmorse
+      call evmorse_o3
 
 C Calculate the monomials for each point by using six MEG terms
-      call evmono
+      call evmono_o3
 
 C Calculate the polynomials (basis functions) by using monomials
-      call evpoly 
+      call evpoly_o3 
 
 C Calculate the basis functions by removing unconnected and 2-body terms
-      call evbas
+      call evbas_o3
 
 C Initialized v to be 2De 2*120.243 kcal/mol
       v=240.486d0
 C Evaluate 2-body interactions
       do i=1,3
         dist=r(i)
-        call ev2gm2(dist,v2,dv2dr,4,0)
+        call ev2gm2_o3(dist,v2,dv2dr,4,0)
         v=v+v2
       enddo
 
 C Add D3 dispersion correction
-        call d3disp(r,disp,dispdr,0)
+        call d3disp_o3(r,disp,dispdr,0)
         v=v+disp
 
 C Evaluate V by taken the product of C and Basis function array
@@ -272,7 +272,7 @@ C 9999 Format('The potential energy is ',F20.14,' kcal/mol')
       return
 
       end 
-      subroutine EvdVdX(X,dVdX)
+      subroutine EvdVdX_o3(X,dVdX)
 ***********************************************************************
 * Subroutine to evaluate dRdX for giving R and X 
 * R:            R(3), 3 bond lengths
@@ -290,9 +290,9 @@ C 9999 Format('The potential energy is ',F20.14,' kcal/mol')
       integer i,j
       double precision dVdX(9),X(9)
 
-      common /coord/    R(3)
-      common /epot/     rMs(3),rM(0:7),P(0:66),C(56),B(56)
-      common /gradt/    dMsdR(3,3),dMdR(3,0:7),dPdR(3,0:66),dVdR(3),
+      common /coord_o3/    R(3)
+      common /epot_o3/     rMs(3),rM(0:7),P(0:66),C(56),B(56)
+      common /gradt_o3/    dMsdR(3,3),dMdR(3,0:7),dPdR(3,0:66),dVdR(3),
      $                  dRdX(3,9),dBdR(3,56)
 
 C Initialize dVdX
@@ -301,10 +301,10 @@ C Initialize dVdX
       enddo
 
 C Call EvdVdR to evaluate dVdR(3)
-      Call evdvdr
+      Call evdvdr_o3
 
 C Call EvdRdX to evaluate dRdX(3,9)
-      Call evdrdx(X)  
+      Call evdrdx_o3(X)  
 
 C Calculate dVdX by using chain rule: dV/dXi=(dV/dRj)*(dRj/dXi), j=1 to
 C 3
@@ -320,15 +320,15 @@ C 9999 Format(1x,3F15.8)
 
       return
       end 
-      subroutine EvMorse
+      subroutine EvMorse_o3
       
       implicit double precision (a-h,o-z)
 
       integer i
 
-      common /coord/    R(3)
-      common /msprmt/   a,ab,ra,rb
-      common /epot/     rMs(3),rM(0:7),P(0:66),C(56),B(56)
+      common /coord_o3/    R(3)
+      common /msprmt_o3/   a,ab,ra,rb
+      common /epot_o3/     rMs(3),rM(0:7),P(0:66),C(56),B(56)
       
 C mixed exponential gaussian term ms = exp(-(r-ra)/a-(r-rb)^2/ab)
 C ra:   reference bond length
@@ -340,7 +340,7 @@ C ab:   nonlinear paramter, unit Anstrom^2
       enddo
 
       end 
-      subroutine EvMono
+      subroutine EvMono_o3
 ***********************************************************************
 *  The subroutine reads six MEG variables(X) and calculate the
 *  monomials(M) that do not have usable decomposition.
@@ -349,7 +349,7 @@ C ab:   nonlinear paramter, unit Anstrom^2
 
       implicit double precision (a-h,o-z)
 
-      common /epot/     rMs(3),rM(0:7),P(0:66),C(56),B(56)
+      common /epot_o3/     rMs(3),rM(0:7),P(0:66),C(56),B(56)
 
       rm(0) = 1.0d0
       rm(1) = rms(3)
@@ -362,8 +362,8 @@ C ab:   nonlinear paramter, unit Anstrom^2
 
       return
 
-      end subroutine EvMono
-      subroutine EvPoly
+      end subroutine EvMono_o3
+      subroutine EvPoly_o3
 ***********************************************************************
 *  The subroutine reads monomials(m) and calculate the
 *  permutation invariant polynomials(p)
@@ -372,7 +372,7 @@ C ab:   nonlinear paramter, unit Anstrom^2
 
       implicit double precision (a-h,o-z)
 
-      common /epot/     rMs(3),rM(0:7),P(0:66),C(56),B(56)
+      common /epot_o3/     rMs(3),rM(0:7),P(0:66),C(56),B(56)
 
       p( 0) = rm(0)
       p( 1) = rm(1) + rm(2) + rm(3)
@@ -444,15 +444,15 @@ C ab:   nonlinear paramter, unit Anstrom^2
 
       return
 
-      end subroutine EvPoly
-      subroutine evbas
+      end subroutine EvPoly_o3
+      subroutine evbas_o3
 ***********************************************************************
 *  The subroutine eliminate the 2-body terms in Bowman's approach
 ***********************************************************************
 
       implicit double precision (a-h,o-z)
 
-      common /epot/     rMs(3),rM(0:7),P(0:66),C(56),B(56)
+      common /epot_o3/     rMs(3),rM(0:7),P(0:66),C(56),B(56)
       
       integer i
       double precision b1(67) 
@@ -500,7 +500,7 @@ C Remove unconnected terms and 2-body terms and pass to B(1:430)
       return
 
       end 
-      subroutine ev2gm2(r,v,grad,imol,igrad) 
+      subroutine ev2gm2_o3(r,v,grad,imol,igrad) 
 ***********************************************************************
 *
 * Compute the diatomic potential of groupd-state triplet O2
@@ -564,7 +564,7 @@ C Convert from milihartree/A to i(kcal/mol)/A
       return
       end
 
-      subroutine EvdVdR
+      subroutine EvdVdR_o3
 ***********************************************************************
 * Subroutine to evaluate dVdR for giving R 
 * dVdR = dV2dR + C*dBdR
@@ -587,9 +587,9 @@ C Convert from milihartree/A to i(kcal/mol)/A
       integer i,j
       double precision dist,v2,dv2dr,disp,dispdr(3)
 
-      common /coord/    R(3)
-      common /epot/     rMs(3),rM(0:7),P(0:66),C(56),B(56)
-      common /gradt/    dMsdR(3,3),dMdR(3,0:7),dPdR(3,0:66),dVdR(3),
+      common /coord_o3/    R(3)
+      common /epot_o3/     rMs(3),rM(0:7),P(0:66),C(56),B(56)
+      common /gradt_o3/    dMsdR(3,3),dMdR(3,0:7),dPdR(3,0:66),dVdR(3),
      $                  dRdX(3,9),dBdR(3,56)
 
 C Initialize dVdR(3)
@@ -600,27 +600,27 @@ C Initialize dVdR(3)
 C Add dV2dR(i) to dVdR
       do i=1,3
         dist=R(i)
-        call ev2gm2(dist,v2,dv2dr,4,1)
+        call ev2gm2_o3(dist,v2,dv2dr,4,1)
         dVdR(i)=dv2dr
       enddo
 
 C Add numberical gradient of D3 dispersion correction
-      call d3disp(R,disp,dispdr,1)
+      call d3disp_o3(R,disp,dispdr,1)
       do i=1,3
         dVdR(i)= dVdR(i) + dispdr(i)
       enddo
 
 C Calculate dMEG/dr(3,3) for giving R(3)
-      call evdmsdr
+      call evdmsdr_o3
 
 C Calculate the monomials for each point by using six MEG terms
-      call evdmdr
+      call evdmdr_o3
 
 C Calculate the polynomials by using monomials
-      call evdpdr 
+      call evdpdr_o3
 
 C Remove 2-body interactions and unconnected terms from polynomials
-      call evdbdr
+      call evdbdr_o3
 
 C Evaluate dVdR(3) by taken the product of C(j) and dPdR(i,j)
       do i=1,3      
@@ -631,7 +631,7 @@ C Evaluate dVdR(3) by taken the product of C(j) and dPdR(i,j)
 
       return
       end 
-      subroutine EvdRdX(X)
+      subroutine EvdRdX_o3(X)
 ***********************************************************************
 * Subroutine to evaluate dRdX for giving R and X 
 * R:            R(3), 3 bond lengths
@@ -649,8 +649,8 @@ C Evaluate dVdR(3) by taken the product of C(j) and dPdR(i,j)
       integer i,j
       double precision X(9)
 
-      common /coord/    R(3)
-      common /gradt/    dMsdR(3,3),dMdR(3,0:7),dPdR(3,0:66),dVdR(3),
+      common /coord_o3/    R(3)
+      common /gradt_o3/    dMsdR(3,3),dMdR(3,0:7),dPdR(3,0:66),dVdR(3),
      $                  dRdX(3,9),dBdR(3,56)
 
 C Initialize dRdX(3,9)
@@ -689,7 +689,7 @@ C Finish the calculation of non-zero dRdX
       return
 
       end 
-      subroutine EvdMsdR
+      subroutine EvdMsdR_o3
 ***********************************************************************
 * Subroutine to evalute the derivatives of MEG term X
 * w.r.t. interatomic distance R(3)
@@ -704,10 +704,10 @@ C Finish the calculation of non-zero dRdX
 
       integer i,j
 
-      common /coord/    R(3)
-      common /gradt/    dMsdR(3,3),dMdR(3,0:7),dPdR(3,0:66),dVdR(3),
+      common /coord_o3/    R(3)
+      common /gradt_o3/    dMsdR(3,3),dMdR(3,0:7),dPdR(3,0:66),dVdR(3),
      $                  dRdX(3,9),dBdR(3,56)
-      common /msprmt/   a,ab,ra,rb
+      common /msprmt_o3/   a,ab,ra,rb
 
 C Initialize dmsdr
       do i=1,3
@@ -727,7 +727,7 @@ C
       return
 
       end 
-      subroutine EvdMdR
+      subroutine EvdMdR_o3
 ***********************************************************************
 *  The subroutine reads M(nom) and dMSdR(3,3) and calculate the
 *  dMdR(3,nom) that do not have usable decomposition.
@@ -738,8 +738,8 @@ C
 
       integer i
 
-      common /epot/     rMs(3),rM(0:7),P(0:66),C(56),B(56)
-      common /gradt/    dMsdR(3,3),dMdR(3,0:7),dPdR(3,0:66),dVdR(3),
+      common /epot_o3/     rMs(3),rM(0:7),P(0:66),C(56),B(56)
+      common /gradt_o3/    dMsdR(3,3),dMdR(3,0:7),dPdR(3,0:66),dVdR(3),
      $                  dRdX(3,9),dBdR(3,56)
 
       do i=1,3
@@ -755,8 +755,8 @@ C
 
       return
 
-      end subroutine EvdMdR
-      subroutine EvdPdr
+      end subroutine EvdMdR_o3
+      subroutine EvdPdr_o3
 ***********************************************************************
 *  The subroutine reads monomials(m) and calculate the
 *  permutation invariant polynomials(p)
@@ -767,8 +767,8 @@ C
 
       integer i
 
-      common /epot/     rMs(3),rM(0:7),P(0:66),C(56),B(56)
-      common /gradt/    dMsdR(3,3),dMdR(3,0:7),dPdR(3,0:66),dVdR(3),
+      common /epot_o3/     rMs(3),rM(0:7),P(0:66),C(56),B(56)
+      common /gradt_o3/    dMsdR(3,3),dMdR(3,0:7),dPdR(3,0:66),dVdR(3),
      $                  dRdX(3,9),dBdR(3,56)
 
       do i=1,3
@@ -848,15 +848,15 @@ C
 
       return
 
-      end subroutine EvdPdR
-      subroutine evdbdr
+      end subroutine EvdPdR_o3
+      subroutine evdbdr_o3
 ***********************************************************************
 *  The subroutine elminate the 2-body terms in Bowman's approach
 ***********************************************************************
 
       implicit double precision (a-h,o-z)
 
-      common /gradt/    dMsdR(3,3),dMdR(3,0:7),dPdR(3,0:66),dVdR(3),
+      common /gradt_o3/    dMsdR(3,3),dMdR(3,0:7),dPdR(3,0:66),dVdR(3),
      $                  dRdX(3,9),dBdR(3,56)
       
       integer i
@@ -930,7 +930,7 @@ C The C6 values are fixed.
 C
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 
-      subroutine d3disp(dist,disp,dispdr,igrad)
+      subroutine d3disp_o3(dist,disp,dispdr,igrad)
 
       double precision cn(3),s6,s8,rs6,rs8
       double precision dist(3), e6(3), e8(3), disp, dispdr(3), c6(3)
@@ -964,7 +964,7 @@ C C6 for O4 system
       c6(3)=12.8d0
 
 C Calculate dispersion correction
-      call edisp(94,5,3,dist,iz,mxc,
+      call edisp_o3(94,5,3,dist,iz,mxc,
      .     rs6,rs8,e6,e8,e6dr,e8dr,c6,0)
 
       disp = 0.0d0
@@ -974,7 +974,7 @@ C Calculate dispersion correction
       enddo
 
       if (igrad .eq. 1) then
-      call edisp(94,5,3,dist,iz,mxc,
+      call edisp_o3(94,5,3,dist,iz,mxc,
      .     rs6,rs8,e6,e8,e6dr,e8dr,c6,1)
 
       dispdr(:) = 0.0d0
@@ -994,7 +994,7 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 C compute energy
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 
-      subroutine edisp(max_elem,maxc,n,dist,iz,mxc,
+      subroutine edisp_o3(max_elem,maxc,n,dist,iz,mxc,
      .           rs6,rs8,e6,e8,e6dr,e8dr,c6a,igrad)
 
       implicit none  
@@ -1091,18 +1091,18 @@ c grad for BJ damping
          enddo
       enddo
 
-      end subroutine edisp
+      end subroutine edisp_o3
 
 C Begin
-       block data prmt
+       block data prmt_o3
 
       implicit double precision (a-h,o-z)
 
-      common /coord/    R(3)
-      common /epot/     rMs(3),rM(0:7),P(0:66),C(56),B(56)
-      common /gradt/    dMsdR(3,3),dMdR(3,0:7),dPdR(3,0:66),dVdR(3),
+      common /coord_o3/    R(3)
+      common /epot_o3/     rMs(3),rM(0:7),P(0:66),C(56),B(56)
+      common /gradt_o3/    dMsdR(3,3),dMdR(3,0:7),dPdR(3,0:66),dVdR(3),
      $                  dRdX(3,9),dBdR(3,56)
-      common /msprmt/   a,ab,ra,rb
+      common /msprmt_o3/   a,ab,ra,rb
 
 C Nonlinear parameters:
 C a(in Ang)
