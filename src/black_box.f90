@@ -989,7 +989,7 @@ do i = 1, nkey
          call upcase (keyword)
          if (keyword(1:20) .eq. 'N_PATHS ') then
             read(record,*,iostat=readstat) prefix,npaths
-         else if (keyword(1:13) .eq. 'R_INF ') then
+         else if (keyword(1:13) .eq. 'DIST_INF ') then
             read(record,*,iostat=readstat) prefix,r_inf
          end if
          if (keyword(1:13) .eq. '}') exit
@@ -4247,7 +4247,7 @@ do i=1,temp_num
          
       end do
       write(15,'(a)') "# The asymptotic distance in the reaction (Angstroms):"
-      write(15,'(a,f15.7)') "    r_inf ",r_inf
+      write(15,'(a,f15.7)') "    dist_inf ",r_inf
       write(15,'(a)') "# list of forming bonds in the reaction:"
       write(15,'(a)',advance="no") "    bond_form "
       do j=1,n_form

@@ -256,6 +256,38 @@ else if (method .eq. "CUSTOM") then
    call_cust=.true.
 
 !
+!     If the program calc_rate is used, the number of atoms must be read in from the 
+!     start structure (TS) since the number of atoms is not clear from the beginning!
+!
+   if (use_calc_rate) then
+      do i = 1, nkey
+         next = 1
+         record = keyline(i)
+         call gettext (record,keyword,next)
+         call upcase (keyword)
+         string = record(next:120)
+!  
+!     reset the read status to successful (check it for each keyword)
+!
+         readstat= 0
+         if (keyword(1:20) .eq. 'TS_STRUC ') then
+            read(record,*,iostat=readstat) names,ts_file
+            if (readstat .ne. 0) then
+               write(*,*) "Correct format: TS_STUC [filename]"
+               call fatal
+            end if
+            exit
+         end if
+      end do
+!
+!     If the TS file has been found, read in the number of atoms from its first line
+!
+      open(unit=37,file=ts_file,status="old")
+      read(37,*) natoms
+      close(37)
+   end if
+
+!
 !     The analytical potential energy surfaces! Mainly for benchmark reasons(?)
 !
 else if (method .eq. "ANA_H3") then

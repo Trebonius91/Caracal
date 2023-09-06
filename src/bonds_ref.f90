@@ -44,10 +44,12 @@ integer::i,j  ! loop indices
 integer::atom1,atom2  ! the current atom numbers
 real(kind=8)::Rx,Ry,Rz
 
-allocate(form_ref(form_num),break_ref(break_num))
 !
 !     calculate the forming bonds
 !
+if (form_num .gt. 0) then
+   allocate(form_ref(form_num))
+end if
 do i=1,form_num
    atom1=bond_form(i,1)
    atom2=bond_form(i,2)
@@ -60,6 +62,9 @@ end do
 !
 !     calculate the breaking bonds
 !
+if (break_num .gt. 0) then
+   allocate(break_ref(break_num))
+end if
 do i=1,break_num
    atom1=bond_break(i,1)
    atom2=bond_break(i,2)

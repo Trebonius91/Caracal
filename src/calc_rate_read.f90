@@ -580,10 +580,10 @@ do i = 1, nkey
                end do
             end if
 !    The infinite reactant separation for bimolecular reactions
-         else if (keyword(1:15) .eq. 'R_INF ') then
+         else if (keyword(1:15) .eq. 'DIST_INF ') then
             read(record,*,iostat=readstat) names,r_inf
             if (readstat .ne. 0) then
-               write(*,*) "Correct format: R_INF [distance (Ang.)]"
+               write(*,*) "Correct format: DIST_INF [distance (Ang.)]"
                call fatal
             end if
 !    Convert the distance from Angstroms to bohr
@@ -1124,7 +1124,7 @@ if (rank .eq. 0) then
 !
    if (R_inf .eq. 0.d0) then
      if ((umbr_type .ne. "ATOM_SHIFT") .and. (umbr_type .ne. "CYCLOREV")) then
-        write(*,*) "No reactant max distance is given! Add the keyword R_INF!"
+        write(*,*) "No reactant max distance is given! Add the keyword DIST_INF!"
         call fatal
      end if
    end if

@@ -82,13 +82,13 @@ if ((umbr_type .eq. "BIMOLEC") .or. (umbr_type .eq. "CYCLOADD") .or. &
    write(15,*)
    write(15,*) "- The rate formula is:"
    write(15,*)
-   write(15,*) "k(T)=n_paths*kappa*4*pi*R_inf**2*sqrt(1/(2*pi*beta*my_R))*exp(-beta*(W(xi_TS)-W(0)))"
+   write(15,*) "k(T)=n_paths*kappa*4*pi*dist_inf**2*sqrt(1/(2*pi*beta*my_R))*exp(-beta*(W(xi_TS)-W(0)))"
    write(15,*) " where my_R=m1*m2/(m1+m2)"
    write(15,*)
    write(*,*)
    write(*,*) "- The rate formula is:" 
    write(*,*)
-   write(*,*) "k(T)=n_paths*kappa*4*pi*R_inf**2*sqrt(1/(2*pi*beta*my_R))*exp(-beta*(W(xi_TS)-W(0)))"
+   write(*,*) "k(T)=n_paths*kappa*4*pi*dist_inf**2*sqrt(1/(2*pi*beta*my_R))*exp(-beta*(W(xi_TS)-W(0)))"
    write(*,*) " where my_R=m1*m2/(m1+m2)"
    write(*,*)
 !
@@ -99,7 +99,7 @@ if ((umbr_type .eq. "BIMOLEC") .or. (umbr_type .eq. "CYCLOADD") .or. &
    write(15,*)
    write(15,'(a,i3)') "   * n_paths = ",npaths
    write(15,'(a,f12.8)') "   * kappa = ",kappa
-   write(15,'(a,f15.8,a)') "   * R_inf = ",R_inf," bohr"
+   write(15,'(a,f15.8,a)') "   * dist_inf = ",R_inf," bohr"
    write(15,'(a,f15.8,a)') "   * beta = ",beta," 1/hartree"
    write(15,'(a,f15.8,a)') "   * m1 = ",mass_reac(1)," amu"
    write(15,'(a,f15.8,a)') "   * m2 = ",mass_reac(2)," amu"
@@ -111,7 +111,7 @@ if ((umbr_type .eq. "BIMOLEC") .or. (umbr_type .eq. "CYCLOADD") .or. &
    write(*,*)
    write(*,'(a,i3)') "   * n_paths = ",npaths
    write(*,'(a,f12.8)') "   * kappa = ",kappa 
-   write(*,'(a,f15.8,a)') "   * R_inf = ",R_inf," bohr"
+   write(*,'(a,f15.8,a)') "   * dist_inf = ",R_inf," bohr"
    write(*,'(a,f15.8,a)') "   * beta = ",beta," 1/hartree"
    write(*,'(a,f15.8,a)') "   * m1 = ",mass_reac(1)," amu"
    write(*,'(a,f15.8,a)') "   * m2 = ",mass_reac(2)," amu"

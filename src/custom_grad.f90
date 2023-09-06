@@ -73,7 +73,7 @@ if (cust_number .eq. 1) then
 !     Energgy of the undistorted structure
 !     Activate this call here and adapt it to your routine!
 !
-!   call your_routine(xyz2,e_evb)
+      call pes_po2(xyz2,e_evb)
 
       step=num_grad_step
       do i=1,natoms
@@ -88,7 +88,7 @@ if (cust_number .eq. 1) then
 !     Energies of the structure elongations for the gradient components
 !     Activate this call here and adapt it to your routine!
 !
-!               call your_routine(xyz2,e_tmp)
+               call pes_po2(xyz2,e_tmp)
 
 
                if (k.eq.1) then
@@ -115,6 +115,31 @@ else if (cust_number .eq. 3) then
 !     For a third custom PES and so on ...
 !
 
+end if
+
+!
+!     Print error messages if the calculated energy is too small (maybe not calculated
+!     at all) or too large (some strange divisions etc.)
+!     Abort the calculation in such a case
+!
+if (abs(e_evb) .lt. 1E-20) then
+   write(*,*) "The absolute value of the actual energy of your structure is" 
+   write(*,*) " less than 1E-20 Hartree!"
+   write(*,*) "It seems that something went wrong during coupling your custom"
+   write(*,*) " routine to Caracal... Please check the files custom_init.f90,"
+   write(*,*) " custom_grad.f90 and your routine! "
+   write(*,*) "The calculation will be aborted now."
+   call fatal
+end if
+
+if (abs(e_evb) .gt. 1E+20) then
+   write(*,*) "The absolute value of the actual energy of your structure is"
+   write(*,*) " greater than 1E+20 Hartree!"
+   write(*,*) "It seems that something went wrong during coupling your custom"
+   write(*,*) " routine to Caracal... Please check the files custom_init.f90,"
+   write(*,*) " custom_grad.f90 and your routine! "
+   write(*,*) "The calculation will be aborted now."
+   call fatal
 end if
 
 end subroutine custom_grad

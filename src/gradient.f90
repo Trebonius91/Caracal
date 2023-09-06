@@ -275,7 +275,7 @@ end if
 !     If a new PES routine shall be added by the user, the call to the energy
 !     and gradient of the routine is called here over the handler custom_grad
 !
-if (call_cust) then
+if (call_cust) then 
    call custom_grad(xyz2,e_evb,g_evb)
 end if
 
