@@ -73,7 +73,7 @@ if (cust_number .eq. 1) then
 !     Energgy of the undistorted structure
 !     Activate this call here and adapt it to your routine!
 !
-      call pes_po2(xyz2,e_evb)
+!      call your_routine(xyz2,e_evb)
 
       step=num_grad_step
       do i=1,natoms
@@ -88,7 +88,7 @@ if (cust_number .eq. 1) then
 !     Energies of the structure elongations for the gradient components
 !     Activate this call here and adapt it to your routine!
 !
-               call pes_po2(xyz2,e_tmp)
+!               call your_routine(xyz2,e_tmp)
 
 
                if (k.eq.1) then
