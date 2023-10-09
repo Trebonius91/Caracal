@@ -106,3 +106,8 @@ If you have further questions, suggestions what shall be added to Caracal, or de
 - Development of local versions of TREQ, enabling the calculation of larger systems without complicated and error-prone sets of internal coordinates
 - Exact unimolecular rate constants: implementing theoretically stringent prefactors for the different unimolecular mechanisms
 - Reactions in solvents: Implementing a "QM/MM" scheme, with the reactive part described by TREQ and sampled with RPMD and the solvent described by GFN-FF and classical dynamics
+
+## Latest changes
+
+- 10/09/2023: The FFT routines were updated to the more recent Fortran2003/C interface as recommended by the FFTW developers in order to fix a bug when using the Intel MKL libraries
+- 10/09/2023: The keyword RANDOM\_SEED [value] was added for the programs dynamic and calc\_rate in order to enable exact reproduction of calculations for debugging or benchmarks

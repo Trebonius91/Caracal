@@ -17,10 +17,10 @@ CURRENT = $(shell pwd)
 SRCDIR = src
 FFLAGS =  -fno-align-commons -fallow-argument-mismatch -O1  #-ffree-form #-Wall # normal version
 #FFLAGS =  -fno-align-commons -g -ffpe-trap=zero,invalid,overflow,underflow  #-ffree-form #-Wall # debug version!
-LINKFLAGS = -static-libgcc -fopenmp -llapack -lblas -lfftw3 -fno-align-commons # normal version 
+#LINKFLAGS = -static-libgcc -fopenmp -llapack -lblas -lfftw3 -fno-align-commons # normal version 
 #LINKFLAGS = -static-libgcc -fopenmp -llapack -lblas -lfftw3 -fno-align-commons -g -ffpe-trap=zero,invalid,overflow,underflow # debug version!
 # link against Intel MKL, has been tested with GNU Fortran MPI compiler
-#LINKFLAGS = -static-libgcc -fopenmp -L${MKLROOT}/lib/intel64 -Wl,--no-as-needed -lmkl_intel_ilp64 -lmkl_gnu_thread -lmkl_core -lgomp -lpthread -lm -ldl
+LINKFLAGS = -static-libgcc -fopenmp -L${MKLROOT}/lib/intel64 -Wl,--no-as-needed -lmkl_intel_ilp64 -lmkl_gnu_thread -lmkl_core -lgomp -lpthread -lm -ldl
 
 
 # Targets by default
@@ -34,6 +34,7 @@ LINKFLAGS = -static-libgcc -fopenmp -llapack -lblas -lfftw3 -fno-align-commons #
 # - Other analytic PES
 # - program files
 OBJS = general.o evb_mod.o qmdff.o lm_module.o debug.o h2co_mod.o \
+       fftw_mod.o \
        \
        moment.o ff_e.o eabh0.o thermo.o axis.o thermocal.o heat.o \
        bonde.o gethirsh.o docm5.o cm5mod.o copyc6.o limit.o rsp.o \
