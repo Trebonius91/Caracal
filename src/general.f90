@@ -296,7 +296,11 @@ logical::dorest
 logical::velsave
 logical::frcsave
 logical::uindsave
-
+!
+!     For manual setting of random seed for andersen thermostat if desired
+!
+logical::seed_manual
+integer::seed_value
 !
 !     For evaluation of coordinates during dynamic.x calculation
 !

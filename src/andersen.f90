@@ -129,19 +129,27 @@ end subroutine random
 !     needed for the anderson sampling
 !
 subroutine random_init_local(rank)
+    use general
     implicit none
-    integer :: i, n, clock
+    integer :: i, ninit, clock
     integer:: rank
     integer, dimension(:), allocatable :: seed
 
-    call random_seed(size=n)
-    allocate(seed(n))
+    call random_seed(size=ninit)
+    allocate(seed(ninit))
 
-    call system_clock(count=clock)
+!
+!   If desired, set a manual random seed value to reproduce calculations
+!
+    if (seed_manual) then
+       seed = seed_value
+       call random_seed(put = seed)
+    else 
+       call system_clock(count=clock)
 
-    seed = clock + 37 * (/ (i - 1, i = 1, n) /)+rank*166763
-    call random_seed(put = seed)
-
+       seed = clock + 37 * (/ (i - 1, i = 1, ninit) /)+rank*166763
+       call random_seed(put = seed)
+    end if
     deallocate(seed)
 
 end subroutine random_init_local

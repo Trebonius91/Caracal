@@ -36,6 +36,7 @@ subroutine initial(rank)
 use general
 use qmdff
 use evb_mod
+use fftw_mod
 implicit none
 real*8 precise
 integer::rank  ! the current MPI process
@@ -71,6 +72,10 @@ abort = .false.
 !
 isothermal = .false.
 isobaric = .false.
+!
+!     Set initial parameter for Fast Fourier Transform
+!
+Np=0
 
 return
 end subroutine initial

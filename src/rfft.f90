@@ -29,33 +29,34 @@
 !
 !     subroutine rfft: compute the real fast fourier transform for a
 !      given array of data
+!      Rewritten 09.10.2023 (updated to Fortran03/C interface)
 !    
 !     part of EVB
 !
 subroutine rfft(x,N)
+use fftw_mod
 implicit none
-integer, intent(in) :: N
-double precision, intent(inout) :: x(N)
+integer,intent(in) :: N
+real(kind=8),intent(inout) :: x(N)
+complex(C_DOUBLE_COMPLEX),dimension(N)::ain,aout
 
-integer, parameter :: Nmax = 1024
-integer :: Np
-double precision :: copy(Nmax), factor
-integer*8 :: plan
+ain=x(1:N)
 
-data Np /0/
-save copy, factor, plan, Np
-
+!
+!     If this is the first execution, generate the FFT plan (optimized code for 
+!     local machine)
+!     If the plan already was generated for a different number of beads, destroy
+!     it in advance
+!
 if (N .ne. Np) then
-    if (Np .ne. 0) call dfftw_destroy_plan(plan)
-    call dfftw_plan_r2r_1d(plan,N,copy,copy,0,64)
+    if (Np .ne. 0) call fftw_destroy_plan(plan)
+    plan=fftw_plan_dft_1d(N,ain,aout,FFTW_FORWARD,FFTW_ESTIMATE)
     factor = dsqrt(1.d0/N)
     Np = N
 end if
+call fftw_execute_dft(plan,ain,aout)
 
-copy(1:N) = x
-call dfftw_execute(plan)
-x = factor * copy(1:N)
-
+x = factor * real(aout(1:N))
 
 return
 end subroutine rfft

@@ -884,6 +884,29 @@ do i = 1, nkey
    end if
 end do
 
+!
+!      Set random seed of Andersen thermostat to specific value
+!
+eval_coord=.false.
+eval_step = 1
+do i = 1, nkey
+   next = 1
+   record = keyline(i)
+   call gettext (record,keyword,next)
+   call upcase (keyword)
+   string = record(next:120)
+   if (keyword(1:20) .eq. 'RANDOM_SEED ') then
+      seed_manual = .true.
+      read(record,*,iostat=readstat) names,seed_value
+      if (readstat .ne. 0) then
+         write(*,*) "Correct format: RANDOM_SEED [value (integer)]"
+         call fatal
+      end if
+      write(*,*) "The random seed for the thermostat is set manually to ",seed_value
+      exit
+   end if
+end do
+
 
 !
 !      Read in velocities from file as starting for momentum
