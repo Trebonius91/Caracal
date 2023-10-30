@@ -111,3 +111,4 @@ If you have further questions, suggestions what shall be added to Caracal, or de
 
 - 10/09/2023: The FFT routines were updated to the more recent Fortran2003/C interface as recommended by the FFTW developers in order to fix a bug when using the Intel MKL libraries
 - 10/09/2023: The keyword RANDOM\_SEED [value] was added for the programs dynamic and calc\_rate in order to enable exact reproduction of calculations for debugging or benchmarks
+- 10/30/2023: The program file 'poly_qmdff.f90' which was missing so far, was now added.
