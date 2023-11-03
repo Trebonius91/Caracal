@@ -15,19 +15,41 @@ Ring polymer molecular dynamics and rate constant calculations on black-box pote
 
 Caracal is a free open-source software package that enables a wide variety of molecular dynamics applications.
 Unbiased and biased molecular dynamics trajectories can be sampled, unperiodic as well as periodic (NVE, NVT, NpT) setups are possible.
+
 Classical (Newtonian) as well as ring polymer molecular dynamics (RPMD) can be used.
 A central feature is the automized setup of potential energy surfaces for gas phase reactions using the EVB-QMDFF methodology.
+
 Quantum mechanical derived force fields (QMDFFs) can be generated in black box fashion for arbitrary chemical systems, two QMDFFs can be coupled by
 different EVB (Empirical Valence Bond) coupling methods.
+
 Simple energy difference coupling methods as well as more sophisticated methods like distributed gaussian (DG)-EVB or transition region corrected reaction path EVB-QMDFF (TREQ) are availabe for that purpose.
+
 Especially the TREQ method allows for black-box generation of high quality PES descriptions, the whole process of PES setup and rate constant calculation with RPMD is realized in the black-box program within Caracal.
+
+The well-known class of semiempirical GFN-xTB methods is implemented now as well, enabling the bla
+ck-box simulation of arbitrary chemical systems.
+
 QMDFFs of single molecules can be polymerized to describe complex multicomponent mixtures or solutions, containing molecules like transition metal complexes for which it is hard to get force field parametrizations but are easy to setup with QMDFF.
+
 Further, a steadily growing number of analytical PES representations of gas phase reaction systems from the literature is integrated into Caracal, mainly for the calculation of rate constants. Alternatively, you can couple your own
 PES routine to the program (either by defining a syscall or directly integrating the subroutine into the Caracal code) and perform biased or unbiased RPMD with it.
 
 If you use Caracal for your research, I would be very glad if you could cite the ***original Caracal paper*** ([DOI: 10.1021/acs.jctc.3c00568](https://pubs.acs.org/doi/10.1021/acs.jctc.3c00568)). 
 Within it and its supporting information, more details concerning the underlying theory and algorithms can be found as well.
 
+Included (and sometimes slightly modified) software:
+
+mctc_lib: [https://github.com/grimme-lab/mctc-lib](https://github.com/grimme-lab/mctc-lib)
+
+dftd3_lib: [https://github.com/dftbplus/dftd3-lib](https://github.com/dftbplus/dftd3-lib)
+
+dftd4: [https://github.com/dftd4/dftd4](https://github.com/dftd4/dftd4)
+
+multicharge: [https://github.com/grimme-lab/multicharge](https://github.com/grimme-lab/multicharge)
+
+toml-f: [https://github.com/toml-f/toml-f](https://github.com/toml-f/toml-f)
+
+tblite: [https://github.com/tblite/tblite](https://github.com/tblite/tblite)
 
 ## License
 
