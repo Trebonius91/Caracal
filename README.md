@@ -26,8 +26,7 @@ Simple energy difference coupling methods as well as more sophisticated methods 
 
 Especially the TREQ method allows for black-box generation of high quality PES descriptions, the whole process of PES setup and rate constant calculation with RPMD is realized in the black-box program within Caracal.
 
-The well-known class of semiempirical GFN-xTB methods is implemented now as well, enabling the bla
-ck-box simulation of arbitrary chemical systems.
+The well-known class of semiempirical GFN-xTB methods is implemented now as well, enabling the black-box simulation of arbitrary chemical systems.
 
 QMDFFs of single molecules can be polymerized to describe complex multicomponent mixtures or solutions, containing molecules like transition metal complexes for which it is hard to get force field parametrizations but are easy to setup with QMDFF.
 
@@ -134,3 +133,4 @@ If you have further questions, suggestions what shall be added to Caracal, or de
 - 10/09/2023: The FFT routines were updated to the more recent Fortran2003/C interface as recommended by the FFTW developers in order to fix a bug when using the Intel MKL libraries
 - 10/09/2023: The keyword RANDOM\_SEED [value] was added for the programs dynamic and calc\_rate in order to enable exact reproduction of calculations for debugging or benchmarks
 - 10/30/2023: The program file 'poly_qmdff.f90' which was missing so far, was now added.
+- 11/03/2023: Release version 1.1, addition of GFN-xTB methods (and related keywords)
