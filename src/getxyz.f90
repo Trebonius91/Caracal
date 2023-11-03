@@ -87,10 +87,16 @@ rewind (unit=ixyz)
 read(ixyz,*,err=60,end=60) n
 natoms=n
 read(ixyz,*,err=60,end=60) 
+allocate(elem_index(natoms))
 do i=1,n
    read(ixyz,*,err=60,end=60) name(i),x(i),y(i),z(i)
    call atommass(i)
    call upcase(name(i))
+!
+!    Store element indices 
+!
+   call elem(name(i),elem_index(i))
+
 end do
 
 close (unit=ixyz)

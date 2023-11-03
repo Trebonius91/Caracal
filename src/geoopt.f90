@@ -103,7 +103,7 @@ open(unit=47,file="geoopt.xyz",status="unknown")
 converged=.false.
 write(15,*) "Do the geometry optimization with the BFGS algorithm!"
 write(15,*) "Enter loop till convergence.."
-do icycle=1,nmax
+do icycle=1,maxiter
    eold=epot
 !
 !     calculate energy and gradient      

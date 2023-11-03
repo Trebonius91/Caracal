@@ -20,7 +20,7 @@ FFLAGS =  -fno-align-commons -fallow-argument-mismatch -O1  #-ffree-form #-Wall 
 #LINKFLAGS = -static-libgcc -fopenmp -llapack -lblas -lfftw3 -fno-align-commons # normal version 
 #LINKFLAGS = -static-libgcc -fopenmp -llapack -lblas -lfftw3 -fno-align-commons -g -ffpe-trap=zero,invalid,overflow,underflow # debug version!
 # link against Intel MKL, has been tested with GNU Fortran MPI compiler
-LINKFLAGS = -static-libgcc -fopenmp -L${MKLROOT}/lib/intel64 -Wl,--no-as-needed -lmkl_intel_ilp64 -lmkl_gnu_thread -lmkl_core -lgomp -lpthread -lm -ldl
+LINKFLAGS = -static-libgcc -fopenmp -L${MKLROOT}/lib/intel64 -Wl,--no-as-needed -lmkl_intel_lp64 -lmkl_gnu_thread -lmkl_core -lgomp -lpthread -lm -ldl
 
 
 # Targets by default
@@ -93,6 +93,118 @@ OBJS = general.o evb_mod.o qmdff.o lm_module.o debug.o h2co_mod.o \
        lm_qmdff.o water_init.o egrad_water.o ev_coord_init.o \
        external_grad.o custom_init.o custom_grad.o \
        \
+       mctc/env/accuracy.o mctc/env/error.o mctc/env/system.o \
+       mctc/env/testing.o mctc/env.o mctc/io/codata2018.o mctc/io/constants.o \
+       mctc/io/convert.o mctc/io/filetype.o mctc/io/math.o \
+       mctc/io/resize.o mctc/io/symbols.o mctc/io/structure/info.o \
+       mctc/io/structure.o mctc/io/utils.o \
+       mctc/io/read/aims.o  mctc/io/read/ctfile.o \
+       mctc/io/read/gaussian.o mctc/io/read/genformat.o mctc/io/read/pdb.o \
+       mctc/io/read/qchem.o mctc/io/read/turbomole.o \
+       mctc/io/read/vasp.o mctc/io/read/xyz.o mctc/io/read.o \
+       mctc/io/resize.o mctc/io/structure.o mctc/io/symbols.o \
+       mctc/io/utils.o mctc/io/write/aims.o mctc/io/write/ctfile.o \
+       mctc/io/write/gaussian.o mctc/io/write/genformat.o \
+       mctc/io/write/pdb.o mctc/io/write/qchem.o mctc/io/write/turbomole.o \
+       mctc/io/write/vasp.o mctc/io/write/xyz.o \
+       mctc/io/write.o mctc/env.o mctc/io.o mctc/version.o \
+       \
+       dftd3/dftd3/cutoff.o dftd3/dftd3/blas.o dftd3/dftd3/damping.o \
+       dftd3/dftd3/data/covrad.o dftd3/dftd3/data/r4r2.o \
+       dftd3/dftd3/data/vdwrad.o  dftd3/dftd3/data.o \
+       dftd3/dftd3/reference.o dftd3/dftd3/model.o dftd3/dftd3/ncoord.o \
+       dftd3/dftd3/disp.o dftd3/dftd3/damping/atm.o dftd3/dftd3/param.o \
+       dftd3/dftd3/damping/mzero.o dftd3/dftd3/damping/optimizedpower.o \
+       dftd3/dftd3/damping/rational.o dftd3/dftd3/damping/zero.o  \
+       dftd3/dftd3/version.o \
+       dftd3/dftd3.o  \
+       \
+       multicharge/cutoff.o multicharge/data/covrad.o multicharge/data.o \
+       multicharge/blas.o multicharge/ewald.o multicharge/lapack.o \
+       multicharge/wignerseitz.o multicharge/model.o multicharge/ncoord.o \
+       multicharge/output.o multicharge/param/eeq2019.o multicharge/param.o \
+       multicharge/version.o multicharge.o \
+       \
+       dftd4/dftd4/cutoff.o dftd4/dftd4/blas.o dftd4/dftd4/charge.o \
+       dftd4/dftd4/damping.o dftd4/dftd4/data/covrad.o dftd4/dftd4/data/en.o \
+       dftd4/dftd4/data/hardness.o dftd4/dftd4/data/r4r2.o \
+       dftd4/dftd4/data/zeff.o  dftd4/dftd4/data.o dftd4/dftd4/reference.o \
+       dftd4/dftd4/model.o dftd4/dftd4/ncoord.o \
+       dftd4/dftd4/disp.o dftd4/dftd4/numdiff.o dftd4/dftd4/damping/atm.o \
+       dftd4/dftd4/damping/rational.o dftd4/dftd4/param.o \
+       dftd4/dftd4/version.o  dftd4/dftd4.o \
+       \
+       tomlf/tomlf/constants.o tomlf/tomlf/datetime.o tomlf/tomlf/error.o \
+       tomlf/tomlf/utils/io.o tomlf/tomlf/utils.o tomlf/tomlf/type/value.o \
+       tomlf/tomlf/structure/list.o tomlf/tomlf/structure/map.o \
+       tomlf/tomlf/structure/node.o tomlf/tomlf/structure/array_list.o \
+       tomlf/tomlf/structure/ordered_map.o tomlf/tomlf/structure.o \
+       tomlf/tomlf/type/array.o tomlf/tomlf/type/keyval.o \
+       tomlf/tomlf/type/table.o tomlf/tomlf/type.o \
+       tomlf/tomlf/build/keyval.o \
+       tomlf/tomlf/build/array.o tomlf/tomlf/build/merge.o \
+       tomlf/tomlf/build/table.o tomlf/tomlf/build/path.o  tomlf/tomlf/build.o \
+       tomlf/tomlf/de/token.o tomlf/tomlf/terminal.o tomlf/tomlf/diagnostic.o \
+       tomlf/tomlf/de/context.o tomlf/tomlf/de/abc.o tomlf/tomlf/de/lexer.o \
+       tomlf/tomlf/de/parser.o tomlf/tomlf/de.o tomlf/tomlf/ser.o \
+       tomlf/tomlf/utils/sort.o tomlf/tomlf/version.o \
+       tomlf/tomlf.o \
+       \
+       tblite/adjlist.o tblite/basis/type.o tblite/basis/ortho.o \
+       tblite/basis/slater.o tblite/basis.o tblite/blas/level1.o \
+       tblite/blas/level2.o tblite/blas/level3.o tblite/blas.o \
+       tblite/container/cache.o tblite/scf/info.o tblite/integral/type.o \
+       tblite/wavefunction/spin.o tblite/scf/potential.o \
+       tblite/wavefunction/type.o tblite/container/type.o \
+       tblite/output/format.o \
+       tblite/container/list.o tblite/container.o \
+       tblite/disp/cache.o tblite/cutoff.o tblite/disp/type.o \
+       tblite/disp/d3.o tblite/disp/d4.o tblite/disp.o \
+       tblite/wavefunction/fermi.o tblite/wavefunction/mulliken.o \
+       tblite/coulomb/ewald.o tblite/wignerseitz.o tblite/coulomb/cache.o \
+       tblite/coulomb/type.o tblite/coulomb/charge/type.o \
+       tblite/coulomb/charge/effective.o tblite/coulomb/charge/gamma.o \
+       tblite/coulomb/charge.o tblite/data/covrad.o tblite/ncoord/type.o \
+       tblite/ncoord/gfn.o tblite/coulomb/multipole.o \
+       tblite/coulomb/thirdorder.o  tblite/coulomb.o \
+       tblite/xtb/coulomb.o tblite/lapack/getrf.o tblite/lapack/getri.o \
+       tblite/lapack/getrs.o tblite/lapack.o tblite/scf/mixer/type.o \
+       tblite/scf/mixer/broyden.o tblite/scf/mixer.o \
+       tblite/scf/solver.o \
+       tblite/scf/iterator.o  tblite/container/type.o \
+       tblite/container/list.o tblite/container.o \
+       tblite/ncoord/exp.o tblite/data/covrad_ceh.o \
+       tblite/ncoord/ceh_std.o tblite/ncoord/ceh_en.o tblite/ncoord.o \
+       tblite/toml.o tblite/param/serde.o \
+       tblite/param/charge.o tblite/param/dispersion.o \
+       tblite/data/paulingen.o \
+       tblite/param/element.o tblite/param/halogen.o \
+       tblite/param/hamiltonian.o tblite/param/multipole.o \
+       tblite/param/repulsion.o tblite/param/thirdorder.o  \
+       tblite/param/mask.o tblite/param.o tblite/ceh/h0.o \
+       tblite/ceh/calculator.o tblite/context/logger.o \
+       tblite/context/terminal.o tblite/context/solver.o \
+       tblite/lapack/sygvd.o tblite/lapack/sygst.o tblite/lapack/potrf.o \
+       tblite/lapack/sygvr.o tblite/lapack/solver.o \
+       tblite/context/type.o tblite/context.o tblite/integral/trafo.o \
+       tblite/integral/diat_trafo.o tblite/integral/dipole.o \
+       tblite/integral/multipole.o tblite/data/atomicrad.o tblite/xtb/spec.o \
+       tblite/xtb/h0.o tblite/repulsion/type.o tblite/classical/halogen.o \
+       tblite/repulsion/effective.o tblite/repulsion.o tblite/xtb/calculator.o \
+       tblite/wavefunction/guess.o tblite/wavefunction.o tblite/scf.o \
+       tblite/external/field.o tblite/timer.o tblite/ceh/ceh.o \
+       tblite/results.o tblite/xtb/singlepoint.o tblite/xtb/gfn1.o \
+       tblite/xtb/gfn2.o tblite/xtb/ipea1.o tblite/version.o \
+       tblite/api/version.o tblite/api/utils.o tblite/api/error.o \
+       tblite/api/table.o tblite/api/result.o tblite/api/structure.o \
+       tblite/api/context.o tblite/api/param.o \
+       tblite/xtb.o tblite/mesh/lebedev.o tblite/solvation/born.o \
+       tblite/solvation/data.o tblite/solvation/type.o tblite/solvation/alpb.o \
+       tblite/solvation/cpcm_dd.o tblite/solvation/cpcm.o  \
+       tblite/solvation/input.o  tblite/solvation.o tblite/data/spin.o \
+       tblite/spin.o tblite/api/calculator.o tblite/api/container.o \
+       egrad_tblite.o \
+       \
        egrad_ch4oh.o util_ch4oh.o egrad_h3.o \
        numeral.o getnumb.o getstring.o torphase.o egrad_ch4h.o \
        util_ch4h.o egrad_brh2.o egrad_oh3.o util_oh3.o egrad_geh4oh.o\
@@ -116,6 +228,10 @@ all: $(OBJS)  $(EXES)
 %.o: %.f90
 	$(FC) $(FFLAGS) -c $< -o $@
 
+%.o: %.F90
+	$(FC) $(FFLAGS) -c $< -o $@
+
+
 #Create the library-file
 $(LIBRARY): $(OBJS)
 	ar -crusv $(LIBRARY) $(OBJS)
@@ -134,6 +250,9 @@ $(LIBRARY): $(OBJS)
 #remove all object and executable data
 clean:
 	rm -f *.o $(PROG)
+	rm -f */*.o $(PROG)
+	rm -f */*/*.o $(PROG)
+	rm -f */*/*/*.o $(PROG)
 	rm -f *.x $(PROG) 
 	rm -f *.mod $(PROG)
 	rm -f libqmdff.a

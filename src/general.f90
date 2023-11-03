@@ -275,6 +275,8 @@ real(kind=8)::nose_tau  ! the Nose-Hoover barostat damping factor
 !     --> elements and masses of atoms in system
 !
 character(len=3)::name(maxatm)
+!     Element indices of the atoms
+integer,allocatable::elem_index(:)
 real(kind=8)::mass(maxatm)
 !
 !     from tinker module "moldyn"
@@ -334,6 +336,11 @@ character(len=120)::keyfile
 !
 logical::pot_ana
 character(len=80)::pot_type
+!
+!     For printout of GFN-xTB calculation details: number of calculations
+!
+integer::xtb_calc_num
+
 !
 !     for MPI parallelization: tells, when it is used
 !

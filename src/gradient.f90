@@ -202,6 +202,7 @@ if (pot_ana) then
 
    return
 end if
+
 !
 !     Invoke the water_SPC routine for the water model
 !
@@ -236,6 +237,14 @@ if (water_spc) then
    else 
       g_evb=pot_grad(:,:,1)
    end if
+   return
+end if
+!
+!     Invoke the included GFN1-xTB or GFN2-xTB routines
+!
+if (gfn_xtb) then
+   call egrad_tblite(xyz2,pot_grad,e_evb)
+   g_evb=pot_grad(:,:,1)
    return
 end if
 !

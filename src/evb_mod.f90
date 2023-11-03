@@ -304,6 +304,15 @@ integer::ekin_atoms(100000)
 logical::change_mass
 real(kind=8)::newmass
 character(len=2)::elem_mass
+!    for GFN-xTB calculations with the included tblite program
+logical::gfn_xtb ! activation of the GFN-xTB method in general
+real(kind=8)::xtb_charge ! total charge of the system
+character(len=60)::hamil_string,solv_string  ! choice of Hamiltonian/solvation model
+character(len=40)::solv_spec,solv_epsilon  ! which species of epsilon shall be used
+logical::exist_spec ! If a concrete solvent species (character) has been assigned
+real(kind=8)::xtb_accuracy,xtb_el_temp ! accurary and electronic temperature 
+integer::xtb_maxiter  ! maximum number of SCF iterations
+
 ! for orca calculations (ab initio MD)
 logical::orca
 integer::orca_charge,orca_multi   ! charge and multiplicity of the system

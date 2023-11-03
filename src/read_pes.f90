@@ -70,6 +70,7 @@ logical::ts_xyz
 integer::rank ! the current MPI rank
 character(len=80)::corr_name,method
 character(len=100)::orca_filename
+real(kind=8)::epsilon_val
 
 evb1=.false.
 evb2=.false.
@@ -193,6 +194,18 @@ else if (method .eq. "WATER_SPC") then
    if (rank .eq. 0) then
    end if
 
+else if (method .eq. "GFN-XTB") then
+   gfn_xtb = .true.
+   if (rank .eq. 0) then
+      write(*,*) "The included tblite program will be called for "
+      write(*,*) " calculation of the GFN-xTB energy and gradient."
+      write(*,*) "Details of the calculations are written to 'gfn_xtb.log'."
+   end if
+!
+!     Counter for better listing of single SCFs in gfn_xtb.log
+!   
+   xtb_calc_num = 1
+   open(unit=84,file="gfn_xtb.log",status="replace")
 !
 !     If the gradient shall be calculated on the fly with orca
 !
@@ -596,6 +609,207 @@ if (water_spc) then
    goto 678
 end if
 
+!
+!     For GFN-xTB calculations: initialize the respective object
+!
+if (gfn_xtb) then
+!
+!      Set default values 
+!
+   hamil_string = "xxx"
+   xtb_charge = 0
+   xtb_accuracy = 1.0d-6
+   xtb_maxiter = 200
+   xtb_el_temp = 0.0d0
+   solv_string = "none"
+   solv_spec = "none"
+   epsilon_val = -1000d0
+   exist_spec = .false.
+   do i = 1, nkey
+      next = 1
+      record = keyline(i)
+      call gettext (record,keyword,next)
+      call upcase (keyword)
+      call upcase (record)
+      string = record(next:120)
+      if (trim(adjustl(record(1:11))) .eq. 'GFN-XTB {' .or. trim(adjustl(record(1:11))) &
+              &  .eq. 'GFN-XTB{') then
+         do j=1,nkey-i+1
+            next=1
+            record = keyline(i+j)
+            call gettext (record,keyword,next)
+            call upcase (keyword)
+            record=adjustl(record)
+!
+!     The GFN-xTB Hamiltonian, available are: GFN1-xTB, GFN2-xTB and IPEA1-xTB
+!
+            if (keyword(1:18) .eq. 'HAMILTONIAN ') then
+               read(record,*,iostat=readstat) names,hamil_string
+               if (readstat .ne. 0) then
+                  if (rank .eq. 0) then
+                     write(*,*) "The HAMILTONIAN keyword seems to be corrupted!"
+                  end if
+                  call fatal
+               end if                
+               call upcase (hamil_string) 
+               if (trim(adjustl(hamil_string)) .eq. "GFN1-XTB") then
+                  if (rank .eq. 0) then
+         !            write(*,*) "The GFN1-xTB Hamiltonian will be used."
+                  end if
+               else if (trim(adjustl(hamil_string)) .eq. "GFN2-XTB") then   
+                  if (rank .eq. 0) then
+         !            write(*,*) "The GFN2-xTB Hamiltonian will be used."
+                  end if
+               else if (trim(adjustl(hamil_string)) .eq. "IPEA1-XTB") then
+                  if (rank .eq. 0) then
+         !            write(*,*) "The IPEA1-xTB Hamiltonian will be used."
+                  end if
+               else 
+                  if (rank .eq. 0) then
+                     write(*,*) "No valid GFN-xTB Hamiltonian has been chosen!"
+                     write(*,*) "Either GFN1-xTB, GFN2-xTB or IPEA1-xTB can be used."
+                     call fatal
+                  end if
+               end if
+!
+!     The total charge of the system
+!
+            else if (keyword(1:18) .eq. 'CHARGE ') then
+               read(record,*,iostat=readstat) names,xtb_charge
+               if (readstat .ne. 0) then
+                  if (rank .eq. 0) then
+                     write(*,*) "The CHARGE keyword seems to be corrupted!"
+                  end if
+                  call fatal
+               end if
+
+!
+!     The SCF convergence criterion: maximum energy change
+!
+            else if (keyword(1:18) .eq. 'DELTAE_CONV ') then
+               read(record,*,iostat=readstat) names,xtb_accuracy
+               if (readstat .ne. 0) then
+                  if (rank .eq. 0) then
+                     write(*,*) "The DELTAE_CONV keyword seems to be corrupted!"
+                  end if
+                  call fatal
+               end if
+!
+!     The maximum number of steps for the SCF cycle
+!
+            else if (keyword(1:18) .eq. 'SCF_MAXITER ') then
+               read(record,*,iostat=readstat) names,xtb_maxiter
+               if (readstat .ne. 0) then
+                  if (rank .eq. 0) then
+                     write(*,*) "The SCF_MAXITER keyword seems to be corrupted!"
+                  end if
+                  call fatal
+               end if
+!
+!     The electronic temperature for the Fermi occupation smearing
+!
+            else if (keyword(1:18) .eq. 'EL_TEMP ') then
+               read(record,*,iostat=readstat) names,xtb_el_temp
+               if (readstat .ne. 0) then
+                  if (rank .eq. 0) then
+                     write(*,*) "The EL_TEMP keyword seems to be corrupted!"
+                  end if
+                  call fatal
+               end if
+!
+!     The model for implicit solvation (if activated at all)
+!
+            else if (keyword(1:18) .eq. 'SOLV_MODEL ') then
+               read(record,*,iostat=readstat) names,solv_string
+               if (readstat .ne. 0) then
+                  if (rank .eq. 0) then
+                     write(*,*) "The SOLV_MODEL keyword seems to be corrupted!"
+                  end if
+                  call fatal
+               end if
+               call upcase (solv_string)
+               if (trim(adjustl(solv_string)) .eq. "ALPB") then
+                  if (rank .eq. 0) then
+         !            write(*,*) "The ALPB solvation model will be used."
+                  end if
+               else if (trim(adjustl(solv_string)) .eq. "CPCM") then
+                  if (rank .eq. 0) then
+          !           write(*,*) "The CPCM solvation model will be used."
+                  end if
+               else 
+                  if (rank .eq. 0) then
+                     write(*,*) "No valid solvation model chosen! Take either ALPB or CPCM."
+                  end if
+                  call fatal
+               end if
+!
+!     One of the predefined solvent species
+!
+            else if (keyword(1:16) .eq. 'SOLV_SPEC ') then
+               read(record,*,iostat=readstat) names,solv_spec
+               if (readstat .ne. 0) then
+                  if (rank .eq. 0) then
+                     write(*,*) "The SOLV_SPEC keyword seems to be corrupted!"
+                  end if
+                  call fatal
+               end if
+               call lowcase(solv_spec)
+               exist_spec = .true.
+!
+!     An individual epsilon keyword for the solvation
+!
+            else if (keyword(1:17) .eq. 'SOLV_EPSILON ') then
+               read(record,*,iostat=readstat) names,epsilon_val
+               write(solv_epsilon,'(f20.12)') epsilon_val
+               if (readstat .ne. 0) then
+                  if (rank .eq. 0) then
+                     write(*,*) "The SOLV_EPSILON keyword seems to be corrupted!"
+                  end if
+                  call fatal
+               end if
+            end if
+            if (keyword(1:11) .eq. '}') exit
+            if (j .eq. nkey-i) then
+               write(*,*) "The GFN-XTB section has no second delimiter! (})"
+               call fatal
+            end if
+
+         end do
+      end if
+   end do
+!
+!     Check if any Hamiltonian has been chosen
+!
+   if (trim(adjustl(hamil_string)) .eq. "xxx") then
+      write(*,*) "No valid GFN-xTB Hamiltonian has been chosen!"
+      write(*,*) "Please add the HAMILTONIAN keyword!"
+      call fatal
+   end if
+!
+!     Check the validity of implicit solvation input
+!
+   if (trim(adjustl(solv_string)) .ne. "none") then
+      if (exist_spec) then
+         if (trim(adjustl(solv_spec)) .eq. "none") then
+            write(*,*) "Implicit solvation was activated but no valid solvent"
+            write(*,*) " species or epsilon is given!"
+            call fatal         
+         end if 
+      else 
+         if (epsilon_val + 1000.d0 .le. 0.0001d0) then
+            write(*,*) "Implicit solvation was activated but no valid solvent"
+            write(*,*) " species or epsilon is given!"
+            call fatal
+         end if
+      end if
+   end if
+!
+!     Convert the accuracy to internal unit
+!
+   xtb_accuracy = xtb_accuracy*1.0D6
+   goto 678
+
+end if
 
 !
 !     For orca calculations: Read in the orca header line of the orca 
@@ -1708,8 +1922,30 @@ if (rank .eq. 0) then
       write(*,*) " - QMDFF file: ",trim(fffile1)
       write(*,'(a,i8)') "  - Number of atoms: ",natoms
    end if
+!
+!     One of the GFN-xTB methods 
+!
+   if (gfn_xtb) then
+      write(*,*) "PES description: GFN-xTB semiempirics" 
+      write(*,'(a,i8)') "  - Number of atoms: ",natoms
+      write(*,'(a,f12.6)') "  - Total charge of the system: ",xtb_charge
+      write(*,*) " - Used Hamiltonian: ",trim(hamil_string)
 
-
+      write(*,'(a,e10.4)') "  - SCF energy convergence criterion (Hartrees): ", & 
+            & xtb_accuracy*1D-6
+      write(*,'(a,i6)') "  - Maximum number of SCF iterations: ",xtb_maxiter
+      write(*,'(a,f16.6)') "  - Electronic temperature (Kelvin): ",xtb_el_temp
+      if (solv_string .eq. "none") then  
+         write(*,*) " - No implicit solvation will be used."
+      else 
+         write(*,*) " - Used solvation model: ",trim(solv_string)
+         if (exist_spec) then
+            write(*,*) " - Used solvent species: ",trim(solv_spec) 
+         else 
+            write(*,*) " - Dielectric constant used for solvation:",trim(solv_epsilon)
+         end if
+      end if
+   end if
 !
 !     The SPC water model
 !
