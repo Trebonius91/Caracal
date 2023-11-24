@@ -807,6 +807,10 @@ if (gfn_xtb) then
 !     Convert the accuracy to internal unit
 !
    xtb_accuracy = xtb_accuracy*1.0D6
+!
+!     Convert the electronic temperature from Kelvin to kT in eV
+!
+   xtb_el_temp = xtb_el_temp*8.61732476104d-5
    goto 678
 
 end if
@@ -1934,7 +1938,7 @@ if (rank .eq. 0) then
       write(*,'(a,e10.4)') "  - SCF energy convergence criterion (Hartrees): ", & 
             & xtb_accuracy*1D-6
       write(*,'(a,i6)') "  - Maximum number of SCF iterations: ",xtb_maxiter
-      write(*,'(a,f16.6)') "  - Electronic temperature (Kelvin): ",xtb_el_temp
+      write(*,'(a,f16.6)') "  - Electronic temperature (Kelvin): ",xtb_el_temp/8.61732476104d-5
       if (solv_string .eq. "none") then  
          write(*,*) " - No implicit solvation will be used."
       else 

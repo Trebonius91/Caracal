@@ -290,6 +290,7 @@ end subroutine get_mixer
 
 
 subroutine get_density(wfn, solver, ints, ts, error)
+   use xtb_mod
    !> Tight-binding wavefunction data
    type(wavefunction_type), intent(inout) :: wfn
    !> Solver for the general eigenvalue problem
@@ -335,6 +336,7 @@ subroutine get_density(wfn, solver, ints, ts, error)
       end do
       ts = sum(stmp)
    end select
+   e_fermi_xtb=e_fermi
 end subroutine get_density
 
 subroutine get_electronic_entropy(occ, kt, s)

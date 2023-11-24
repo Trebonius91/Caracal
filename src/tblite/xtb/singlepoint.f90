@@ -43,6 +43,7 @@ module tblite_xtb_singlepoint
    use tblite_xtb_calculator, only : xtb_calculator
    use tblite_xtb_h0, only : get_selfenergy, get_hamiltonian, get_occupation, &
       & get_hamiltonian_gradient
+   use tblite_output_ascii, only : ascii_levels
    implicit none
    private
 
@@ -106,7 +107,8 @@ subroutine xtb_singlepoint(ctx, mol, calc, wfn, accuracy, energy, gradient, sigm
    type(scf_info) :: info
    class(solver_type), allocatable :: solver
    type(adjacency_list) :: list
-   integer :: iscf, spin
+   integer :: iscf, spin,ihomo(2),it
+   
 
    call timer%push("total")
 
@@ -313,7 +315,15 @@ subroutine xtb_singlepoint(ctx, mol, calc, wfn, accuracy, energy, gradient, sigm
       end if
       call timer%pop
    end if
-
+!
+!     Print information about orbital energies/occupation
+!
+   do it=1,size(wfn%focc(:,1)) 
+      
+      if (wfn%focc(it,1) .lt. 0.9d0) exit
+      ihomo(:)=it
+   end do
+   call ascii_levels(84, verbosity, ihomo, wfn%emo, wfn%focc, 1)
    if (present(results)) then
       allocate(results%bond_orders(mol%nat, mol%nat, wfn%nspin))
       call get_mayer_bond_orders(calc%bas, ints%overlap, wfn%density, results%bond_orders)

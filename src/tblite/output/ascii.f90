@@ -36,6 +36,7 @@ contains
 
 
 subroutine ascii_levels(unit, verbosity, homo, emo, focc, range)
+   use xtb_mod
    integer, intent(in) :: unit
    integer, intent(in) :: verbosity
    integer, intent(in) :: homo(:)
@@ -49,11 +50,13 @@ subroutine ascii_levels(unit, verbosity, homo, emo, focc, range)
 
    do spin = 1, size(emo, 2)
    nao = size(emo, 1)
-   minorb = max(homo(spin) - (range+1), 1)
-   maxorb = min(homo(spin) +  range, nao)
+   minorb  = 1  !max(homo(spin) - (range+1), 1)
+   maxorb = nao ! min(homo(spin) +  range, nao)
    gap = emo(min(homo(spin)+1, nao), spin) - emo(max(homo(spin), 1), spin)
 
-   write(unit, '(66("-"))')
+   write(unit,*) "   * Orbital Energies and Occupations"
+   write(unit,*)
+ !  write(unit, '(66("-"))')
    write(unit, '(a7, a14, a21, a21)') "#", "Occupation", "Energy/Eh", "Energy/eV"
    write(unit, '(66("-"))')
    if (minorb > 1) then
@@ -76,6 +79,7 @@ subroutine ascii_levels(unit, verbosity, homo, emo, focc, range)
    endif
    write(unit, '(66("-"))')
    write(unit, hlfmt) "HL-Gap", gap, gap*autoev
+   write(unit,hlfmt) "Fermi-level",(e_fermi_xtb)*2d0,(e_fermi_xtb)*2*27.2114d0
    write(unit, '(66("-"))')
    write(unit, '(a)')
    end do

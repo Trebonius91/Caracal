@@ -34,7 +34,7 @@ LINKFLAGS = -static-libgcc -fopenmp -L${MKLROOT}/lib/intel64 -Wl,--no-as-needed 
 # - Other analytic PES
 # - program files
 OBJS = general.o evb_mod.o qmdff.o lm_module.o debug.o h2co_mod.o \
-       fftw_mod.o \
+       fftw_mod.o xtb_mod.o \
        \
        moment.o ff_e.o eabh0.o thermo.o axis.o thermocal.o heat.o \
        bonde.o gethirsh.o docm5.o cm5mod.o copyc6.o limit.o rsp.o \
@@ -193,6 +193,7 @@ OBJS = general.o evb_mod.o qmdff.o lm_module.o debug.o h2co_mod.o \
        tblite/repulsion/effective.o tblite/repulsion.o tblite/xtb/calculator.o \
        tblite/wavefunction/guess.o tblite/wavefunction.o tblite/scf.o \
        tblite/external/field.o tblite/timer.o tblite/ceh/ceh.o \
+       tblite/output/ascii.o tblite/output/property.o \
        tblite/results.o tblite/xtb/singlepoint.o tblite/xtb/gfn1.o \
        tblite/xtb/gfn2.o tblite/xtb/ipea1.o tblite/version.o \
        tblite/api/version.o tblite/api/utils.o tblite/api/error.o \

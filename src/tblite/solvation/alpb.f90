@@ -233,6 +233,7 @@ subroutine get_energy(self, mol, cache, wfn, energies)
 
    call symv(ptr%jmat, wfn%qat(:, 1), ptr%vat, alpha=0.5_wp)
    energies(:) = energies + ptr%vat * wfn%qat(:, 1)
+   write(*,*) "alpb_energies",energies
 end subroutine get_energy
 
 

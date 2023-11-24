@@ -76,7 +76,6 @@ subroutine get_fermi_filling_(homo, kt, emo, occ, e_fermi)
 
    e_fermi = 0.5*(emo(max(homo, 1))+emo(min(homo+1, size(emo))))
    occt = homo
-
    do ncycle = 1, max_cycle
       total_number = 0.0
       total_dfermi = 0.0
