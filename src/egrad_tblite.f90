@@ -46,16 +46,26 @@ use tblite_api_result
 use tblite_api_table
 use tblite_api_error
 use tblite_api_container
+use mctc_io_convert
 use, intrinsic :: iso_c_binding
 implicit none
 !     Loop indices
-integer::i,j
+integer::i,j,k
 !     The current coordinates (bohr)
 real(kind=8),intent(in)::xyz_act(3,natoms)
 !     The calculated gradient (hartree/bohr)
 real(kind=8),intent(out)::g_act(3,natoms)
 !     The calculated energy (hartree)
 real(kind=8),intent(out)::e_act
+!     The calculated partial charges (e)
+real(kind=8) :: charges_act(natoms)
+!     The calculated Wiberg bond orders
+real(kind=8) :: wbo_act(natoms,natoms)
+real(kind=8) ::wbo_thr,xsum
+integer::ibmax
+integer, allocatable :: imem(:)
+!     The calculated dipole and quadrupole moments 
+real(kind=8) :: dipole_act(3),quadrupole_act(6,1),dip
 !     Data for the communication with xtblite
 !    The calculaton object (calculator)
 type(c_ptr) :: calc_xtb
@@ -212,6 +222,87 @@ call get_result_energy_api(verror,calc_results,e_act)
 
 call get_result_gradient_api(verror,calc_results,g_act)
 
+!
+!     Obtain further properties of the system
+!
+call get_result_charges_api(verror,calc_results,charges_act)
+call get_result_bond_orders_api(verror,calc_results,wbo_act)
+call get_result_dipole_api(verror,calc_results,dipole_act)
+call get_result_quadrupole_api(verror,calc_results,quadrupole_act)
+
+write(84,*) "   FURTHER RESULTS: "
+write(84,*)
+write(84,*) "   * Partial charges"
+write(84,*)
+write(84,*) " # atom No.     element    Z(e)         q(e) "
+write(84,'(a)') "------------------------------------------------------------------"
+do i=1,natoms
+   write(84,'(i7,a,a,i7,f18.7)') i,"             ",name(i),numbers(i),charges_act(i)
+end do
+write(84,'(a)') "------------------------------------------------------------------"
+write(84,'(a,f18.7)') " Total charge of the system: ",sum(charges_act)
+write(84,'(a)') "------------------------------------------------------------------"
+write(84,*)
+write(84,*) "   * Wiberg-Mayer bond orders"
+wbo_thr=0.1d0
+allocate(imem(natoms))
+write(84,'(a)')
+write(84,'("  largest (>",f4.2,") Wiberg bond orders for each atom")') wbo_thr
+write(84,'(a)')
+write(84,'(75("-"))')
+write(84,'(5x,"#",3x,"Z",1x,"sym",2x,"total",t25,3(5x,"#",1x,"sym",2x,"WBO",2x))')
+write(84,'(75("-"))')
+do i=1,natoms
+   do j=1,natoms
+      imem(j)=j
+   enddo
+   call wibsort(natoms,i,imem,wbo_act)
+   ibmax=0
+   xsum =0.0d0
+   do j=1,natoms
+      if (wbo_act(i,j).gt.wbo_thr) ibmax=j
+      xsum=xsum+wbo_act(i,j)
+   enddo
+   if (ibmax > 0) then
+      write(84,'(i6,1x,i3,1x,a4,f6.3,1x,"--")',advance='no') &
+         & i,numbers(i),name(i),xsum
+   else
+      write(84,'(i6,1x,i3,1x,a4,f6.3)') &
+         & i,numbers(i),name(i),xsum
+   end if
+   do j = 1, ibmax, 3
+      if (j > 1) then
+         write(84,'(t25)', advance='no')
+      end if
+      do k = j, min(ibmax, j+2)
+         write(84,'(i6,1x,a4,f6.3)',advance='no') &
+            & imem(k),name(imem(k)),wbo_act(i,k)
+      enddo 
+      write(84,'(a)')
+   end do
+enddo
+write(84,'(175("-"))')
+write(84,'(a)')
+
+dip=norm2(dipole_act)
+write(84,*) "   * Dipole moment, from electron density (a.u.)"
+write(84,*)
+write(84,'(1x,"    x          y          z      ")')
+write(84,'(a)') "------------------------------------------------------------------"
+write(84,'(3f11.5,"  total (Debye): ",f11.5)') &
+     & dipole_act(1),   dipole_act(2),   dipole_act(3), dip*autod
+write(84,'(a)') "------------------------------------------------------------------"
+write(84,*)
+write(84,*) "   * Quadrupole moment, from electron density (a.u.)"
+write(84,*)
+write(84,'(a)',advance='no')'     xx         xy         yy         '
+write(84,'(a)',advance='yes')'xz         yz         zz'
+write(84,'(a)') "------------------------------------------------------------------"
+write(84,'(6f11.5)')  quadrupole_act(1,1),quadrupole_act(2,1),quadrupole_act(3,1), &
+            & quadrupole_act(4,1),quadrupole_act(5,1),quadrupole_act(6,1)
+write(84,'(a)') "------------------------------------------------------------------"
+write(84,*)
+write(84,*)
 !
 !     Delete the relevant objects for this cycle
 !

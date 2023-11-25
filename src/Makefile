@@ -21,6 +21,9 @@ FFLAGS =  -fno-align-commons -fallow-argument-mismatch -O1  #-ffree-form #-Wall 
 #LINKFLAGS = -static-libgcc -fopenmp -llapack -lblas -lfftw3 -fno-align-commons -g -ffpe-trap=zero,invalid,overflow,underflow # debug version!
 # link against Intel MKL, has been tested with GNU Fortran MPI compiler
 LINKFLAGS = -static-libgcc -fopenmp -L${MKLROOT}/lib/intel64 -Wl,--no-as-needed -lmkl_intel_lp64 -lmkl_gnu_thread -lmkl_core -lgomp -lpthread -lm -ldl
+# link with GULP 
+#LINKFLAGS = -static-libgcc -fopenmp -L${MKLROOT}/lib/intel64 -Wl,--no-as-needed -lmkl_intel_lp64 -lmkl_gnu_thread -lmkl_core -lgomp -lpthread -lm -ldl -L/libgulp.a
+
 
 
 # Targets by default
@@ -204,7 +207,7 @@ OBJS = general.o evb_mod.o qmdff.o lm_module.o debug.o h2co_mod.o \
        tblite/solvation/cpcm_dd.o tblite/solvation/cpcm.o  \
        tblite/solvation/input.o  tblite/solvation.o tblite/data/spin.o \
        tblite/spin.o tblite/api/calculator.o tblite/api/container.o \
-       egrad_tblite.o \
+       wibsort.o egrad_tblite.o \
        \
        egrad_ch4oh.o util_ch4oh.o egrad_h3.o \
        numeral.o getnumb.o getstring.o torphase.o egrad_ch4h.o \

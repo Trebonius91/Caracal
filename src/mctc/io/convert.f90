@@ -15,7 +15,7 @@
 !> Conversion factors
 module mctc_io_convert
    use mctc_env_accuracy, only : wp
-   use mctc_io_constants, only : pi, codata
+   use mctc_io_constants
    implicit none
    private
 
@@ -93,6 +93,14 @@ module mctc_io_convert
 
    !> Atomic charge units to Coulomb
    real(wp), public, parameter :: ctoau = 1.0_wp/autoc
+!  femtosectons to atomic time units
+   real(wp),public,parameter :: fstoau = 41.3413733365614_wp
+   real(wp),public,parameter :: autofs = 1.0_wp/fstoau
+
+
+!  Debye to atomic units
+   real(wp),public,parameter :: autod = autoc * 137.0359990740_wp * autoaa**2 * fstoau * 1.0e+16_wp
+   real(wp),public,parameter :: dtoau = 1.0_wp/autod
 
 
 end module mctc_io_convert

@@ -36,7 +36,6 @@ module mctc_io_constants
 
       !> Speed of light in vacuum
       real(wp) :: c = speed_of_light_in_vacuum
-
       !> Boltzmann's constant
       real(wp) :: kb = boltzmann_constant
 
