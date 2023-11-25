@@ -66,6 +66,8 @@ integer::ibmax
 integer, allocatable :: imem(:)
 !     The calculated dipole and quadrupole moments 
 real(kind=8) :: dipole_act(3),quadrupole_act(6,1),dip
+!     The calculated virial tensor
+real(kind=8) :: virial_act(3,3)
 !     Data for the communication with xtblite
 !    The calculaton object (calculator)
 type(c_ptr) :: calc_xtb
@@ -229,6 +231,7 @@ call get_result_charges_api(verror,calc_results,charges_act)
 call get_result_bond_orders_api(verror,calc_results,wbo_act)
 call get_result_dipole_api(verror,calc_results,dipole_act)
 call get_result_quadrupole_api(verror,calc_results,quadrupole_act)
+call get_result_virial_api(verror,calc_results,virial_act)
 
 write(84,*) "   FURTHER RESULTS: "
 write(84,*)
@@ -281,7 +284,7 @@ do i=1,natoms
       write(84,'(a)')
    end do
 enddo
-write(84,'(175("-"))')
+write(84,'(75("-"))')
 write(84,'(a)')
 
 dip=norm2(dipole_act)
@@ -302,7 +305,21 @@ write(84,'(6f11.5)')  quadrupole_act(1,1),quadrupole_act(2,1),quadrupole_act(3,1
             & quadrupole_act(4,1),quadrupole_act(5,1),quadrupole_act(6,1)
 write(84,'(a)') "------------------------------------------------------------------"
 write(84,*)
+write(84,*) "   * Virial tensor components (a.u.)"
 write(84,*)
+write(84,'(a)') "------------------------------------------------------------------"
+write(84,'(6f12.6)') virial_act(1,:)
+write(84,'(6f12.6)') virial_act(2,:)
+write(84,'(6f12.6)') virial_act(3,:)
+write(84,'(a)') "------------------------------------------------------------------"
+write(84,*)
+write(84,*)
+!
+!     For NPT calculations: set stress tensor to obtained virial tensor
+!
+if (npt) then
+   vir_ten=virial_act
+end if
 !
 !     Delete the relevant objects for this cycle
 !
