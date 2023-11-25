@@ -15,7 +15,7 @@ LIBRARY = libcaracal.a
 CURRENT = $(shell pwd)
 
 SRCDIR = src
-FFLAGS =  -fno-align-commons -fallow-argument-mismatch -O1  #-ffree-form #-Wall # normal version
+FFLAGS = -fopenmp -fno-align-commons -fallow-argument-mismatch -O1  #-ffree-form #-Wall # normal version
 #FFLAGS =  -fno-align-commons -g -ffpe-trap=zero,invalid,overflow,underflow  #-ffree-form #-Wall # debug version!
 #LINKFLAGS = -static-libgcc -fopenmp -llapack -lblas -lfftw3 -fno-align-commons # normal version 
 #LINKFLAGS = -static-libgcc -fopenmp -llapack -lblas -lfftw3 -fno-align-commons -g -ffpe-trap=zero,invalid,overflow,underflow # debug version!
@@ -196,9 +196,9 @@ OBJS = general.o evb_mod.o qmdff.o lm_module.o debug.o h2co_mod.o \
        tblite/repulsion/effective.o tblite/repulsion.o tblite/xtb/calculator.o \
        tblite/wavefunction/guess.o tblite/wavefunction.o tblite/scf.o \
        tblite/external/field.o tblite/timer.o tblite/ceh/ceh.o \
-       tblite/output/ascii.o tblite/output/property.o \
+       tblite/version.o tblite/output/ascii.o tblite/output/property.o \
        tblite/results.o tblite/xtb/singlepoint.o tblite/xtb/gfn1.o \
-       tblite/xtb/gfn2.o tblite/xtb/ipea1.o tblite/version.o \
+       tblite/xtb/gfn2.o tblite/xtb/ipea1.o \
        tblite/api/version.o tblite/api/utils.o tblite/api/error.o \
        tblite/api/table.o tblite/api/result.o tblite/api/structure.o \
        tblite/api/context.o tblite/api/param.o \

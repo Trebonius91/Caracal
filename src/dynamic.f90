@@ -41,6 +41,7 @@
 program dynamic
 use general
 use evb_mod
+use omp_lib
 
 implicit none
 integer i,istep,nstep,asciinum,j,k,nat,l
@@ -110,6 +111,17 @@ logical::path_struc,path_energy,coupl,ts_xyz,params
 logical::keyword1,keyword2,keyword3
 !     the MPI rank (here always 0)
 integer::rank
+!     the number of OMP threads 
+integer::threads,id
+
+
+  !$OMP Parallel private(id) shared(threads)
+   threads = omp_get_num_threads()
+   id = omp_get_thread_num()
+   print *, "hello from thread", id, "out of", threads
+   !$OMP end Parallel
+
+
 
 !
 !     Set MPI rank to zero for this program
@@ -1316,6 +1328,9 @@ if (npt) then
 end if
 temp_test=0.d0
 num_measure=real(nstep)/real(iwrite)
+
+
+
 do istep = 1, nstep
    analyze=.false.
 !
