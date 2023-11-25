@@ -363,6 +363,7 @@ real(kind=8)::xi_test  ! for manual shutdown
 real(kind=8)::no_evb_xi  ! maximum xi value for pure QMDFF for no-evb
 ! for time measuring 
 real(kind=8)::time1,time2
-real(kind=8)::time(10),duration
+real(kind=8)::time1_omp,time2_omp
+real(kind=8)::time(10),time_omp(10),duration
 integer::time_int(10)
 end module evb_mod

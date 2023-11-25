@@ -113,7 +113,7 @@ logical::keyword1,keyword2,keyword3
 integer::rank
 !     the number of OMP threads 
 integer::threads,id
-
+real(kind=8)::duration_omp
 
   !$OMP Parallel private(id) shared(threads)
    threads = omp_get_num_threads()
@@ -1301,6 +1301,7 @@ write(*,*)  " . ...- -... --.- -- -.. ..-. ..-."
 !    Measure the needed time for dynamic steps
 !
 call cpu_time(time1)
+time1_omp = omp_get_wtime()
 !
 !     integrate equations of motion to take a time step
 !
@@ -1477,10 +1478,13 @@ if (int_coord_plot) close(191)
 !    calculate the needed time for dynamic steps
 !
 call cpu_time(time2)
+time2_omp = omp_get_wtime()
 
 duration=time2-time1
+duration_omp=time2_omp-time1_omp
 write(*,*)
-write(*,'(A, F12.3, A)') " The calculation needed a time of",duration," seconds."
+write(*,'(A, F12.3, A)') " The calculation needed a time of",duration_omp," seconds."
+!write(*,'(A, i10, A)') " The calculation needed a time of ",duration_omp," seconds."
 if (verbose) then
    write(*,*) " Trajectory written to 'trajectory.xyz', temperatures to 'temperature.dat',"
    write(*,*) " gradients to 'md_gradients.dat', velocities to 'md_velocities.dat', "

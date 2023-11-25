@@ -37,10 +37,13 @@ use general
 use qmdff
 use evb_mod
 use fftw_mod
+use omp_lib
+
 implicit none
 real*8 precise
 integer::rank  ! the current MPI process
 logical first
+integer::id,threads
 
 first=.true.
 !
@@ -76,6 +79,14 @@ isobaric = .false.
 !     Set initial parameter for Fast Fourier Transform
 !
 Np=0
+!
+!     Give information about used number of OMP threads
+!
+!$OMP Parallel private(id) shared(threads)
+threads = omp_get_num_threads()
+!$OMP end Parallel
+write(*,'(a,i5,a)') " This calculation will use ",threads," OpenMP threads on common memory."
+
 
 return
 end subroutine initial
