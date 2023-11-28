@@ -48,6 +48,7 @@ program explore
 use general
 use evb_mod
 use debug
+use omp_lib
 
 implicit none
 integer::num_arg,input_unit,i,qmdff_energies_unit,asciinum
@@ -489,6 +490,7 @@ end if
 
 
 call system_clock(time_int1)
+time1_omp = omp_get_wtime()
 
 !
 !    For energy+gradient calculations: start here!
@@ -1006,7 +1008,10 @@ end if
 389 continue
 
 call system_clock(time_int2)
-duration=real(time_int2)/1000-real(time_int1)/1000
+time2_omp = omp_get_wtime()
+
+!duration=real(time_int2)/1000-real(time_int1)/1000
+duration=time2_omp-time1_omp
 
 write(15,*)
 write(15,*) "Calculation finished at: "

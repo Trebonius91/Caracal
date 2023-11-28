@@ -51,12 +51,16 @@ pi=3.1415926535897932384d0    ! the pi
 !     for the bimolecular reactions: use the formula from RPMDrate
 !
 if ((umbr_type .eq. "BIMOLEC") .or. (umbr_type .eq. "CYCLOADD") .or. &
+           & (umbr_type .eq. "BIMOL_EXCH") .or. &
            & (umbr_type .eq. "ADDITION") .or. (umbr_type .eq. "ADDITION3") .or. &
            & (umbr_type .eq. "ADDITION4") .or. (umbr_type .eq. "ADD3_SOLV") .or. &
            & (umbr_type .eq. "ADD4_SOLV") .or. (umbr_type .eq. "MERGING")) then
    if (umbr_type .eq. "BIMOLEC") then
-      write(15,*) "Type of reaction: BIMOLECULAR EXCHANGE"
-      write(*,*) "Type of reaction: BIMOLECULAR EXCHANGE"
+      write(15,*) "Type of reaction: BIMOLECULAR SUBSTITUTION"
+      write(*,*) "Type of reaction: BIMOLECULAR SUBSTITUTION"
+   else if (umbr_type .eq. "BIMOL_EXCH") then
+      write(15,*) "Type of reaction: BIMOLECULAR CYCLIC EXCHANGE"
+      write(*,*) "Type of reaction: BIMOLECULAR CYCLIC EXCHANGE"
    else if (umbr_type .eq. "CYCLOADD") then
       write(15,*) "Type of reaction: CYCLOADDITION"
       write(*,*) "Type of reaction: CYCLOADDITION"

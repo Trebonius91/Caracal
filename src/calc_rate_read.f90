@@ -378,6 +378,10 @@ else if (umbr_type .eq. "BIMOLEC") then
    form_num=1
    break_num=1
    sum_reacs=2
+else if (umbr_type .eq. "BIMOL_EXCH") then
+   form_num=2
+   break_num=2
+   sum_reacs=2
 else if (umbr_type .eq. "CYCLOADD") then
    form_num=2
    break_num=0

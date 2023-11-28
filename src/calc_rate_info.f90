@@ -168,7 +168,10 @@ if (rank .eq. 0) then
       write(15,'(a,f14.6,a)') "    coupled to heat variable with ",nose_q," coupling strength."
    end if
    if (umbr_type .eq. "BIMOLEC") then
-      write(15,'(a)') " * A bimolecular reaction will be investigated."
+      write(15,'(a)') " * A bimolecular substitution will be investigated."
+   else if (umbr_type .eq. "BIMOL_EXCH") then
+      write(15,'(a)') " * A bimolecular cyclic exchange with 2 bonds broken and two bonds "
+      write(15,'(a)') "       formed  will be investigated."
    else if (umbr_type .eq. "CYCLOADD") then
       write(15,'(a)') " * A cycloaddition reaction will be investigated."
    else if (umbr_type .eq. "MERGING") then

@@ -4043,6 +4043,11 @@ else if ((n_form .eq. 1) .and. (n_break .eq. 1) .and. (num_eds .eq. 2)) then
    write(*,*) "There are one breaking and one forming bonds as well as two "
    write(*,*) " reactant molecules! Therefore the reaction type is BIMOLECULAR!"
    umbr_type="BIMOLEC"
+else if ((n_form .eq. 2) .and. (n_break .eq. 2) .and. (num_eds .eq. 2)) then
+   write(*,*) "There are two breaking and two forming bonds as well as two "
+   write(*,*) " reactant molecules! Therefore the reaction type is a bimolecular"
+   write(*,*) " cyclic exchange reaction (BIMOL_EXCH)"
+   umbr_type="BIMOL_EXCH"
 else if ((n_form .eq. 2) .and. (n_break .eq. 0) .and. (num_eds .eq. 2)) then
    write(*,*) "There are two breaking and no forming bonds as well as two "
    write(*,*) " reactant molecules! Therefore the reaction is a CYCLOADDIOTION!"

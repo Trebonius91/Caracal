@@ -94,13 +94,19 @@ integer::atom,atom1,atom2 ! the actual atomic indices
 !    Currently these are:
 !    1. Bimolecular reaction (one forming, one breaking bond)
 !    2. Cycloaddition (two forming bonds)
-!    3. Addition (two forming, one breaking bonds)
-!    4. Addition3 (three forming, two breaking bonds)
+!    3. Bimolecular cyclic exchange (two forming, two breaking bonds)
+!    4. Addition (two forming, one breaking bonds)
+!    5. Addition3 (three forming, two breaking bonds)
+!    6. Addition4 (four forming, three breaking bonds)
+!    7. Addition3 with solvent complex (three forming, two breaking bonds)
+!    8. Addition4 with solvent complex (four forming, three breaking bonds)
+!    9. Merging (one forming bond)
 !
 !    #############################################################################
-!    1 THE BIMOLECULAR REACTION (ONE FORMING, ONE BREAKING)
+!    1 THE BIMOLECULAR REACTION MECHANISMS
 !
 if ((umbr_type .eq. "BIMOLEC") .or. (umbr_type .eq. "CYCLOADD") &
+    & .or. (umbr_type .eq. "BIMOL_EXCH") &
     & .or. (umbr_type .eq. "ADDITION") .or. (umbr_type .eq. "ADDITION3") &
     & .or. (umbr_type .eq. "ADDITION4") .or. (umbr_type .eq. "ADD3_SOLV") &
     & .or. (umbr_type .eq. "ADD4_SOLV") .or. (umbr_type .eq. "MERGING")) then

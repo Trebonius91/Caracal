@@ -15,12 +15,15 @@ LIBRARY = libcaracal.a
 CURRENT = $(shell pwd)
 
 SRCDIR = src
-FFLAGS =  -fno-align-commons -fallow-argument-mismatch -O1  #-ffree-form #-Wall # normal version
+FFLAGS = -fopenmp -fno-align-commons -fallow-argument-mismatch -O1  #-ffree-form #-Wall # normal version
 #FFLAGS =  -fno-align-commons -g -ffpe-trap=zero,invalid,overflow,underflow  #-ffree-form #-Wall # debug version!
 #LINKFLAGS = -static-libgcc -fopenmp -llapack -lblas -lfftw3 -fno-align-commons # normal version 
 #LINKFLAGS = -static-libgcc -fopenmp -llapack -lblas -lfftw3 -fno-align-commons -g -ffpe-trap=zero,invalid,overflow,underflow # debug version!
 # link against Intel MKL, has been tested with GNU Fortran MPI compiler
 LINKFLAGS = -static-libgcc -fopenmp -L${MKLROOT}/lib/intel64 -Wl,--no-as-needed -lmkl_intel_lp64 -lmkl_gnu_thread -lmkl_core -lgomp -lpthread -lm -ldl
+# link with GULP 
+#LINKFLAGS = -static-libgcc -fopenmp -L${MKLROOT}/lib/intel64 -Wl,--no-as-needed -lmkl_intel_lp64 -lmkl_gnu_thread -lmkl_core -lgomp -lpthread -lm -ldl -L/libgulp.a
+
 
 
 # Targets by default
@@ -34,7 +37,7 @@ LINKFLAGS = -static-libgcc -fopenmp -L${MKLROOT}/lib/intel64 -Wl,--no-as-needed 
 # - Other analytic PES
 # - program files
 OBJS = general.o evb_mod.o qmdff.o lm_module.o debug.o h2co_mod.o \
-       fftw_mod.o \
+       fftw_mod.o xtb_mod.o \
        \
        moment.o ff_e.o eabh0.o thermo.o axis.o thermocal.o heat.o \
        bonde.o gethirsh.o docm5.o cm5mod.o copyc6.o limit.o rsp.o \
@@ -193,8 +196,9 @@ OBJS = general.o evb_mod.o qmdff.o lm_module.o debug.o h2co_mod.o \
        tblite/repulsion/effective.o tblite/repulsion.o tblite/xtb/calculator.o \
        tblite/wavefunction/guess.o tblite/wavefunction.o tblite/scf.o \
        tblite/external/field.o tblite/timer.o tblite/ceh/ceh.o \
+       tblite/version.o tblite/output/ascii.o tblite/output/property.o \
        tblite/results.o tblite/xtb/singlepoint.o tblite/xtb/gfn1.o \
-       tblite/xtb/gfn2.o tblite/xtb/ipea1.o tblite/version.o \
+       tblite/xtb/gfn2.o tblite/xtb/ipea1.o \
        tblite/api/version.o tblite/api/utils.o tblite/api/error.o \
        tblite/api/table.o tblite/api/result.o tblite/api/structure.o \
        tblite/api/context.o tblite/api/param.o \
@@ -203,7 +207,7 @@ OBJS = general.o evb_mod.o qmdff.o lm_module.o debug.o h2co_mod.o \
        tblite/solvation/cpcm_dd.o tblite/solvation/cpcm.o  \
        tblite/solvation/input.o  tblite/solvation.o tblite/data/spin.o \
        tblite/spin.o tblite/api/calculator.o tblite/api/container.o \
-       egrad_tblite.o \
+       wibsort.o egrad_tblite.o \
        \
        egrad_ch4oh.o util_ch4oh.o egrad_h3.o \
        numeral.o getnumb.o getstring.o torphase.o egrad_ch4h.o \

@@ -476,6 +476,8 @@ if (trim(progname) .eq. "calc_rate") then
    write(*,*) "    - TYPE [type]: Which predefined class of elementary reactions"
    write(*,*) "       shall be calculated. Possible options are (*: unimolecular):"
    write(*,*) "       -- BIMOLEC: A bimolecular substitution."
+   write(*,*) "       -- BIMOL_EXCH: A bimolecular cycle exchange (two bonds "
+   write(*,*) "          formed and two bonds broken)."
    write(*,*) "       -- ATOM_SHIFT *: A single atom is transported a certain "
    write(*,*) "          distance, e.g. on a metal surface."
    write(*,*) "       -- MERGING: Two fragments merge, one bond is formed."
