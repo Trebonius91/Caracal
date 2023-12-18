@@ -134,3 +134,5 @@ If you have further questions, suggestions what shall be added to Caracal, or de
 - 10/09/2023: The keyword RANDOM\_SEED [value] was added for the programs dynamic and calc\_rate in order to enable exact reproduction of calculations for debugging or benchmarks
 - 10/30/2023: The program file 'poly_qmdff.f90' which was missing so far, was now added.
 - 11/03/2023: Release version 1.1, addition of GFN-xTB methods (and related keywords)
+- 12/18/2023: The input format for QMDFF force field has been slightly changed. A new QMDFF input section was introduced (see Caracal wiki and examples)
+- 12/18/2023: Initial steps for including pGFN-FF from an ownstanding GULP program were implemented. So far not finished.

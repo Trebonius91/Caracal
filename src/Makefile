@@ -15,10 +15,10 @@ LIBRARY = libcaracal.a
 CURRENT = $(shell pwd)
 
 #  Location of the GULP package, if compiled with Caracal
-OSTYPE = Linux
-GULPDIR =  ../../gulp-6.2
-GULPFF = -DGULP=def -I${GULPDIR}/Src/${OSTYPE}
-GULPLINK = ${GULPDIR}/Src/${OSTYPE}/libgulp.a  ${GULPDIR}/Utils/pGFNFF/Src/libpGFNFF.a 
+#OSTYPE = Linux
+#GULPDIR =  ../../gulp-6.2
+#GULPFF = -DGULP=def -I${GULPDIR}/Src/${OSTYPE}
+#GULPLINK = ${GULPDIR}/Src/${OSTYPE}/libgulp.a  ${GULPDIR}/Utils/pGFNFF/Src/libpGFNFF.a 
 
 SRCDIR = src
 FFLAGS = -cpp -fopenmp ${GULPFF} -fno-align-commons -fallow-argument-mismatch -O1  #-ffree-form #-Wall # normal version

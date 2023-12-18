@@ -14,15 +14,21 @@ BINDIR = ~/bin
 LIBRARY = libcaracal.a
 CURRENT = $(shell pwd)
 
+#  Location of the GULP package, if compiled with Caracal
+#OSTYPE = Linux
+#GULPDIR =  ../../gulp-6.2
+#GULPFF = -DGULP=def -I${GULPDIR}/Src/${OSTYPE}
+#GULPLINK = ${GULPDIR}/Src/${OSTYPE}/libgulp.a  ${GULPDIR}/Utils/pGFNFF/Src/libpGFNFF.a 
+
 SRCDIR = src
-FFLAGS = -fopenmp -fno-align-commons -fallow-argument-mismatch -O1  #-ffree-form #-Wall # normal version
+FFLAGS = -cpp -fopenmp ${GULPFF} -fno-align-commons -fallow-argument-mismatch -O1  #-ffree-form #-Wall # normal version
 #FFLAGS =  -fno-align-commons -g -ffpe-trap=zero,invalid,overflow,underflow  #-ffree-form #-Wall # debug version!
 #LINKFLAGS = -static-libgcc -fopenmp -llapack -lblas -lfftw3 -fno-align-commons # normal version 
 #LINKFLAGS = -static-libgcc -fopenmp -llapack -lblas -lfftw3 -fno-align-commons -g -ffpe-trap=zero,invalid,overflow,underflow # debug version!
 # link against Intel MKL, has been tested with GNU Fortran MPI compiler
-LINKFLAGS = -static-libgcc -fopenmp -L${MKLROOT}/lib/intel64 -Wl,--no-as-needed -lmkl_intel_lp64 -lmkl_gnu_thread -lmkl_core -lgomp -lpthread -lm -ldl
+#LINKFLAGS = -static-libgcc -fopenmp -L${MKLROOT}/lib/intel64 -Wl,--no-as-needed -lmkl_intel_lp64 -lmkl_gnu_thread -lmkl_core -lgomp -lpthread -lm -ldl
 # link with GULP 
-#LINKFLAGS = -static-libgcc -fopenmp -L${MKLROOT}/lib/intel64 -Wl,--no-as-needed -lmkl_intel_lp64 -lmkl_gnu_thread -lmkl_core -lgomp -lpthread -lm -ldl -L/libgulp.a
+LINKFLAGS = -fopenmp -static-libgcc -L${MKLROOT}/lib/intel64 -Wl,--no-as-needed -lmkl_intel_lp64 -lmkl_gnu_thread -lmkl_core -lgomp -lpthread -lm -ldl 
 
 
 
@@ -37,7 +43,7 @@ LINKFLAGS = -static-libgcc -fopenmp -L${MKLROOT}/lib/intel64 -Wl,--no-as-needed 
 # - Other analytic PES
 # - program files
 OBJS = general.o evb_mod.o qmdff.o lm_module.o debug.o h2co_mod.o \
-       fftw_mod.o xtb_mod.o \
+       pbc_mod.o fftw_mod.o xtb_mod.o \
        \
        moment.o ff_e.o eabh0.o thermo.o axis.o thermocal.o heat.o \
        bonde.o gethirsh.o docm5.o cm5mod.o copyc6.o limit.o rsp.o \
@@ -94,7 +100,8 @@ OBJS = general.o evb_mod.o qmdff.o lm_module.o debug.o h2co_mod.o \
        ewald_recip.o bsplgen.o setchunk.o ewald_adjust.o ewald_fft.o \
        bspline.o dftmod.o exp_switch.o nhc_npt.o opt_qmdff_ser.o \
        lm_qmdff.o water_init.o egrad_water.o ev_coord_init.o \
-       external_grad.o custom_init.o custom_grad.o \
+       external_grad.o custom_init.o custom_grad.o pgfn_init.o \
+       egrad_pgfn.o \
        \
        mctc/env/accuracy.o mctc/env/error.o mctc/env/system.o \
        mctc/env/testing.o mctc/env.o mctc/io/codata2018.o mctc/io/constants.o \
@@ -244,7 +251,7 @@ $(LIBRARY): $(OBJS)
 #Make finally the exetuables and copy them into the bin directory
 #Generate the directory on the fly
 # $@ is the actual element on the list
-%.x: %.o libcaracal.a  
+%.x: %.o libcaracal.a ${GULPLINK} 
 	${FC} ${LINKFLAGS} -o  $@ $^ $(LINKLIBS) ; strip $@
 	$(shell mkdir -p ../bin)
 	cp $@ ../bin/
