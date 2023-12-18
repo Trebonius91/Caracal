@@ -35,6 +35,7 @@
 
 subroutine ff_hb(n,at,xyz,eh,g)
 use qmdff
+use pbc_mod
 implicit none
 integer::n,at(*)
 real(kind=8)::xyz(3,n),g(3,n),eh

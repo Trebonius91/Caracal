@@ -34,6 +34,7 @@
 
 subroutine eabh0(n,A,B,H,rab,xyz,ca,cb,energy)
 use qmdff
+use pbc_mod
 implicit none
 
 integer::A,B,H,n

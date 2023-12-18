@@ -34,11 +34,12 @@
 
 real(kind=8) function omega (natoms,xyz,i,j,k,l)
 use qmdff
+use pbc_mod
 implicit none
-external::vecnorm
+external::vecnorm_loc
 integer::ic,natoms,i,j,k,l
 real(kind=8)::xyz(3,natoms),rd(3),re(3),rn(3)
-real(kind=8)::rv(3),rnv,vecnorm,rkjn,rljn,rnn,rvn
+real(kind=8)::rv(3),rnv,vecnorm_loc,rkjn,rljn,rnn,rvn
 
 do ic=1,3
    re(ic)=xyz(ic,i)-xyz(ic,j)
@@ -56,8 +57,8 @@ end if
 
 
 call crossprod(re,rd,rn)
-rnn=vecnorm(rn,3,1)
-rvn=vecnorm(rv,3,1)
+rnn=vecnorm_loc(rn,3,1)
+rvn=vecnorm_loc(rv,3,1)
 
 rnv=rn(1)*rv(1)+rn(2)*rv(2)+rn(3)*rv(3)
 omega=asin( rnv )

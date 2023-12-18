@@ -41,7 +41,7 @@ integer::natms
 real(kind=8)::dihed
 real(kind=8)::ax,ay,az,bx,by,bz,cx,cy,cz
 real(kind=8)::xyz5(3,natoms)
-real(kind=8)::cos_val,nan,nbn,valijk,vecnorm
+real(kind=8)::cos_val,nan,nbn,valijk,vecnorm_loc
 real(kind=8)::ra(3),rb(3),rc(3),na(3),nb(3)
 real(kind=8)::axb(3),bxc(3),abxbc(3)
 real(kind=8)::deter,eps,snanb,thab,thbc
@@ -89,16 +89,16 @@ integer::atm1,atm2,atm3,atm4
 !     3. calculate vectors n1 and n2 normal to planes defined by 
 !         points P1,P2,P3,P4
 !
-!norm=vecnorm(q12,3,1)
+!norm=vecnorm_loc(q12,3,1)
 !n1=q12
-!norm=vecnorm(q23,3,1)
+!norm=vecnorm_loc(q23,3,1)
 !n2=q23
 
 !
 !     4. Calculate orthogonal unit vectors 
 !
 !u1=n2
-!norm=vecnorm(q2,3,1)
+!norm=vecnorm_loc(q2,3,1)
 !u3=q2
 !call crossprod(u3,u1,u2)
 

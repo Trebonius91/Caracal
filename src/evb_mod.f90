@@ -271,10 +271,6 @@ real(kind=8),allocatable::gle_np(:,:,:,:) !  GLE thermostat arrays
 logical::gen_test  ! perform only initial start structure generations
 integer::gen_pr_frac,gen_pr_act   ! only each N'th structure, energy etc shall be written out
 real(kind=8)::gen_energies  ! total sum of energies during structure generation
-! For box simulations without periodic boundary conditions 
-logical::box_nonp
-real(kind=8)::box_center(3)
-real(kind=8)::box_size
 integer::box_fixed(1000)
 integer::num_fixed
 ! For constant pressure npt simulations with a barostat
@@ -312,6 +308,8 @@ character(len=40)::solv_spec,solv_epsilon  ! which species of epsilon shall be u
 logical::exist_spec ! If a concrete solvent species (character) has been assigned
 real(kind=8)::xtb_accuracy,xtb_el_temp ! accurary and electronic temperature 
 integer::xtb_maxiter  ! maximum number of SCF iterations
+!    for pGFN-FF calculations with the GULP library 
+logical::pgfn_ff
 
 ! for orca calculations (ab initio MD)
 logical::orca
@@ -363,7 +361,6 @@ real(kind=8)::xi_test  ! for manual shutdown
 real(kind=8)::no_evb_xi  ! maximum xi value for pure QMDFF for no-evb
 ! for time measuring 
 real(kind=8)::time1,time2
-real(kind=8)::time1_omp,time2_omp
 real(kind=8)::time(10),time_omp(10),duration
 integer::time_int(10)
 end module evb_mod

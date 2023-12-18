@@ -41,6 +41,7 @@ subroutine mdinit(derivs,xi_ideal,dxi_act,bias_mode,rank)
 use general
 use qmdff
 use evb_mod
+use pbc_mod
 
 implicit none
 integer::i,j  ! loop index

@@ -52,7 +52,7 @@ real(kind=8) ,allocatable :: d4(:)
 real(kind=8) ,allocatable :: g4(:)        
 real(kind=8) ,allocatable :: gold(:)        
 real(kind=8) ,allocatable :: xvar(:),gvar(:),xparam(:),xlast(:),gg(:)
-real(kind=8) alpha,eold,f,emin,alp,el,xyz2(3,n),yhy,sy,ang,pnorm
+real(kind=8) alpha,eold,f,emin,alp,el,xyz2(3,natoms),yhy,sy,ang,pnorm
 real(kind=8) ggi,xvari,ddot,gnorm,alp0
 character(len=2) asym
 logical::converged
@@ -108,7 +108,6 @@ do icycle=1,maxiter
 !
 !     calculate energy and gradient      
 !
-   
    call gradient(coord,epot,grd,1,1)
 !
 !     Write current structure to trajectory file

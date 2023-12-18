@@ -53,7 +53,7 @@ logical::reorder
 !     ask for the user specified input structure filename
 !
 exist= .false.
-do i = 1, nkey
+do i = 1, nkey_lines
    next = 1
    record = keyline(i)
    call gettext (record,keyword,next)

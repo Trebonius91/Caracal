@@ -84,6 +84,8 @@ integer::time_int1,time_int2
 integer,dimension(:,:),allocatable::coord_tmp
 integer,dimension(:),allocatable::coord_types
 character(len=40)::coord_line
+! Time measurement
+real(kind=8)::time1_omp,time2_omp
 !
 integer mode,next,j,k,readstatus,dg_evb_mode,mat_size
 integer::int_mode  ! method for defining internal coordinates (if used)
@@ -101,6 +103,7 @@ character(len=80) a80
 integer::maxcycle,rest
 !     the MPI rank (here always 0)
 integer::rank
+integer::nkey_test
 !
 !     Set MPI rank to zero for this program
 !
@@ -149,6 +152,7 @@ call getkey(rank)
 !
 !     Read in the (start) structure for calculations
 !
+nkey_test=nkey_lines
 call getxyz
 !
 !     Read in the potential energy surface parameters
@@ -186,8 +190,9 @@ irc_gthr=1D-6
 !
 !     Which job shall be done?
 !
+nkey_lines=nkey_test
 jobtype="NONE"
-do i = 1, nkey
+do i = 1, nkey_lines
    next = 1
    record = keyline(i)
    call gettext (record,keyword,next)
@@ -239,7 +244,7 @@ end if
 
 if (trim(jobtype) .eq. "OPT_MIN" .or. trim(jobtype) .eq. "OPT_TS" &
             &  .or. trim(jobtype) .eq. "OPTFREQ") then
-   do i = 1, nkey
+   do i = 1, nkey_lines
       next = 1
       record = keyline(i)
       call gettext (record,keyword,next)
@@ -248,7 +253,7 @@ if (trim(jobtype) .eq. "OPT_MIN" .or. trim(jobtype) .eq. "OPT_TS" &
       string = record(next:120)
       if (trim(adjustl(record(1:11))) .eq. 'OPT {' .or. trim(adjustl(record(1:11))) &
                   &  .eq. 'OPT{') then
-         do j=1,nkey-i+1
+         do j=1,nkey_lines-i+1
             next=1
             record = keyline(i+j)
             call gettext (record,keyword,next)
@@ -326,7 +331,7 @@ newton_raphson=.true.
 !
 
 if (trim(jobtype) .eq. "IRC") then
-   do i = 1, nkey
+   do i = 1, nkey_lines
       next = 1
       record = keyline(i)
       call gettext (record,keyword,next)
@@ -335,7 +340,7 @@ if (trim(jobtype) .eq. "IRC") then
       string = record(next:120)
       if (trim(adjustl(record(1:11))) .eq. 'IRC {' .or. trim(adjustl(record(1:11))) &
                   &  .eq. 'IRC{') then
-         do j=1,nkey-i+1
+         do j=1,nkey_lines-i+1
             next=1
             record = keyline(i+j)
             call gettext (record,keyword,next)
@@ -394,7 +399,7 @@ calc_frag=.false.
 orca_fake=.false.
 if (trim(jobtype) .eq. "FREQ" .or. trim(jobtype) .eq. "OPTFREQ") then
    frequency=.true.
-   do i = 1, nkey
+   do i = 1, nkey_lines
       next = 1
       record = keyline(i)
       call gettext (record,keyword,next)
@@ -403,7 +408,7 @@ if (trim(jobtype) .eq. "FREQ" .or. trim(jobtype) .eq. "OPTFREQ") then
       string = record(next:120)
       if (trim(adjustl(record(1:11))) .eq. 'FREQ {' .or. trim(adjustl(record(1:11))) &
                   &  .eq. 'FREQ{') then
-         do j=1,nkey-i+1
+         do j=1,nkey_lines-i+1
             next=1
             record = keyline(i+j)
             call gettext (record,keyword,next)
@@ -501,7 +506,7 @@ if (calc_egrad) then
 !     If the debugging mode shall be started to print out more details!
 !
    do_debug=.false.
-   do i = 1, nkey
+   do i = 1, nkey_lines
       next = 1
       record = keyline(i)
       call gettext (record,keyword,next)
@@ -516,7 +521,7 @@ if (calc_egrad) then
 !     be written to file 
 !
    print_wilson=.false.
-   do i = 1, nkey
+   do i = 1, nkey_lines
       next = 1
       record = keyline(i)
       call gettext (record,keyword,next)
@@ -974,7 +979,7 @@ if (ts_opt) then
 !     Energy/gradient calculation of the optimized structure
 !
    if (grad) then
-      call gradient(coord,e_evb,g_evb,1)
+      call gradient(coord,e_evb,g_evb,1,1)
       write(15,*)"*The optimized structure has the coordinates:"
       do i=1,nats
          write(15,*) i,coord(:,indi(i))

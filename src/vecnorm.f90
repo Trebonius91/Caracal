@@ -28,10 +28,11 @@
 
 !
 !     function vecnorm: normalize a vector
+!       renamed to vecnorm_loc due to namespace collision with GULP
 !
 !     part of QMDFF
 !
-real(kind=8) function  vecnorm (r,n,inorm)
+real(kind=8) function  vecnorm_loc (r,n,inorm)
 implicit none
 integer::i,n,inorm
 real(kind=8)::r(n),or,sp,rn
@@ -49,6 +50,6 @@ if (inorm.gt.0) then
       end do
    end if
 end if
-vecnorm=rn
+vecnorm_loc=rn
 
-end function vecnorm
+end function vecnorm_loc

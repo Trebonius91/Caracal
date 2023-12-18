@@ -189,7 +189,7 @@ end if
 !     Read in the Force field Parameters
 !
 E_zero1=0d0
-do i = 1, nkey
+do i = 1, nkey_lines
    next = 1
    record = keyline(i)
    call gettext (record,keyword,next)
@@ -201,7 +201,7 @@ do i = 1, nkey
 end do
 nqmdff=0
 fffile1="" 
-do i = 1, nkey
+do i = 1, nkey_lines
    next = 1
    record = keyline(i)
    call gettext (record,keyword,next)
@@ -498,7 +498,7 @@ if (prog_mode .eq. 2) then
    lm_threshold=1E-8
    lm_par_change=2d0
    diff_step=0.0001d0
-   do i = 1, nkey
+   do i = 1, nkey_lines
       next = 1
       record = keyline(i)
       call gettext (record,keyword,next)

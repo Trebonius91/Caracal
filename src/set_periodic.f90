@@ -34,6 +34,7 @@
 subroutine set_periodic(switch_per,length_x,length_y,length_z,switch_ew, & 
     & switch_zahn,brute_force, cut_coul,cut_vdw)
 use qmdff
+use pbc_mod
 implicit none
 integer::i,k
 logical::switch_per,switch_ew,brute_force,switch_zahn

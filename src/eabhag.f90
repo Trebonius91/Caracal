@@ -35,6 +35,7 @@
 subroutine eabhag(n,A,B,H,xyz,ca,cb,energy,gdr)
 use debug
 use qmdff
+use pbc_mod
 implicit none
 integer::A,B,H,n,i
 real(kind=8)::xyz(3,n),ca,cb,energy,gdr(3,n)

@@ -67,6 +67,7 @@ subroutine verlet (istep,dt,derivs,epot,ekin,afm_force,xi_ideal,xi_real,&
 use general 
 use evb_mod
 use qmdff
+use pbc_mod
 !  ambigious reference of z-coord to qmdff z(94) array!!
 implicit none
 integer::i,j,k,l,istep   ! loop indices and actual step number

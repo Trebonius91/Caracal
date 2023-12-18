@@ -34,8 +34,9 @@
 subroutine dphidr(natoms,xyz,i,j,k,l,phi,dphidri, &
    &  dphidrj,dphidrk,dphidrl)
 use qmdff
+use pbc_mod
 implicit none
-external::vecnorm
+external::vecnorm_loc
 integer::ic,i,j,k,l,natoms
 
 real(kind=8)::sinphi,cosphi,onenner,thab,thbc
@@ -43,7 +44,7 @@ real(kind=8)::ra(3),rb(3),rc(3),rab(3),rac(3),rbc(3),rbb(3)
 real(kind=8)::raa(3),rba(3),rapba(3),rapbb(3),rbpca(3),rbpcb(3)
 real(kind=8)::rapb(3),rbpc(3),na(3),nb(3),nan,nbn
 real(kind=8)::dphidri(3),dphidrj(3),dphidrk(3),dphidrl(3)
-real(kind=8)::xyz(3,natoms),phi,vecnorm,nenner,eps
+real(kind=8)::xyz(3,natoms),phi,vecnorm_loc,nenner,eps
 parameter (eps=1.d-14)
 
 cosphi=cos(phi)
@@ -73,8 +74,8 @@ end do
 
 call crossprod(ra,rb,na)
 call crossprod(rb,rc,nb)
-nan=vecnorm(na,3,0)
-nbn=vecnorm(nb,3,0)
+nan=vecnorm_loc(na,3,0)
+nbn=vecnorm_loc(nb,3,0)
 
 nenner=nan*nbn*sinphi
 

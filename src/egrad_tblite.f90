@@ -38,6 +38,7 @@ subroutine egrad_tblite(xyz_act,g_act,e_act)
 use evb_mod
 use general
 use qmdff
+use pbc_mod
 use tblite_api_calculator
 use tblite_api_context
 use tblite_api_structure

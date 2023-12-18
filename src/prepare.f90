@@ -36,6 +36,7 @@ subroutine prepare (fffilen1,fffilen2,fffilen3,qmdffnumber)
 use general 
 use qmdff
 use evb_mod
+use pbc_mod
 
 implicit none
 
@@ -54,7 +55,7 @@ parameters=3
 !
 !     Set the periodic switch to false (unless activated by dynamic.x)
 !
-periodic=.false.
+!periodic=.false.
 !
 !     read number of atoms, allocate and check that all qmdffs have the 
 !     same number of atoms

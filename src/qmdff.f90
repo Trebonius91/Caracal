@@ -207,31 +207,6 @@ logical::details
 !    on Wiberg-Mayer bond orders and print out Wilson matrix/derivatives
 logical::check_coord
 
-! For box simulations with periodic boundary conditions
-logical::periodic
-! Lengths of the cartesian box dimensions
-real(kind=8)::boxlen_x,boxlen_y,boxlen_z,boxlen_x2,boxlen_y2,boxlen_z2 
-real(kind=8)::box_vol  ! volume of the box
-real(kind=8)::coul_cut,cut_low,vdw_cut  ! the value for the Coulomb/dispersion cutoff
-logical::ewald,zahn ! which type for Ewald summation
-real(kind=8)::zahn_a,zahn_acut,zahn_par  ! parameters for Zahn method
-real(kind=8)::a_ewald,r_ew_cut
-!real(kind=8)::a_ewald  ! the adjustable alpha parameter for Ewald sum
-real(kind=8)::sqrt_p  ! the square root of the accuracy parameter
-real(kind=8)::trtf  ! relative timings of real and reciprocal parts
-real(kind=8)::ebuffer ! electrostatic buffering constant
-real(kind=8)::volbox ! actual volume of the periodic simulation box
-!   for the FFT in the Ewald sum
-integer::nfft  ! number of grid points per dimension for reciprocal
-integer::maxprime,maxtable
-real(kind=8),allocatable::ffttable(:,:)
-integer,allocatable::iprime(:,:)
-integer::bsorder   ! the spline polynomial order 
-real(kind=8),allocatable::bsmod1(:),bsmod2(:),bsmod3(:)
-integer(kind=8)::planb,planf  ! for FFTW: pointer to backward/forward transform 
-real(kind=8),allocatable::qgrid(:,:,:,:)  ! charge grid for reciprocal
-logical::ewald_brute  ! the brute force Ewald sum method for benchmark
-
 logical::ff_mod_noncov   ! If the noncovalent QMDFF parameter were optimized separately
 real(kind=8),allocatable::mn_par(:)  ! the parameters for the noncovalent optimization
 

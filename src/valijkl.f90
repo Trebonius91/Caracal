@@ -33,12 +33,13 @@
 !
 real(kind=8) function valijkl(natoms,xyz,i,j,k,l)
 use qmdff
+use pbc_mod
 implicit none
-external::vecnorm,valijk
+external::vecnorm_loc,valijk
 integer::ic,i,j,k,l,natoms
 real(kind=8)::xyz(3,natoms),eps,ra(3),rb(3),rc(3)
 real(kind=8)::na(3),nb(3),rab,rbc,thab,thbc,valijk
-real(kind=8)::vecnorm,nan,nbn,rcn,snanb,deter
+real(kind=8)::vecnorm_loc,nan,nbn,rcn,snanb,deter
 
 parameter (eps=1.0d-14)
 !
@@ -72,8 +73,8 @@ thbc=valijk(natoms,xyz,j,l,k)
 !
 call crossprod(ra,rb,na)
 call crossprod(rb,rc,nb)
-nan=vecnorm(na,3,1)
-nbn=vecnorm(nb,3,1)
+nan=vecnorm_loc(na,3,1)
+nbn=vecnorm_loc(nb,3,1)
 
 snanb=0.0d0
 do ic=1,3

@@ -60,7 +60,7 @@ end if
 !
 !     number of lines in the keyfile
 !
-nkey = 0
+nkey_lines = 0
 !
 !     number of atoms in the system
 !
@@ -85,8 +85,9 @@ Np=0
 !$OMP Parallel private(id) shared(threads)
 threads = omp_get_num_threads()
 !$OMP end Parallel
-write(*,'(a,i5,a)') " This calculation will use ",threads," OpenMP threads on common memory."
-
+if (rank .eq. 0) then
+   write(*,'(a,i5,a)') " This calculation will use ",threads," OpenMP threads on common memory."
+end if
 
 return
 end subroutine initial

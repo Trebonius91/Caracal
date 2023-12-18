@@ -139,7 +139,7 @@ end if
 !     The general Method keyword
 !
 method=""
-do i = 1, nkey
+do i = 1, nkey_lines
    next = 1
    record = keyline(i)
    call gettext (record,keyword,next)
@@ -182,72 +182,97 @@ else
    write(*,*) "  or 'treq' as parameter!"
    call fatal
 end if
-
-
-
 !
-!     Read in the names of the QMDFFs
-! 
-
-do i = 1, nkey
+!    Read in parameters for the diabatic QMDFF surfaces
+!
+do i = 1, nkey_lines
    next = 1
    record = keyline(i)
    call gettext (record,keyword,next)
    call upcase (keyword)
+   call upcase (record)
    string = record(next:120)
-   if (keyword(1:15) .eq. 'QMDFFNAMES ') then
-      read(record,*,iostat=readstat) names,fffile1,fffile2,fffile3
-      ffname2=.true.
-      defqmdff=.true.
-      qmdffnumber=3
-      if (readstat .ne. 0) then
-         read(record,*,iostat=readstat) names,fffile1,fffile2
-         ffname3=.true.
-         defqmdff=.true.
-         qmdffnumber=2
-         if (readstat .ne. 0) then
-            write(*,*) "Please give two or three QMDFFs as diabatic surfaces in "
-            write(*,*) "  the command QMDFFNAMES!"
-            call fatal
-         else if (readstat .eq. 0) then
-            evb2=.true.
-         end if
-      else if (readstat .eq. 0) then
-         evb3=.true.
-      end if
-   end if
-end do
-do i = 1, nkey
-   next = 1
-   record = keyline(i)
-   call gettext (record,keyword,next)
-   call upcase (keyword)
-   string = record(next:120)
-   if (keyword(1:11) .eq. 'ESHIFT ') then
-      if (evb2) then
-         read(record,*,iostat=readstat) names,E_zero1,E_zero2
-         exist=.true.
-         if (readstat .ne. 0) then
-            write(*,*) "The ESHIFT keyword seems to be corrupted!"
-            call fatal
-         end if
-      end if
-      if (evb3) then
-         read(record,*,iostat=readstat) names,E_zero1,E_zero2,E_zero3
-         exist=.true.
-         if (readstat .ne. 0) then
-            write(*,*) "The ESHIFT keyword seems to be corrupted!"
-            call fatal
-         end if
-      end if
-   end if
-end do
-if (.not. exist) then
-   write(*,*) "No ESHIFT keyword given! Please give the QMDFF shift energies "
-   write(*,*) "in order to ensure a useful optimization!"
-   call fatal
-end if
 
+   if (trim(adjustl(record(1:11))) .eq. 'QMDFF {' .or. trim(adjustl(record(1:11))) &
+        &  .eq. 'QMDFF{') then
+
+      do j=1,nkey_lines-i+1
+         next=1
+         record = keyline(i+j)
+         call gettext (record,keyword,next)
+         call upcase (keyword)
+         string = record(next:120)
+!
+!     Read in the names of the QMDFF files
+!
+         if (keyword(1:11) .eq. 'FFNAMES ') then
+            if (qmdffnumber .eq. 1) then
+               read(record,*,iostat=readstat) names,fffile1
+               if (readstat .ne. 0) then
+                  write(*,*) "Please check the QMDFFNAMES keyword!"
+                  call fatal
+               end if
+            end if
+            read(record,*,iostat=readstat) names,fffile1,fffile2,fffile3
+            ffname3=.true.
+            defqmdff=.true.
+            if (readstat .ne. 0) then
+               read(record,*,iostat=readstat) names,fffile1,fffile2
+               ffname2=.true.
+               defqmdff=.true.
+               if (readstat .ne. 0) then
+                  qmdffnumber=1
+               else if (readstat .eq. 0) then
+                  evb2=.true.
+                  qmdffnumber=2
+               end if
+            else if (readstat .eq. 0) then
+               evb3=.true.
+               qmdffnumber=3
+            end if
+!
+!     Read in the relative energy shift of the QMDFFs 
+!
+         else if (keyword(1:11) .eq. 'ESHIFT ') then
+            if (qmdffnumber .eq. 1) then
+               read(record,*,iostat=readstat) names,E_zero1
+               exist=.true.
+               if (readstat .ne. 0) then
+                  write(*,*) "The ESHIFT keyword in the QMDFF section seems to be corrupted!"
+                  call fatal
+               end if
+            end if
+            if (evb2) then
+               read(record,*,iostat=readstat) names,E_zero1,E_zero2
+               exist=.true.
+               if (readstat .ne. 0) then
+                  write(*,*) "The ESHIFT keyword in the QMDFF section seems to be corrupted!"
+                  call fatal
+               end if
+            end if
+            if (evb3) then
+               read(record,*,iostat=readstat) names,E_zero1,E_zero2,E_zero3
+               exist=.true.
+               if (readstat .ne. 0) then
+                  write(*,*) "The ESHIFT keyword in the QMDFF section seems to be corrupted!"
+                  call fatal
+               end if
+            end if
+!           
+!     Determine if the QMDFF energy shifts shall be corrected automatically
+!     to exactly reproduce the first/last energy of the path or not
+!    
+         else if (keyword(1:16) .eq. 'SHIFT_MANUAL') then
+            shift_man=.true.
+         end if
+         if (keyword(1:11) .eq. '}') exit
+         if (j .eq. nkey_lines-i) then
+            write(*,*) "The QMDFF section has no second delimiter! (})"
+            call fatal
+         end if
+      end do
+   end if
+end do
 
 ! 
 !     In the case that no QMDFF´s are defined in key file
@@ -351,7 +376,7 @@ end if
 !
 !    Read in the structures of a reactionpath
 !
-do i = 1, nkey
+do i = 1, nkey_lines
    next = 1
    record = keyline(i)
    call gettext (record,keyword,next)
@@ -384,7 +409,7 @@ end if
 !    Read in the energies of a reactionpath
 !
 
-do i = 1, nkey
+do i = 1, nkey_lines
    next = 1
    record = keyline(i)
    call gettext (record,keyword,next)
@@ -425,7 +450,7 @@ lm_threshold=1E-8
 lm_par_change=2d0
 diff_step=0.0001d0
 num_coord=5 ! number of internal coordinates
-do i = 1, nkey
+do i = 1, nkey_lines
    next = 1
    record = keyline(i)
    call gettext (record,keyword,next)
@@ -461,7 +486,7 @@ if (evb_de) then
 !      Set default values 
 !
    off_basis="1g"
-   do i = 1, nkey
+   do i = 1, nkey_lines
       next = 1
       record = keyline(i)
       call gettext (record,keyword,next)
@@ -470,7 +495,7 @@ if (evb_de) then
       string = record(next:120)
       if (trim(adjustl(record(1:15))) .eq. 'DE_EVB { ' .or. &
                   & trim(adjustl(record(1:15))) .eq. 'DE_EVB{ ') then
-         do j=1,nkey-i+1
+         do j=1,nkey_lines-i+1
             next=1
             record = keyline(i+j)
             call gettext (record,keyword,next)
@@ -491,7 +516,7 @@ if (evb_de) then
                end if
             end if
             if (keyword(1:11) .eq. '}') exit
-            if (j .eq. nkey-i) then
+            if (j .eq. nkey_lines-i) then
                write(*,*) "The DE-EVB section has no second delimiter! (})"
                call fatal
             end if
@@ -508,7 +533,7 @@ if (evb_dq) then
 !      Set default values 
 !
    off_basis="1g"
-   do i = 1, nkey
+   do i = 1, nkey_lines
       next = 1
       record = keyline(i)
       call gettext (record,keyword,next)
@@ -517,7 +542,7 @@ if (evb_dq) then
       string = record(next:120)
       if (trim(adjustl(record(1:15))) .eq. 'DQ_EVB { ' .or. &
                   & trim(adjustl(record(1:15))) .eq. 'DQ_EVB{ ') then
-         do j=1,nkey-i+1
+         do j=1,nkey_lines-i+1
             next=1
             record = keyline(i+j)
             call gettext (record,keyword,next)
@@ -540,7 +565,7 @@ if (evb_dq) then
 
 
             if (keyword(1:11) .eq. '}') exit
-            if (j .eq. nkey-i) then
+            if (j .eq. nkey_lines-i) then
                write(*,*) "The DE-EVB section has no second delimiter! (})"
                call fatal
             end if
@@ -562,7 +587,7 @@ if (dg_evb) then
    dg_evb_points=0
    dg_ref_file="grad_hess.dat"
    g_thres=1E-10
-   do i = 1, nkey
+   do i = 1, nkey_lines
       next = 1
       record = keyline(i)
       call gettext (record,keyword,next)
@@ -571,7 +596,7 @@ if (dg_evb) then
       string = record(next:120)
       if (trim(adjustl(record(1:15))) .eq. 'DG_EVB { ' .or. &
                   &  trim(adjustl(record(1:15))) .eq. 'DG_EVB{ ') then
-         do j=1,nkey-i+1
+         do j=1,nkey_lines-i+1
             next=1
             record = keyline(i+j)
             call gettext (record,keyword,next)
@@ -592,7 +617,7 @@ if (dg_evb) then
                read(record,*) names,g_thres 
             end if
             if (record .eq. '}') exit
-            if (j .eq. nkey-i) then
+            if (j .eq. nkey_lines-i) then
                write(*,*) "The DG-EVB section has no second delimiter! (})"
                call fatal
             end if   
@@ -628,7 +653,7 @@ end if
 !     In case of a reaction path EVB (RP-EVB), check if the method shall be 
 !     activated
 !
-!do i = 1, nkey
+!do i = 1, nkey_lines
 !   next = 1
 !   record = keyline(i)
 !   call gettext (record,keyword,next)
@@ -670,22 +695,6 @@ if (evb_dq .and. .not. ts_xyz) then
       inquire(file=filets,exist=exist)
    end do
 end if
-
-!
-!     Determine if the QMDFF energy shifts shall be corrected automatically
-!     to exactly reproduce the first/last energy of the path or not
-!
-shift_man=.false.
-do i = 1, nkey
-   next = 1
-   record = keyline(i)
-   call gettext (record,keyword,next)
-   call upcase (keyword)
-   string = record(next:120)
-   if (keyword(1:20) .eq. 'SHIFT_MANUAL ') then
-      shift_man=.true.
-   end if
-end do
 !
 !     initialize the evb-qmdff-force-field
 !
@@ -875,7 +884,7 @@ if (qmdffnumber.eq.2) then
      num_coord=5
      double_alpha=.false.
      more_info=.false.
-     do i = 1, nkey
+     do i = 1, nkey_lines
          next = 1
          record = keyline(i)
          call gettext (record,keyword,next)
@@ -940,7 +949,7 @@ else if (qmdffnumber.eq.3) then
    lower_bond=1
    upper_bond=30
 
-   do i = 1, nkey
+   do i = 1, nkey_lines
       next = 1
       record = keyline(i)
       call gettext (record,keyword,next)
@@ -961,7 +970,7 @@ else if (qmdffnumber.eq.3) then
 !    Decide if the 1-3 EVB-coupling-parameters should be neglect
 !
    full=.false.
-   do i = 1, nkey
+   do i = 1, nkey_lines
       next = 1
       record = keyline(i)
       call gettext (record,keyword,next)
@@ -975,7 +984,7 @@ else if (qmdffnumber.eq.3) then
 !    If the DQ-coupling is desired, read in the coordinates of the both
 !    transition-states and the reactionpath
 
-   do i = 1, nkey
+   do i = 1, nkey_lines
        next = 1
        record = keyline(i)
        call gettext (record,keyword,next)

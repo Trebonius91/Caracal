@@ -35,11 +35,12 @@
 subroutine domegadr(natoms,xyz,i,j,k,l,omega, &
     &   domegadri,domegadrj,domegadrk,domegadrl)
 use qmdff
+use pbc_mod
 implicit none
-external::vecnorm
+external::vecnorm_loc
 integer::ic,i,j,k,l,natoms
 real(kind=8)::omega,sinomega
-real(kind=8)::xyz(3,natoms),onenner,vecnorm,rnn,rvn
+real(kind=8)::xyz(3,natoms),onenner,vecnorm_loc,rnn,rvn
 real(kind=8)::rn(3),rv(3),rd(3),re(3),rdme(3),rve(3)
 real(kind=8)::rne(3),rdv(3),rdn(3)
 real(kind=8)::rvdme(3),rndme(3),nenner
@@ -68,8 +69,8 @@ do ic=1,3
 end do
 
 call crossprod(re,rd,rn)
-rvn=vecnorm(rv,3,0)
-rnn=vecnorm(rn,3,0)
+rvn=vecnorm_loc(rv,3,0)
+rnn=vecnorm_loc(rn,3,0)
 
 call crossprod(rv,re,rve)
 call crossprod(rn,re,rne)

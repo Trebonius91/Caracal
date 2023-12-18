@@ -41,6 +41,7 @@
 subroutine ff_eg(n,at,xyz,e,g)
 use qmdff
 use debug ! additional printout if desired
+use pbc_mod
 implicit none  
 integer::n,at(n)
 real(kind=8)::xyz(3,n),e,g(3,n)

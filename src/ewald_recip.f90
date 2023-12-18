@@ -38,6 +38,7 @@
 !
 subroutine  ewald_recip (n,xyz,q,energy,grad)
 use qmdff
+use pbc_mod
 implicit none
 integer::i,j,k,m  ! loop indices
 integer::inorm,n

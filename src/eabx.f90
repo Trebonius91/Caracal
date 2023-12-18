@@ -33,6 +33,8 @@
 !
 subroutine eabx(n,A,B,H,xyz,ca,energy)
 use qmdff
+use pbc_mod
+
 implicit none
 integer::A,B,H,n
 real(kind=8)::xyz(3,n),energy,rab

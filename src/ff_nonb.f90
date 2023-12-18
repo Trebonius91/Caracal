@@ -34,6 +34,7 @@
 subroutine ff_nonb(n,at,xyz,q,r0ab,zab,r0094,sr42,c66ab,enb,g)
 use qmdff
 use debug
+use pbc_mod
 implicit none
 integer n,at(*)
 real(kind=8)::xyz(3,n),enb,g(3,n),q(n)

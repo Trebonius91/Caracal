@@ -64,16 +64,16 @@ write(10,*)
 call getpar0(np)
 write(10,'(I5,A)') np,' parameters to determine'
 
-CALL OMP_SET_DYNAMIC(.false.)
-!$OMP PARALLEL PRIVATE(TID)
-TID = OMP_GET_THREAD_NUM()
-IF (TID .EQ. 0) THEN
-   nproc = OMP_GET_NUM_THREADS()
-   write(10,*) ' # OMP threads =', nproc
-END IF
-!$OMP END PARALLEL 
-if(nproc.gt.np) stop ' # parameters < # procs!'
-
+!CALL OMP_SET_DYNAMIC(.false.)
+!!$OMP PARALLEL PRIVATE(TID)
+!TID = OMP_GET_THREAD_NUM()
+!IF (TID .EQ. 0) THEN
+!   nproc = OMP_GET_NUM_THREADS()
+!   write(10,*) ' # OMP threads =', nproc
+!END IF
+!!$OMP END PARALLEL 
+!if(nproc.gt.np) stop ' # parameters < # procs!'
+nproc=1
 
 !
 !     determine number of hessian elements that remain
@@ -136,14 +136,14 @@ write(10,*)'computing dH/dFC ...'
 !     for Levenberg-Marquardt step
 !
 !!!!$OMP PARALLEL private (i) copyin ( /ffdata/ ) 
-!$OMP PARALLEL private (i) 
-!$OMP DO
+!!$OMP PARALLEL private (i) 
+!!$OMP DO
 do i=1,nproc
    call pderiv(ise(1,i),ise(2,i),n,at,xyz,q,r00ab,zab,r0094,sr42,c6xy, &
       &  n3,np,iadr)
 end do
-!$OMP END DO
-!$OMP END PARALLEL
+!!$OMP END DO
+!!$OMP END PARALLEL
 
 
 allocate(aa(n3,np),aaa(n3))

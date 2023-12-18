@@ -34,7 +34,7 @@
 !
 
 subroutine box_image(diff_vec)
-use qmdff
+use pbc_mod
 implicit none
 real(kind=8)::diff_vec(3)
 

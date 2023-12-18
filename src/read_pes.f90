@@ -36,6 +36,7 @@ subroutine read_pes(rank)
 use general
 use evb_mod
 use qmdff
+use pbc_mod
 
 implicit none
 integer::num_arg,input_unit,i,qmdff_energies_unit,asciinum
@@ -46,6 +47,7 @@ integer::readstat  ! for error handling
 integer::state_open  ! if a file was opened successfully
 integer::nlines  ! number of structures in the IRC
 integer::qmdff_index   ! number of QMDFF for corrections
+integer::keylines_backup  ! for pGFN-FF bug
 character(len=120)::string
 character(len=20)::keyword
 character(len=120)::record
@@ -53,6 +55,7 @@ character(len=70)::fileinfo,filegeo,ts_file
 character(len=70)::file_irc_struc
 character(len=70)::file_irc_ens
 character(len=70)::filets,filets2,names
+character(len=80)::coul_method,a80
 character(len=1)::qmdffnum
 real(kind=8),dimension(:,:),allocatable::coord
 real(kind=8),dimension(:,:),allocatable::g_evb
@@ -62,6 +65,9 @@ real(kind=8),dimension(:,:),allocatable::ts_coordinates_a,ts_coordinates2_a
 integer::mode,next,j,k,readstatus,dg_evb_mode,mat_size,num_struc
 integer::int_mode ! method of defining internal coordinates
 real(kind=8)::s_q1_r  ! temporary variable for QMDFF damping range (RP-EVB)
+real(kind=8),allocatable::xyz_init(:,:)  ! geometry for pGFN-FF init
+logical::read_init_struc
+character(len=2),allocatable::names_init(:)   ! element symbols for pGFN-FF init
 logical::path_struc,path_energy,coupl,params
 logical::evb1,evb2,evb3,ffname1,ffname2,ffname3,defqmdff
 logical::exist,exists,has_next,coupl1
@@ -91,7 +97,7 @@ water_spc=.false.
 !
 num_grad=.false.
 full=.false.
-do i = 1, nkey
+do i = 1, nkey_lines
    next = 1
    record = keyline(i)
    call gettext (record,keyword,next)
@@ -110,7 +116,7 @@ end do
 !
 if (num_grad) then
    num_grad_step=0.0001d0 ! default value
-   do i = 1, nkey
+   do i = 1, nkey_lines
       next = 1
       record = keyline(i)
       call gettext (record,keyword,next)
@@ -125,13 +131,44 @@ if (num_grad) then
       end if
    end do
 end if
+!
+!     If the system shall be calculated with periodic boundary 
+!     conditions 
+!
+periodic=.false.
+box_walls=.false.
+boxlen_x=0.d0
+boxlen_y=0.d0
+boxlen_z=0.d0
 
+do i = 1, nkey_lines
+   next = 1
+   record = keyline(i)
+   call gettext (record,keyword,next)
+   call upcase (keyword)
+   string = record(next:120)
+   if (keyword(1:13) .eq. 'PERIODIC ') then
+      read(record,*,iostat=readstat) names,boxlen_x,boxlen_y,boxlen_z
+      periodic=.true.
+      if (readstat .ne. 0) then
+         write(*,*) "Correct format: PERIODIC [xlen,ylen,zlen (A)]"
+         call fatal
+      end if
+   else if (keyword(1:11) .eq. 'BOX_WALLS ') then
+      read(record,*,iostat=readstat) names,boxlen_x,boxlen_y,boxlen_z
+      box_walls=.true.
+      if (readstat .ne. 0) then
+         write(*,*) "Correct format: BOX_WALLS [xlen,ylen,zlen (A)]"
+         call fatal
+      end if
+   end if
+end do
 
 !
 !     The general Method keyword
 !
 method=""
-do i = 1, nkey
+do i = 1, nkey_lines
    next = 1
    record = keyline(i)
    call gettext (record,keyword,next)
@@ -209,6 +246,13 @@ else if (method .eq. "GFN-XTB") then
 !
 !     If the gradient shall be calculated on the fly with orca
 !
+else if (method .eq. "PGFN-FF") then
+   pgfn_ff = .true.
+   if (rank .eq. 0) then
+      write(*,*) "The GULP program library will be called for"
+      write(*,*) " calculation of the pGFN-FF energy and gradient."
+   end if
+
 else if (method .eq. "ORCA") then
    orca=.true.
    if (rank .eq. 0) then
@@ -224,7 +268,7 @@ else if (method .eq. "EXTERNAL") then
 !     start structure (TS) since the number of atoms is not clear from the beginning!
 !
    if (use_calc_rate) then
-      do i = 1, nkey
+      do i = 1, nkey_lines
          next = 1
          record = keyline(i) 
          call gettext (record,keyword,next)
@@ -273,7 +317,7 @@ else if (method .eq. "CUSTOM") then
 !     start structure (TS) since the number of atoms is not clear from the beginning!
 !
    if (use_calc_rate) then
-      do i = 1, nkey
+      do i = 1, nkey_lines
          next = 1
          record = keyline(i)
          call gettext (record,keyword,next)
@@ -586,7 +630,7 @@ end if
 !      (first line in a xyz file..)
 !
 if (water_spc) then
-   do i = 1, nkey
+   do i = 1, nkey_lines
       next = 1
       record = keyline(i)
       call gettext (record,keyword,next)
@@ -625,7 +669,7 @@ if (gfn_xtb) then
    solv_spec = "none"
    epsilon_val = -1000d0
    exist_spec = .false.
-   do i = 1, nkey
+   do i = 1, nkey_lines
       next = 1
       record = keyline(i)
       call gettext (record,keyword,next)
@@ -634,7 +678,7 @@ if (gfn_xtb) then
       string = record(next:120)
       if (trim(adjustl(record(1:11))) .eq. 'GFN-XTB {' .or. trim(adjustl(record(1:11))) &
               &  .eq. 'GFN-XTB{') then
-         do j=1,nkey-i+1
+         do j=1,nkey_lines-i+1
             next=1
             record = keyline(i+j)
             call gettext (record,keyword,next)
@@ -769,7 +813,7 @@ if (gfn_xtb) then
                end if
             end if
             if (keyword(1:11) .eq. '}') exit
-            if (j .eq. nkey-i) then
+            if (j .eq. nkey_lines-i) then
                write(*,*) "The GFN-XTB section has no second delimiter! (})"
                call fatal
             end if
@@ -815,6 +859,83 @@ if (gfn_xtb) then
 
 end if
 
+
+!
+!     For pGFN-FF calculations with the GULP library: Read in the initial
+!      structure but no other keywords so far
+!      
+!
+if (pgfn_ff) then
+!
+!     If the GULP libraries were not included in the compilation, give an error
+!
+#ifdef GULP
+
+#else
+      write(*,*)
+      write(*,*) "Please compile Caracal with GULP to enable pGFN-FF calculations!"
+      write(*,*) " Look into the Caracal wiki for details."
+      call fatal
+#endif
+   read_init_struc = .false.
+!
+!      Set default values 
+!
+   keylines_backup = nkey_lines
+
+   do i = 1, nkey_lines
+      next = 1
+      record = keyline(i)
+      call gettext (record,keyword,next)
+      call upcase (keyword)
+      call upcase (record)
+      string = record(next:120)
+      if (trim(adjustl(record(1:11))) .eq. 'PGFN-FF {' .or. trim(adjustl(record(1:11))) &
+              &  .eq. 'PGFN-FF{') then
+         do j=1,nkey_lines-i+1
+            next=1
+            record = keyline(i+j)
+            call gettext (record,keyword,next)
+            call upcase (keyword)
+            record=adjustl(record)
+!
+!     The initial structure for bond matrix initialization 
+!
+            if (keyword(1:16) .eq. 'STRUC_INIT ') then
+               if (.not. read_init_struc) then
+                  read(record,*,iostat=readstat) names,filegeo
+                  open(unit=38,file=filegeo,status="old")
+                  read(38,*) natoms
+                  read(38,*)
+                  allocate(xyz_init(3,natoms))
+                  allocate(names_init(natoms))
+                  do k=1,natoms
+                     read(38,*) names_init(k),xyz_init(:,k)
+                  end do
+                  close(38)
+                  read_init_struc = .true.
+               end if   
+            end if
+            if (keyword(1:11) .eq. '}') exit
+            if (j .eq. nkey_lines-i) then
+               write(*,*) "The EXTERNAL section has no second delimiter! (})"
+               call fatal
+            end if
+         end do
+      end if
+   end do
+   if (.not. read_init_struc) then
+      write(*,*) "Please give the keyword STRUC_INIT in the PGFN-FF section!"
+      call fatal
+   end if
+!
+!     Call the actual initialization routine
+!
+   call pgfn_init(natoms,xyz_init,names_init)
+   
+   nkey_lines=keylines_backup
+   goto 678
+end if
 !
 !     For orca calculations: Read in the orca header line of the orca 
 !       input file 
@@ -834,7 +955,7 @@ if (orca) then
 !
 !      Set default values 
 !
-   do i = 1, nkey
+   do i = 1, nkey_lines
       next = 1
       record = keyline(i)
       call gettext (record,keyword,next)
@@ -844,7 +965,7 @@ if (orca) then
       if (trim(adjustl(record(1:11))) .eq. 'ORCA {' .or. trim(adjustl(record(1:11))) &
               &  .eq. 'ORCA{') then
 
-         do j=1,nkey-i+1
+         do j=1,nkey_lines-i+1
             next=1
             record = keyline(i+j)
             call gettext (record,keyword,next)
@@ -860,7 +981,7 @@ if (orca) then
                read(record(8:120),'(a)') call_orca
             end if
             if (keyword(1:11) .eq. '}') exit
-            if (j .eq. nkey-i) then
+            if (j .eq. nkey_lines-i) then
                write(*,*) "The ORCA section has no second delimiter! (})"
                call fatal
             end if
@@ -897,7 +1018,7 @@ if (call_ext) then
       write(*,*) "Each structure will be submitted to an external "
       write(*,*) " calculation for each bead, separately!"
    end if
-   do i = 1, nkey
+   do i = 1, nkey_lines
       next = 1
       record = keyline(i)
       call gettext (record,keyword,next)
@@ -907,7 +1028,7 @@ if (call_ext) then
       if (trim(adjustl(record(1:13))) .eq. 'EXTERNAL {' .or. trim(adjustl(record(1:13))) &
               &  .eq. 'EXTERNAL{') then
 
-         do j=1,nkey-i+1
+         do j=1,nkey_lines-i+1
             next=1
             record = keyline(i+j)
             call gettext (record,keyword,next)
@@ -917,7 +1038,7 @@ if (call_ext) then
                read(record(8:120),'(a)') symlink_ext
             end if
             if (keyword(1:11) .eq. '}') exit
-            if (j .eq. nkey-i) then
+            if (j .eq. nkey_lines-i) then
                write(*,*) "The EXTERNAL section has no second delimiter! (})"
                call fatal
             end if
@@ -943,7 +1064,7 @@ if (call_cust) then
       write(*,*) " given after the keyword PES_NUMBER"
    end if
    cust_number = 0
-   do i = 1, nkey
+   do i = 1, nkey_lines
       next = 1
       record = keyline(i)
       call gettext (record,keyword,next)
@@ -953,7 +1074,7 @@ if (call_cust) then
       if (trim(adjustl(record(1:13))) .eq. 'CUSTOM {' .or. trim(adjustl(record(1:13))) &
               &  .eq. 'CUSTOM{') then
 
-         do j=1,nkey-i+1
+         do j=1,nkey_lines-i+1
             next=1
             record = keyline(i+j)
             call gettext (record,keyword,next)
@@ -963,7 +1084,7 @@ if (call_cust) then
                read(record,*) names, cust_number
             end if
             if (keyword(1:11) .eq. '}') exit
-            if (j .eq. nkey-i) then
+            if (j .eq. nkey_lines-i) then
                write(*,*) "The CUSTOM section has no second delimiter! (})"
                call fatal
             end if
@@ -985,93 +1106,156 @@ if (call_cust) then
    goto 678
 end if
 
+!
+!     If QMDFF or EVB-QMDFF shall be used as method, read in additional parameters
+!
 
+if (qmdffnumber .eq. 1 .or. evb_de .or. evb_dq .or. dg_evb .or. treq) then
+   evb2=.false.
+   evb3=.false.
+   read_name=.false.
+   exist=.false.
+   ewald=.false.
+   zahn=.true.
+   coul_method="ZAHN"
+   coul_cut=10.d0
+   vdw_cut=10.d0
+   do i = 1, nkey_lines
+      next = 1
+      record = keyline(i)
+      call gettext (record,keyword,next)
+      call upcase (keyword)
+      call upcase (record)
+      string = record(next:120)
+      if (trim(adjustl(record(1:11))) .eq. 'QMDFF {' .or. trim(adjustl(record(1:11))) &
+           &  .eq. 'QMDFF{') then
 
-
-evb2=.false.
-evb3=.false.
-read_name=.false.
-do i = 1, nkey
-   next = 1
-   record = keyline(i)
-   call gettext (record,keyword,next)
-   call upcase (keyword)
-   string = record(next:120)
-   if (keyword(1:11) .eq. 'QMDFFNAMES ') then
-      if (qmdffnumber .eq. 1) then
-         read(record,*,iostat=readstat) names,fffile1
-         if (readstat .ne. 0) then
-            write(*,*) "Please check the QMDFFNAMES keyword!"
-            call fatal
-         end if 
-      end if 
-      read(record,*,iostat=readstat) names,fffile1,fffile2,fffile3
-      ffname3=.true.
-      defqmdff=.true.
-      if (readstat .ne. 0) then
-         read(record,*,iostat=readstat) names,fffile1,fffile2
-         ffname2=.true.
-         defqmdff=.true.
-         if (readstat .ne. 0) then
-            qmdffnumber=1
-       !     if (qmdffnumber .ne. 1) then
-       !        write(*,*) "Please give two or three QMDFFs as diabatic surfaces in "
-       !        write(*,*) "  the command QMDFFNAMES!"
-       !        call fatal 
-       !     end if
-         else if (readstat .eq. 0) then
-            evb2=.true.
-            qmdffnumber=2
-         end if
-      else if (readstat .eq. 0) then
-         evb3=.true.
-         qmdffnumber=3
+         do j=1,nkey_lines-i+1
+            next=1
+            record = keyline(i+j)
+            call gettext (record,keyword,next)
+            call upcase (keyword)
+            string = record(next:120)
+!
+!     Read in the names of the QMDFF files
+!
+            if (keyword(1:11) .eq. 'FFNAMES ') then
+               if (qmdffnumber .eq. 1) then
+                  read(record,*,iostat=readstat) names,fffile1
+                  if (readstat .ne. 0) then
+                     write(*,*) "Please check the QMDFFNAMES keyword!"
+                     call fatal
+                  end if
+               end if
+               read(record,*,iostat=readstat) names,fffile1,fffile2,fffile3
+               ffname3=.true.
+               defqmdff=.true.
+               if (readstat .ne. 0) then
+                  read(record,*,iostat=readstat) names,fffile1,fffile2
+                  ffname2=.true.
+                  defqmdff=.true.
+                  if (readstat .ne. 0) then
+                     qmdffnumber=1
+                  else if (readstat .eq. 0) then
+                     evb2=.true.
+                     qmdffnumber=2
+                  end if
+               else if (readstat .eq. 0) then
+                  evb3=.true.
+                  qmdffnumber=3
+               end if
+               read_name = .true.
+!
+!     Read in the relative energy shift of the QMDFFs 
+!
+            else if (keyword(1:11) .eq. 'ESHIFT ') then
+               if (qmdffnumber .eq. 1) then
+                  read(record,*,iostat=readstat) names,E_zero1
+                  exist=.true.
+                  if (readstat .ne. 0) then
+                     write(*,*) "The ESHIFT keyword in the QMDFF section seems to be corrupted!"
+                     call fatal
+                  end if
+               end if
+               if (evb2) then
+                  read(record,*,iostat=readstat) names,E_zero1,E_zero2
+                  exist=.true.
+                  if (readstat .ne. 0) then
+                     write(*,*) "The ESHIFT keyword in the QMDFF section seems to be corrupted!"
+                     call fatal
+                  end if
+               end if
+               if (evb3) then
+                  read(record,*,iostat=readstat) names,E_zero1,E_zero2,E_zero3
+                  exist=.true.
+                  if (readstat .ne. 0) then
+                     write(*,*) "The ESHIFT keyword in the QMDFF section seems to be corrupted!"
+                     call fatal
+                  end if
+               end if
+!
+!     The method used for coulomb interactions 
+!
+            else if (keyword(1:11) .eq. 'COULOMB ') then
+               read(record,*,iostat=readstat) names,a80
+               if (readstat .ne. 0) then
+                  write(*,*) "Correct format: COULOMB [method]"
+                  call fatal
+               end if
+               call upcase(a80)
+               if (a80 .eq. "PPPME") then
+                  ewald=.true.
+                  write(*,*) "The Particle Particle Particle Mesh Ewald (PPPME) method"
+                  write(*,*) " will be used for the handling of Coulomb interactions."
+                  write(*,*) "Please choose another method, the implementation is not complete!"
+                 call fatal
+               end if
+               if (a80 .eq. 'ZAHN ') then
+                  zahn=.true.
+               end if
+               coul_method=a80
+!    The cutoff distance for Coulomb interactions
+            else if (keyword(1:14) .eq. 'COUL_CUTOFF ') then
+               read(record,*,iostat=readstat) names,coul_cut
+               if (readstat .ne. 0) then
+                  write(*,*) "Correct format: COUL_CUTOFF [value (A)]"
+                  call fatal
+               end if
+!    The cutoff distance for VDW interactions
+            else if (keyword(1:13) .eq. 'VDW_CUTOFF ') then
+               read(record,*,iostat=readstat) names,vdw_cut
+               if (readstat .ne. 0) then
+                  write(*,*) "Correct format: VDW_CUTOFF [value (A)]"
+                  call fatal
+               end if
+!           
+!     Determine if the QMDFF energy shifts shall be corrected automatically
+!     to exactly reproduce the first/last energy of the path or not
+!    
+            else if (keyword(1:16) .eq. 'SHIFT_MANUAL') then
+               shift_man=.true.
+            end if
+            if (keyword(1:11) .eq. '}') exit
+            if (j .eq. nkey_lines-i) then
+               write(*,*) "The QMDFF section has no second delimiter! (})"
+               call fatal
+            end if
+         end do
       end if
-      read_name = .true.
-   end if
-end do
-if (.not. read_name) then
-   write(*,*) "Please check the QMDFFNAMES keyword!"
-   call fatal
-end if
-do i = 1, nkey
-   next = 1
-   record = keyline(i)
-   call gettext (record,keyword,next)
-   call upcase (keyword)
-   string = record(next:120)
-   if (keyword(1:11) .eq. 'ESHIFT ') then
-      if (qmdffnumber .eq. 1) then
-         read(record,*,iostat=readstat) names,E_zero1
-         exist=.true.
-         if (readstat .ne. 0) then
-            write(*,*) "The ESHIFT keyword seems to be corrupted!"
-            call fatal
-         end if
-      end if
-      if (evb2) then
-         read(record,*,iostat=readstat) names,E_zero1,E_zero2
-         exist=.true.
-         if (readstat .ne. 0) then
-            write(*,*) "The ESHIFT keyword seems to be corrupted!"
-            call fatal
-         end if
-      end if
-      if (evb3) then
-         read(record,*,iostat=readstat) names,E_zero1,E_zero2,E_zero3
-         exist=.true.
-         if (readstat .ne. 0) then
-            write(*,*) "The ESHIFT keyword seems to be corrupted!"
-            call fatal
-         end if
-      end if
-   end if
-end do
-if (.not. exist) then
-   if (qmdffnumber .gt. 1) then
-      write(*,*) "No ESHIFT keyword given! Please give the QMDFF shift energies "
-      write(*,*) "in order to ensure a useful calculation!"
+   end do
+   if (.not. read_name) then
+      write(*,*) "Please check the FFNAMES keyword in the QMDFF section!"
       call fatal
+   end if
+
+
+   if (.not. exist) then
+      if (qmdffnumber .gt. 1) then
+         write(*,*) "No ESHIFT keyword given in the QMDFF section!"
+         write(*,*) " Please give the QMDFF shift energies in order to "
+         write(*,*) " ensure a useful calculation!"
+         call fatal
+      end if
    end if
 end if
 
@@ -1082,47 +1266,8 @@ end if
 call prepare (fffile1,fffile2,fffile3,qmdffnumber)
 nqmdff=qmdffnumber
 !
-!      If the QMDFF nonbonded parameters shall be corrected by optimized factors 
-!      (as calculated with qmdffopt.x)
-!      --> only for one QMDFF!
+!     So far only for one 
 !
-if (qmdffnumber .eq. 1) then
-   ff_mod_noncov=.false.
-   do i = 1, nkey
-      next = 1
-      record = keyline(i)
-      call gettext (record,keyword,next)
-      call upcase (keyword)
-      string = record(next:120)
-      if (keyword(1:20) .eq. 'MOD_NONCOVALENT ') then
-         ff_mod_noncov=.true.
-         exit
-      end if
-   end do
-!
-!      Read in the correction parameters to global array
-!
-   if (ff_mod_noncov) then
-      corr_name=fffile1(1:len(trim(fffile1))-6) // "_mod.dat"
-      write(*,*) "The QMDFF noncovalent interations will be corrected by "
-      write(*,*) " parameters in the file ",corr_name
-
-      allocate(mn_par(1+7*n_one))
-      open(unit=236,file=corr_name,status="old",iostat=readstat)
-      if (readstat .ne. 0) then
-         write(*,*) "You have ordered a noncovalent correction but the file "
-         write(*,*) " ",corr_name," is not there!"
-         call fatal
-      end if
-      read(236,*)
-      read(236,*) mn_par(1)
-      do i=1,n_one
-         read(236,*) mn_par(2+(i-1)*7:1+i*7)
-      end do
-      mn_par=1.d0
-      mn_par(1)=0.d0 !139042922443
-   end if
-end if
 !
 !-------2 QMDFFs-----------------------------------------------------------------
 !
@@ -1133,7 +1278,7 @@ if (qmdffnumber.eq.2) then
 !      Set default values 
 !
       off_basis="1g"
-      do i = 1, nkey
+      do i = 1, nkey_lines
          next = 1
          record = keyline(i)
          call gettext (record,keyword,next)
@@ -1143,7 +1288,7 @@ if (qmdffnumber.eq.2) then
          if (trim(adjustl(record(1:11))) .eq. 'DE_EVB {' .or. trim(adjustl(record(1:11))) &
               &  .eq. 'DE_EVB{') then
 
-            do j=1,nkey-i+1
+            do j=1,nkey_lines-i+1
                next=1
                record = keyline(i+j)
                call gettext (record,keyword,next)
@@ -1164,7 +1309,7 @@ if (qmdffnumber.eq.2) then
                   end if
                end if
                if (keyword(1:11) .eq. '}') exit
-               if (j .eq. nkey-i) then
+               if (j .eq. nkey_lines-i) then
                   write(*,*) "The DE-EVB section has no second delimiter! (})"
                   call fatal
                end if
@@ -1183,7 +1328,7 @@ if (qmdffnumber.eq.2) then
 !      Set default values 
 !
       off_basis="1g"
-      do i = 1, nkey
+      do i = 1, nkey_lines
          next = 1
          record = keyline(i)
          call gettext (record,keyword,next)
@@ -1193,7 +1338,7 @@ if (qmdffnumber.eq.2) then
          if (trim(adjustl(record(1:11))) .eq. 'DQ_EVB {' .or. trim(adjustl(record(1:11))) &
               &  .eq. 'DQ_EVB{') then
 
-            do j=1,nkey-i+1
+            do j=1,nkey_lines-i+1
                next=1
                record = keyline(i+j)
                call gettext (record,keyword,next)
@@ -1216,7 +1361,7 @@ if (qmdffnumber.eq.2) then
 
 
                if (keyword(1:11) .eq. '}') exit
-               if (j .eq. nkey-i) then
+               if (j .eq. nkey_lines-i) then
                   write(*,*) "The DE-EVB section has no second delimiter! (})"
                   call fatal
                end if
@@ -1232,7 +1377,7 @@ if (qmdffnumber.eq.2) then
 !     If one or both QMDFFs shall be corrected in the nonbonded part,
 !     this will be activated and read in here
 !
-   do i = 1, nkey
+   do i = 1, nkey_lines
       next = 1
       record = keyline(i)
       call gettext (record,keyword,next)
@@ -1256,14 +1401,14 @@ if (qmdffnumber.eq.2) then
       dg_evb_points=0
       dg_ref_file="grad_hess.dat"
       g_thres=1E-10
-      do i = 1, nkey
+      do i = 1, nkey_lines
          next = 1
          record = keyline(i)
          call gettext (record,keyword,next)
          call upcase (keyword)
          string = record(next:120)
          if (keyword(1:11) .eq. 'DG_EVB { ' .or. keyword(1:11) .eq. 'DG_EVB{ ') then
-            do j=1,nkey-i+1
+            do j=1,nkey_lines-i+1
                next=1
                record = keyline(i+j)
                call gettext (record,keyword,next)
@@ -1305,7 +1450,7 @@ if (qmdffnumber.eq.2) then
 
                end if
                if (record .eq. '}') exit
-               if (j .eq. nkey-i) then
+               if (j .eq. nkey_lines-i) then
                   write(*,*) "The DG-EVB section has no second delimiter! (})"
                   call fatal
                end if
@@ -1480,7 +1625,7 @@ if (qmdffnumber.eq.2) then
       irc_local=5
       rp_evb_points=0
 
-      do i = 1, nkey
+      do i = 1, nkey_lines
          next = 1
          record = keyline(i)
          call gettext (record,keyword,next)
@@ -1489,7 +1634,7 @@ if (qmdffnumber.eq.2) then
          string = record(next:120)
          if (trim(adjustl(record(1:11))) .eq. 'TREQ { ' .or. & 
                      & trim(adjustl(record(1:11))) .eq. 'TREQ{ ') then
-            do j=1,nkey-i+1
+            do j=1,nkey_lines-i+1
                next=1
                record = keyline(i+j)
                call gettext (record,keyword,next)
@@ -1709,7 +1854,7 @@ if (qmdffnumber.eq.2) then
                end if
 
                if (keyword(1:13) .eq. '}') exit
-               if (j .eq. nkey-i) then
+               if (j .eq. nkey_lines-i) then
                   write(*,*) "The TREQ section has no second delimiter! (})"
                   call fatal
                end if
@@ -1827,7 +1972,7 @@ end if
 !
 
 if (qmdffnumber.eq.3) then
-   do i = 1, nkey
+   do i = 1, nkey_lines
       next = 1
       record = keyline(i)
       call gettext (record,keyword,next)
@@ -1846,7 +1991,7 @@ if (qmdffnumber.eq.3) then
       off_basis="1g"
    end if
    full=.false.
-   do i = 1, nkey
+   do i = 1, nkey_lines
       next = 1
       record = keyline(i)
       call gettext (record,keyword,next)
@@ -1861,7 +2006,7 @@ if (qmdffnumber.eq.3) then
       write(*,*) "The 1,3-EVB-matrix-elements are set to zero."
    end if
 
-   do i = 1, nkey
+   do i = 1, nkey_lines
       next = 1
       record = keyline(i)
       call gettext (record,keyword,next)
@@ -1881,7 +2026,7 @@ if (qmdffnumber.eq.3) then
 !  
 !     The coupling with respect to the geometrical coordinate (dQ)
 !
-   do i = 1, nkey
+   do i = 1, nkey_lines
        next = 1
        record = keyline(i)
        call gettext (record,keyword,next)
@@ -1912,10 +2057,38 @@ if (qmdffnumber.eq.3) then
 end if
 
 !
+!     From now on, perform general final setup
+!
+678 continue
+
+
+
+!     
+!    Set the periodicitiy internally if needed
+!
+!     For periodic systems: convert the box lengths to bohr as well!
+!
+if (periodic) then
+   boxlen_x=boxlen_x/bohr
+   boxlen_y=boxlen_y/bohr
+   boxlen_z=boxlen_z/bohr
+
+   call set_periodic(periodic,boxlen_x,boxlen_y,boxlen_z,ewald,zahn,ewald_brute,coul_cut,vdw_cut)
+     ! set global variables in qmdff module..
+end if
+!
+!     For systems with hard box walls: convert the box length to bohr
+if (box_walls) then
+   walldim_x=boxlen_x/bohr
+   walldim_y=boxlen_y/bohr
+   walldim_z=boxlen_z/bohr
+end if
+
+!
 !     Finally, print out info concering the actual PES is usage 
 !
 
-678 continue
+
 if (rank .eq. 0) then
    write(*,*) "----------------------------------------------------------"
 !

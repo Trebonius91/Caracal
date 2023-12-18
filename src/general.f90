@@ -61,7 +61,7 @@ character(len=120)::outfile
 !
 integer::maxkey
 parameter (maxkey=25000)
-integer::nkey
+integer::nkey_lines
 character(len=120)::keyline(maxkey)
 !
 !     from tinker module "ionuit" 

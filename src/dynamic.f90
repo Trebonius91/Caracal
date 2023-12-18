@@ -42,6 +42,7 @@ program dynamic
 use general
 use evb_mod
 use omp_lib
+use pbc_mod
 
 implicit none
 integer i,istep,nstep,asciinum,j,k,nat,l
@@ -84,10 +85,6 @@ character(len=40)::commarg ! string for command line argument
 integer::istat,readstat
 character(len=10)::ensemble ! which thermodynamic ensemble is used
 ! For box simulations with periodic boundary conditions
-real(kind=8)::coul_cut,vdw_cut
-logical::periodic,ewald,ewald_brute,zahn
-real(kind=8)::ewald_accuracy
-real(kind=8)::boxlen_x,boxlen_y,boxlen_z
 real(kind=8)::e_pot_avg,e_kin_avg,e_tot_avg  ! averages for energies
 real(kind=8)::e_cov_avg,e_noncov_avg 
 character(len=50)::baro_name,coul_name ! which barostat shall be used
@@ -99,8 +96,10 @@ character(len=20)::act_number
 !   for umbrella samplings 
 real(kind=8),allocatable::dxi_act(:,:)
 real(kind=8)::xi_ideal,xi_real
-integer::bias_mode
+integer::bias_mode,keylines_backup
 integer::round,constrain
+!   The OMP time measurement
+real(kind=8)::time1_omp,time2_omp
 !     the evb-qmdff input
 character(len=70)::fffile1,fffile2,fffile3,fileinfo,filets
 character(len=70)::filets2
@@ -114,14 +113,6 @@ integer::rank
 !     the number of OMP threads 
 integer::threads,id
 real(kind=8)::duration_omp
-
-  !$OMP Parallel private(id) shared(threads)
-   threads = omp_get_num_threads()
-   id = omp_get_thread_num()
-   print *, "hello from thread", id, "out of", threads
-   !$OMP end Parallel
-
-
 
 !
 !     Set MPI rank to zero for this program
@@ -164,12 +155,11 @@ end if
 !     Read keywords from the key-file
 !
 call getkey(rank)
-
 !
 !      Option to change the atomic mass of one element in the system
 !
 change_mass=.false.
-!do i = 1, nkey
+!do i = 1, nkey_lines
 !   next = 1
 !   record = keyline(i)
 !   call gettext (record,keyword,next)
@@ -225,7 +215,7 @@ allocate(dxi_act(3,natoms))
 !
 !    Read in the commands from the keyfile 
 !
-do i = 1, nkey
+do i = 1, nkey_lines
    next = 1
    record = keyline(i)
    call gettext (record,keyword,next)
@@ -290,16 +280,11 @@ iwrite = nint(dtdump/(dt))
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!     Read the parameter for the NVE ensemble     !!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
+!    Currently not needed
 if (nve) then
    thermostat = 0
    kelvin=0
    thermo="none"
-   periodic=.false.
-   box_walls=.false.
-   boxlen_x=0.d0
-   boxlen_y=0.d0
-   boxlen_z=0.d0
    ewald=.false.
    zahn=.true.
    coul_method="ZAHN"
@@ -307,7 +292,7 @@ if (nve) then
    vdw_cut=10.d0
    andersen_step=70
    nose_q=100.d0
-   do i = 1, nkey
+   do i = 1, nkey_lines
       next = 1
       record = keyline(i)
       call gettext (record,keyword,next)
@@ -316,63 +301,14 @@ if (nve) then
       string = record(next:120)
       if (trim(adjustl(record(1:11))) .eq. 'NVE {' .or. trim(adjustl(record(1:11))) &
                  &  .eq. 'NVE{') then
-         do j=1,nkey-i+1
+         do j=1,nkey_lines-i+1
             next=1
             record = keyline(i+j)
             call gettext (record,keyword,next)
             call upcase (keyword)
-!    If periodic, the dimensions of the simulation box
-            if (keyword(1:13) .eq. 'PERIODIC ') then
-               read(record,*,iostat=readstat) names,boxlen_x,boxlen_y,boxlen_z
-               periodic=.true.
-               if (readstat .ne. 0) then
-                  write(*,*) "Correct format: PERIODIC [xlen,ylen,zlen (A)]"
-                  call fatal
-               end if
-!    If a box with hard walls, the dimensions
-            else if (keyword(1:11) .eq. 'BOX_WALLS ') then
-               read(record,*,iostat=readstat) names,boxlen_x,boxlen_y,boxlen_z
-               box_walls=.true.
-               if (readstat .ne. 0) then
-                  write(*,*) "Correct format: BOX_WALLS [xlen,ylen,zlen (A)]"
-                  call fatal
-               end if
 !    For the periodic coulomb interactions
-            else if (keyword(1:11) .eq. 'COULOMB ') then
-               read(record,*,iostat=readstat) names,a80
-               if (readstat .ne. 0) then
-                  write(*,*) "Correct format: COULOMB [method]"
-                  call fatal
-               end if
-               call upcase(a80)
-               if (a80 .eq. "PPPME") then
-                  ewald=.true.
-                  write(*,*) "The Particle Particle Particle Mesh Ewald (PPPME) method"
-                  write(*,*) " will be used for the handling of Coulomb interactions."
-                  write(*,*) "Please choose another method, the implementation is not complete!"
-                  call fatal
-               end if
-               if (a80 .eq. 'ZAHN ') then
-                  zahn=.true.
-               end if
-               coul_method=a80
-!    The cutoff distance for Coulomb interactions
-            else if (keyword(1:14) .eq. 'COUL_CUTOFF ') then
-               read(record,*,iostat=readstat) names,coul_cut
-               if (readstat .ne. 0) then
-                  write(*,*) "Correct format: COUL_CUTOFF [value (A)]"
-                  call fatal
-               end if
-!    The cutoff distance for VDW interactions
-            else if (keyword(1:13) .eq. 'VDW_CUTOFF ') then
-               read(record,*,iostat=readstat) names,vdw_cut
-               if (readstat .ne. 0) then
-                  write(*,*) "Correct format: VDW_CUTOFF [value (A)]"
-                  call fatal
-               end if
-            end if
             if (keyword(1:13) .eq. '}') exit
-            if (j .eq. nkey-i) then
+            if (j .eq. nkey_lines-i) then
                write(*,*) "The NVE section has no second delimiter! (})"
                call fatal
             end if
@@ -380,7 +316,6 @@ if (nve) then
          exit
       end if
    end do
-
 end if
 
 !write(*,*) periodic
@@ -395,19 +330,9 @@ if (nvt) then
 !
    kelvin=0
    thermo="none"
-   periodic=.false.
-   box_walls=.false.
-   boxlen_x=0.d0
-   boxlen_y=0.d0
-   boxlen_z=0.d0
-   ewald=.false.
-   zahn=.true.
-   coul_method="ZAHN"
-   coul_cut=10.d0
-   vdw_cut=10.d0
    andersen_step=70
    nose_q=100.d0
-   do i = 1, nkey
+   do i = 1, nkey_lines
       next = 1
       record = keyline(i)
       call gettext (record,keyword,next)
@@ -416,7 +341,7 @@ if (nvt) then
       string = record(next:120)
       if (trim(adjustl(record(1:11))) .eq. 'NVT {' .or. trim(adjustl(record(1:11))) &
                  &  .eq. 'NVT{') then
-         do j=1,nkey-i+1
+         do j=1,nkey_lines-i+1
             next=1
             record = keyline(i+j)
             call gettext (record,keyword,next)
@@ -436,55 +361,6 @@ if (nvt) then
                   call fatal
                end if
                call upcase(thermo)
-!    If periodic, the dimensions of the simulation box
-            else if (keyword(1:13) .eq. 'PERIODIC ') then
-               read(record,*,iostat=readstat) names,boxlen_x,boxlen_y,boxlen_z
-               periodic=.true.
-               if (readstat .ne. 0) then
-                  write(*,*) "Correct format: PERIODIC [xlen,ylen,zlen (A)]"
-                  call fatal
-               end if
-!    If a box with hard walls, the dimensions
-            else if (keyword(1:11) .eq. 'BOX_WALLS ') then
-               read(record,*,iostat=readstat) names,boxlen_x,boxlen_y,boxlen_z
-               box_walls=.true.
-               if (readstat .ne. 0) then
-                  write(*,*) "Correct format: BOX_WALLS [xlen,ylen,zlen (A)]"
-                  call fatal
-               end if
-!    For the periodic coulomb interactions 
-            else if (keyword(1:11) .eq. 'COULOMB ') then
-               read(record,*,iostat=readstat) names,a80
-               if (readstat .ne. 0) then
-                  write(*,*) "Correct format: COULOMB [method]"
-                  call fatal
-               end if
-               call upcase(a80)
-               if (a80 .eq. "PPPME") then
-                  ewald=.true.
-                  write(*,*) "The Particle Particle Particle Mesh Ewald (PPPME) method"
-                  write(*,*) " will be used for the handling of Coulomb interactions."
-                  write(*,*) "Please choose another method, the implementation is not complete!"
-                  call fatal
-               end if
-               if (a80 .eq. 'ZAHN ') then
-                  zahn=.true.
-               end if
-               coul_method=a80
-!    The cutoff distance for Coulomb interactions
-            else if (keyword(1:14) .eq. 'COUL_CUTOFF ') then
-               read(record,*,iostat=readstat) names,coul_cut
-               if (readstat .ne. 0) then
-                  write(*,*) "Correct format: COUL_CUTOFF [value (A)]"
-                  call fatal
-               end if
-!    The cutoff distance for VDW interactions
-            else if (keyword(1:13) .eq. 'VDW_CUTOFF ') then
-               read(record,*,iostat=readstat) names,vdw_cut
-               if (readstat .ne. 0) then
-                  write(*,*) "Correct format: VDW_CUTOFF [value (A)]"
-                  call fatal
-               end if
 !    How often the Andersen thermostat velocity rescaling is applied
             else if (keyword(1:16) .eq. 'ANDERSEN_STEP ') then
                read(record,*,iostat=readstat) names,andersen_step
@@ -501,7 +377,7 @@ if (nvt) then
                end if
             end if
             if (keyword(1:13) .eq. '}') exit
-            if (j .eq. nkey-i) then
+            if (j .eq. nkey_lines-i) then
                write(*,*) "The NVT section has no second delimiter! (})"
                call fatal
             end if
@@ -539,22 +415,12 @@ if (npt) then
    pressure=0
    thermo="none"
    barostat=1  ! berendsen is default
-   periodic=.false.
-   box_walls=.false.
-   boxlen_x=0.d0
-   boxlen_y=0.d0
-   boxlen_z=0.d0
-   ewald=.false.
-   zahn=.true.
-   coul_method="ZAHN"
-   coul_cut=10.d0
-   vdw_cut=10.d0
    andersen_step=70
    nose_q=100.d0
    nose_tau=4000.d0
    andersen_step=70
 
-   do i = 1, nkey
+   do i = 1, nkey_lines
       next = 1
       record = keyline(i)
       call gettext (record,keyword,next)
@@ -563,7 +429,7 @@ if (npt) then
       string = record(next:120)
       if (trim(adjustl(record(1:11))) .eq. 'NPT {' .or. trim(adjustl(record(1:11))) &
                  &  .eq. 'NPT{') then
-         do j=1,nkey-i+1
+         do j=1,nkey_lines-i+1
             next=1
             record = keyline(i+j)
             call gettext (record,keyword,next)
@@ -586,27 +452,6 @@ if (npt) then
                    write(*,*) "No valid barostat chosen! BERENDSEN and  & 
                             & NOSE-HOOVER are available!"
                 end if
-            else if (keyword(1:13) .eq. 'PERIODIC ') then
-               read(record,*,iostat=readstat) names,boxlen_x,boxlen_y,boxlen_z
-               periodic=.true.
-            else if (keyword(1:11) .eq. 'COULOMB ') then
-               read(record,*) names,a80
-               call upcase(a80)
-               if (a80 .eq. "PPPME") then
-                  ewald=.true.
-                  write(*,*) "The Particle Particle Particle Mesh Ewald (PPPME) method"
-                  write(*,*) " will be used for the handling of Coulomb interactions."
-                  write(*,*) "Please choose another method, the implementation is not complete!"
-                  call fatal
-               end if
-               if (a80 .eq. 'ZAHN ') then
-                  zahn=.true.
-               end if
-               coul_method=a80
-            else if (keyword(1:11) .eq. 'COUL_CUTOFF ') then
-               read(record,*) names,coul_cut
-            else if (keyword(1:11) .eq. 'VDW_CUTOFF ') then
-               read(record,*) names,vdw_cut
             else if (keyword(1:16) .eq. 'ANDERSEN_STEP ') then
                read(record,*) names,andersen_step
             else if (keyword(1:13) .eq. 'NOSE_DAMP ') then
@@ -615,7 +460,7 @@ if (npt) then
                read(record,*) names,nose_tau
             end if
             if (keyword(1:13) .eq. '}') exit
-            if (j .eq. nkey-i) then
+            if (j .eq. nkey_lines-i) then
                write(*,*) "The NPT section has no second delimiter! (})"
                call fatal
             end if
@@ -668,7 +513,7 @@ dt = dt/2.41888428E-2
 !!     Read parameters for force/mechanochem.      !!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 add_force=.false.
-do i = 1, nkey
+do i = 1, nkey_lines
    next = 1
    record = keyline(i)
    call gettext (record,keyword,next)
@@ -677,7 +522,7 @@ do i = 1, nkey
    string = record(next:120)
    if (trim(adjustl(record(1:11))) .eq. 'FORCE {' .or. trim(adjustl(record(1:11))) .eq. 'FORCE{') then
       add_force=.true.
-      do j=1,nkey-i+1
+      do j=1,nkey_lines-i+1
          next=1
          record = keyline(i+j)
          call gettext (record,keyword,next)
@@ -708,7 +553,7 @@ do i = 1, nkey
             afm_second=.true.
          end if
          if (keyword(1:13) .eq. '}') exit
-         if (j .eq. nkey-i) then
+         if (j .eq. nkey_lines-i) then
             write(*,*) "The FORCE section has no second delimiter! (})"
             call fatal
          end if
@@ -755,7 +600,7 @@ if (afm_run) then
    afm_fix_at=0
    afm_move_at=0
    
-   do i = 1, nkey
+   do i = 1, nkey_lines
       next = 1
       record = keyline(i)
       call gettext (record,keyword,next)
@@ -852,7 +697,7 @@ end if
 !
 ewald_brute=.false.
 if (periodic) then
-   do i = 1, nkey
+   do i = 1, nkey_lines
       next = 1
       record = keyline(i)
       call gettext (record,keyword,next)
@@ -874,7 +719,7 @@ end if
 !
 eval_coord=.false.
 eval_step = 1
-do i = 1, nkey
+do i = 1, nkey_lines
    next = 1
    record = keyline(i)
    call gettext (record,keyword,next)
@@ -901,7 +746,7 @@ end do
 !
 eval_coord=.false.
 eval_step = 1
-do i = 1, nkey
+do i = 1, nkey_lines
    next = 1
    record = keyline(i)
    call gettext (record,keyword,next)
@@ -924,7 +769,7 @@ end do
 !      Read in velocities from file as starting for momentum
 !
 read_vel=.false.
-do i = 1, nkey
+do i = 1, nkey_lines
    next = 1
    record = keyline(i)
    call gettext (record,keyword,next)
@@ -952,7 +797,7 @@ end if
 !      Calculate averaged kinetic energy per atom for a subgroup of the system
 !
 calc_ekin=.false.
-do i = 1, nkey
+do i = 1, nkey_lines
    next = 1
    record = keyline(i)
    call gettext (record,keyword,next)
@@ -1006,7 +851,7 @@ end if
 !     Activate if you want to control if the total energy is conserved
 !
 energycon=.false.
-do i = 1, nkey
+do i = 1, nkey_lines
     next = 1
     record = keyline(i)
     call gettext (record,keyword,next)
@@ -1021,7 +866,7 @@ end do
 !     time step 
 !
 verbose=.false.
-do i = 1, nkey
+do i = 1, nkey_lines
     next = 1
     record = keyline(i)
     call gettext (record,keyword,next)
@@ -1037,7 +882,7 @@ end do
 !     of the QMDFF potential energy
 !
 energysplit=.false.
-do i = 1, nkey
+do i = 1, nkey_lines
     next = 1
     record = keyline(i)
     call gettext (record,keyword,next)
@@ -1057,7 +902,7 @@ nbeads_store=nbeads
 !     possible 
 !
 fix_atoms=.false.
-do i = 1, nkey
+do i = 1, nkey_lines
     next = 1
     record = keyline(i)
     call gettext (record,keyword,next)
@@ -1159,24 +1004,6 @@ end do
 if (npt) then
    pressure=pressure/prescon
 end if
-!
-!     For periodic systems: convert the box lengths to bohr as well!
-!
-if (periodic) then
-   boxlen_x=boxlen_x/bohr
-   boxlen_y=boxlen_y/bohr
-   boxlen_z=boxlen_z/bohr
-
-   call set_periodic(periodic,boxlen_x,boxlen_y,boxlen_z,ewald,zahn,ewald_brute,coul_cut,vdw_cut)  
-     ! set global variables in qmdff module..
-end if
-!
-!     For systems with hard box walls: convert the box length to bohr
-if (box_walls) then
-   walldim_x=boxlen_x/bohr
-   walldim_y=boxlen_y/bohr
-   walldim_z=boxlen_z/bohr
-end if
 ! 
 allocate(derivs(3,natoms,nbeads))
 !
@@ -1185,6 +1012,7 @@ allocate(derivs(3,natoms,nbeads))
 if (afm_run) then
    afm_move_first(:)=q_i(:,afm_move_at,1)
 end if
+
 !
 !     If the internal coordinates shall be written to file, open it
 !

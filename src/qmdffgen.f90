@@ -143,7 +143,7 @@ call getkey(rank)
 !     Read the reference program/software from input file
 !
 
-do i = 1, nkey
+do i = 1, nkey_lines
    next = 1
    record = keyline(i)
    call gettext (record,keyword,next)
@@ -160,7 +160,7 @@ end do
 !     If the QMDFF names are stored already in a file
 !
 check_coord=.false.
-do i = 1, nkey
+do i = 1, nkey_lines
    next = 1
    record = keyline(i)
    call gettext (record,keyword,next)
@@ -808,16 +808,19 @@ end if
 !
 !    QMDFF information
 !
+write(81,*)
+write(81,*) "qmdff {"
 if (qmdffnumber.eq.1) then
-   write(81,*)"qmdffnames  ",prefix1 // ".qmdff"
-   write(81,*)"eshift",e1_shifted
+   write(81,*)"   ffnames  ",prefix1 // ".qmdff"
+   write(81,*)"   eshift",e1_shifted
 else if (qmdffnumber.eq.2) then
-   write(81,*)"qndffnames  ",prefix1 // ".qmdff  ",prefix2 // ".qmdff"
-   write(81,*)"eshift ",e1_shifted,e2_shifted
+   write(81,*)"   ffnames  ",prefix1 // ".qmdff  ",prefix2 // ".qmdff"
+   write(81,*)"   eshift ",e1_shifted,e2_shifted
 else if (qmdffnumber.eq.3) then
-      write(81,*)"qmdffnames  ",prefix1 // ".qmdff  ",prefix2 // ".qmdff  ",prefix3 // ".qmdff"
-   write(81,*)"eshift",e1_shifted,e2_shifted,e3_shifted
+      write(81,*)"   ffnames  ",prefix1 // ".qmdff  ",prefix2 // ".qmdff  ",prefix3 // ".qmdff"
+   write(81,*)"   eshift",e1_shifted,e2_shifted,e3_shifted
 end if 
+write(81,*) "}"
 !
 !    calculate the needed time for optimization
 !

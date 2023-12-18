@@ -137,7 +137,7 @@ bondlentol=1.2d0
 !     be calculated numerically or analytically
 !
 num_wilson=.true.
-do i = 1, nkey
+do i = 1, nkey_lines
    next = 1
    record = keyline(i)
    call gettext (record,keyword,next)

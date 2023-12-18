@@ -36,6 +36,7 @@ subroutine calc_rate_read(rank,dt,dtdump,dt_info,gen_step,equi_step,umbr_step,xi
           & xi_max,pmf_min,pmf_max,nbins,pmf_minloc,print_poly,ts_file,recross_mpi)
 use general
 use evb_mod
+use pbc_mod
 use debug 
 use qmdff
 implicit none
@@ -178,7 +179,7 @@ write(15,*)
 !     A) First, read in settings that do not belong to a section
 ! -------------------------------------------------------------------
 write(15,*) "A) General parameters..."
-do i = 1, nkey
+do i = 1, nkey_lines
    next = 1
    record = keyline(i)
    call gettext (record,keyword,next)
@@ -266,7 +267,7 @@ write(15,*) "...done!"
 ! -------------------------------------------------------------------
 section=.false.
 write(15,*) "B) The NVT section..."
-do i = 1, nkey
+do i = 1, nkey_lines
    next = 1 
    record = keyline(i)
    call gettext (record,keyword,next)
@@ -276,7 +277,7 @@ do i = 1, nkey
    if (trim(adjustl(record(1:11))) .eq. 'NVT {' .or. trim(adjustl(record(1:11))) &
               &  .eq. 'NVT{') then
       section=.true.
-      do j=1,nkey-i+1
+      do j=1,nkey_lines-i+1
          next=1
          record = keyline(i+j)
          call gettext (record,keyword,next)
@@ -312,7 +313,7 @@ do i = 1, nkey
             end if
          end if
          if (keyword(1:13) .eq. '}') exit
-         if (j .eq. nkey-i) then
+         if (j .eq. nkey_lines-i) then
             write(*,*) "The NVT section has no second delimiter! (})"
             call fatal
          end if
@@ -333,7 +334,7 @@ section = .false.
 
 write(15,*) "C) The MECHA section..."
 section=.false.
-do i = 1, nkey
+do i = 1, nkey_lines
    next = 1
    record = keyline(i)
    call gettext (record,keyword,next)
@@ -343,7 +344,7 @@ do i = 1, nkey
    if (trim(adjustl(record(1:11))) .eq. 'MECHA {' .or. trim(adjustl(record(1:11))) &
               &  .eq. 'MECHA{') then
       section=.true.
-      do j=1,nkey-i+1
+      do j=1,nkey_lines-i+1
          next=1
          record = keyline(i+j)
          call gettext (record,keyword,next)
@@ -454,7 +455,7 @@ if (umbr_type .ne. "ATOM_SHIFT") then
    allocate(input_break(break_num))
 end if
 
-do i = 1, nkey
+do i = 1, nkey_lines
    next = 1
    record = keyline(i)
    call gettext (record,keyword,next)
@@ -463,7 +464,7 @@ do i = 1, nkey
    string = record(next:120)
    if (trim(adjustl(record(1:11))) .eq. 'MECHA {' .or. trim(adjustl(record(1:11))) &
               &  .eq. 'MECHA{') then
-      do j=1,nkey-i+1
+      do j=1,nkey_lines-i+1
          next=1
          record = keyline(i+j)
          call gettext (record,keyword,next)
@@ -727,7 +728,7 @@ do i = 1, nkey
             end if
          end if
          if (keyword(1:13) .eq. '}') exit
-         if (j .eq. nkey-i) then
+         if (j .eq. nkey_lines-i) then
             write(*,*) "The MECHA section has no second delimiter! (})"
             call fatal
          end if
@@ -742,7 +743,7 @@ write(15,*) "... done!"
 
 section=.false.
 write(15,*) "D) The UMBRELLA section..."
-do i = 1, nkey
+do i = 1, nkey_lines
    next = 1
    record = keyline(i)
    call gettext (record,keyword,next)
@@ -752,7 +753,7 @@ do i = 1, nkey
    if (trim(adjustl(record(1:15))) .eq. 'UMBRELLA {' .or. trim(adjustl(record(1:15))) &
               &  .eq. 'UMBRELLA{') then
       section=.true.
-      do j=1,nkey-i+1
+      do j=1,nkey_lines-i+1
          next=1
          record = keyline(i+j)
          call gettext (record,keyword,next)
@@ -811,7 +812,7 @@ do i = 1, nkey
             end if
          end if
          if (keyword(1:13) .eq. '}') exit
-         if (j .eq. nkey-i) then
+         if (j .eq. nkey_lines-i) then
             write(*,*) "The UMBRELLA section has no second delimiter! (})"
             call fatal
          end if
@@ -832,7 +833,7 @@ write(15,*) "... done!"
 
 section=.false.
 write(15,*) "D) The PMF section..."
-do i = 1, nkey
+do i = 1, nkey_lines
    next = 1
    record = keyline(i)
    call gettext (record,keyword,next)
@@ -842,7 +843,7 @@ do i = 1, nkey
    if (trim(adjustl(record(1:15))) .eq. 'PMF {' .or. trim(adjustl(record(1:15))) &
               &  .eq. 'PMF{') then
       section=.true.
-      do j=1,nkey-i+1
+      do j=1,nkey_lines-i+1
          next=1
          record = keyline(i+j)
          call gettext (record,keyword,next)
@@ -877,7 +878,7 @@ do i = 1, nkey
             end if
          end if
          if (keyword(1:13) .eq. '}') exit
-         if (j .eq. nkey-i) then
+         if (j .eq. nkey_lines-i) then
             write(*,*) "The PMF section has no second delimiter! (})"
             call fatal
          end if
@@ -897,7 +898,7 @@ write(15,*) "... done!"
 section=.false.
 skip_recross=.false.
 write(15,*) "E) The RECROSS section..."
-do i = 1, nkey
+do i = 1, nkey_lines
    next = 1
    record = keyline(i)
    call gettext (record,keyword,next)
@@ -907,7 +908,7 @@ do i = 1, nkey
    if (trim(adjustl(record(1:15))) .eq. 'RECROSS {' .or. trim(adjustl(record(1:15))) &
               &  .eq. 'RECROSS{') then
       section=.true.
-      do j=1,nkey-i+1
+      do j=1,nkey_lines-i+1
          next=1
          record = keyline(i+j)
          call gettext (record,keyword,next)
@@ -964,7 +965,7 @@ do i = 1, nkey
             recross_check = .false.
          end if
          if (keyword(1:13) .eq. '}') exit
-         if (j .eq. nkey-i) then
+         if (j .eq. nkey_lines-i) then
             write(*,*) "The RECROSS section has no second delimiter! (})"
             call fatal
          end if
@@ -985,7 +986,7 @@ write(15,*) "... done!"
 
 write(15,*) "F) The FORCE section..."
 add_force=.false.
-do i = 1, nkey
+do i = 1, nkey_lines
    next = 1
    record = keyline(i)
    call gettext (record,keyword,next)
@@ -994,7 +995,7 @@ do i = 1, nkey
    string = record(next:120)
    if (trim(adjustl(record(1:11))) .eq. 'FORCE {' .or. trim(adjustl(record(1:11))) .eq. 'FORCE{') then
       add_force=.true.
-      do j=1,nkey-i+1
+      do j=1,nkey_lines-i+1
          next=1
          record = keyline(i+j)
          call gettext (record,keyword,next)
@@ -1007,7 +1008,7 @@ do i = 1, nkey
             read(record,*) names,force2_at,force2_k,force2_v(1),force2_v(2),force2_v(3)
          end if
          if (keyword(1:13) .eq. '}') exit
-         if (j .eq. nkey-i) then
+         if (j .eq. nkey_lines-i) then
             write(*,*) "The FORCE section has no second delimiter! (})"
             call fatal
          end if
@@ -1313,7 +1314,7 @@ end if
 !      If no keyword given, take 1 fs interval as default
 !
 if (print_poly .ne. -5.d0) then
-   do i = 1, nkey
+   do i = 1, nkey_lines
       next = 1
       record = keyline(i)
       call gettext (record,keyword,next)
@@ -1334,7 +1335,7 @@ end if
 !
 eval_coord=.false.
 eval_step = 1
-do i = 1, nkey
+do i = 1, nkey_lines
    next = 1
    record = keyline(i)
    call gettext (record,keyword,next)
@@ -1362,7 +1363,7 @@ end do
 !     Main keyword: ADD_FORCE
 !
 add_force = .false.
-do i = 1, nkey
+do i = 1, nkey_lines
     next = 1
     record = keyline(i)
     call gettext (record,keyword,next)

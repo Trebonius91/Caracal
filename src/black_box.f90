@@ -220,7 +220,7 @@ write(*,*)
 !
 !     Read the program, which was used for IRC calculation
 
-do i = 1, nkey
+do i = 1, nkey_lines
    next = 1
    record = keyline(i)
    call gettext (record,keyword,next)
@@ -254,7 +254,7 @@ end if
 !    Additionally, the method for this calculation needs to be assigned!
 !
 ens_extra=.false.
-do i = 1, nkey
+do i = 1, nkey_lines
    next = 1
    record = keyline(i)
    call gettext (record,keyword,next)
@@ -278,7 +278,7 @@ link_qmdffgen="qmdffgen.x"
 link_rpmd="rpmd"
 link_mpi="mpirun"
 
-do i = 1, nkey
+do i = 1, nkey_lines
    next = 1
    record = keyline(i)
    call gettext (record,keyword,next)
@@ -288,7 +288,7 @@ do i = 1, nkey
    if (trim(adjustl(record(1:14))) .eq. 'SYMLINKS {' .or. trim(adjustl(record(1:14))) &
               &  .eq. 'SYMLINKS{') then
 
-      do j=1,nkey-i+1
+      do j=1,nkey_lines-i+1
          next=1
          record = keyline(i+j)
          call gettext (record,keyword,next)
@@ -311,7 +311,7 @@ do i = 1, nkey
             write(*,*) "* MPI runs will be started with: ",trim(link_qmdffgen)
          end if
          if (keyword(1:13) .eq. '}') exit
-         if (j .eq. nkey-i) then
+         if (j .eq. nkey_lines-i) then
             write(*,*) "The SYMLINKS section has no second delimiter! (})"
             call fatal
          end if
@@ -325,7 +325,7 @@ end do
 !    of reference as well as rpmd.x calculations 
 !
 nprocs_tot=1
-do i = 1, nkey
+do i = 1, nkey_lines
    next = 1
    record = keyline(i)
    call gettext (record,keyword,next)
@@ -356,7 +356,7 @@ write(*,'(a,i2,a)') " * In total, ",nprocs_tot," processors will be available."
 !    insert RIGHT2LEFT!
 !
 irc_direct="NN"
-do i = 1, nkey
+do i = 1, nkey_lines
    next = 1
    record = keyline(i)
    call gettext (record,keyword,next)
@@ -401,7 +401,7 @@ if (software_irc .eq. "G") then
 !
 !    Try to read IRC filename keyword from caracal.key file!
 !   
-   do i = 1, nkey
+   do i = 1, nkey_lines
       next = 1
       record = keyline(i)
       call gettext (record,keyword,next)
@@ -438,7 +438,7 @@ else if (software_irc .eq. "O") then
 !
 !    Try to read IRC filename keyword from caracal.key file!
 !   
-   do i = 1, nkey
+   do i = 1, nkey_lines
       next = 1
       record = keyline(i)
       call gettext (record,keyword,next)
@@ -476,7 +476,7 @@ ens_procs=nprocs_tot
 min_procs=nprocs_tot
 rp_procs=nprocs_tot
 min_mem=nprocs_tot
-do i = 1, nkey
+do i = 1, nkey_lines
    next = 1
    record = keyline(i)
    call gettext (record,keyword,next)
@@ -520,7 +520,7 @@ write(*,'(a,i3,a)') " * Reference calculations will be done with ",min_mem," GB 
 !     The default value will be 10
 !
 rp_pts_min=10
-do i = 1, nkey
+do i = 1, nkey_lines
    next = 1
    record = keyline(i)
    call gettext (record,keyword,next)
@@ -544,7 +544,7 @@ charge=-100
 multi=-100
 
 section = .false.
-do i = 1, nkey
+do i = 1, nkey_lines
    next = 1
    record = keyline(i)
    call gettext (record,keyword,next)
@@ -554,7 +554,7 @@ do i = 1, nkey
    if (trim(adjustl(record(1:14))) .eq. 'GRAD_FREQ {' .or. trim(adjustl(record(1:14))) &
               &  .eq. 'GRAD_FREQ{') then
       section=.true.
-      do j=1,nkey-i+1
+      do j=1,nkey_lines-i+1
          next=1
          record = keyline(i+j)
          call gettext (record,keyword,next)
@@ -595,7 +595,7 @@ do i = 1, nkey
             end if         
          end if
          if (keyword(1:13) .eq. '}') exit
-         if (j .eq. nkey-i) then
+         if (j .eq. nkey_lines-i) then
             write(*,*) "The GRAD_FREQ section has no second delimiter! (})"
             call fatal
          end if
@@ -647,7 +647,7 @@ if (ens_extra) then
    e_bas_words=0
 
    section = .false.
-   do i = 1, nkey
+   do i = 1, nkey_lines
       next = 1
       record = keyline(i)
       call gettext (record,keyword,next)
@@ -657,7 +657,7 @@ if (ens_extra) then
       if (trim(adjustl(record(1:18))) .eq. 'ENERGY_EXTRA {' .or. trim(adjustl(record(1:18))) &
               &  .eq. 'ENERGY_EXTRA{') then
          section=.true.
-         do j=1,nkey-i+1
+         do j=1,nkey_lines-i+1
             next=1
             record = keyline(i+j)
             call gettext (record,keyword,next)
@@ -683,7 +683,7 @@ if (ens_extra) then
                e_bas_words=1
             end if
             if (keyword(1:13) .eq. '}') exit
-            if (j .eq. nkey-i) then
+            if (j .eq. nkey_lines-i) then
                write(*,*) "The ENERGY_EXTRA section has no second delimiter! (})"
                call fatal
             end if
@@ -754,7 +754,7 @@ end if
 temps=-10
 temp_num=0
 manual_ints=.false.
-do i = 1, nkey
+do i = 1, nkey_lines
    next = 1
    record = keyline(i)
    call gettext (record,keyword,next)
@@ -780,7 +780,7 @@ end do
 !
 temps=-10
 temp_num=0
-do i = 1, nkey
+do i = 1, nkey_lines
    next = 1
    record = keyline(i)
    call gettext (record,keyword,next)
@@ -815,7 +815,7 @@ write(*,'(a,20i5)') " * RPMD calculations will be done at temperatures (K): ",te
 !    will be averaged in order to determine the RPMD convergence, activate it here 
 !
 kt_avg=1
-do i = 1, nkey
+do i = 1, nkey_lines
    next = 1
    record = keyline(i)
    call gettext (record,keyword,next)
@@ -878,7 +878,7 @@ scan_path=.false. ! if a scan instead of an IRC was calculated
 !    0) General dynamical parameters
 !
 
-do i = 1, nkey
+do i = 1, nkey_lines
    next = 1
    record = keyline(i)
    call gettext (record,keyword,next)
@@ -920,7 +920,7 @@ end do
 !
 !   A) The NVT section
 !
-do i = 1, nkey
+do i = 1, nkey_lines
    next = 1
    record = keyline(i)
    call gettext (record,keyword,next)
@@ -930,7 +930,7 @@ do i = 1, nkey
    if (trim(adjustl(record(1:11))) .eq. 'NVT {' .or. trim(adjustl(record(1:11))) &
               &  .eq. 'NVT{') then
       section=.true.
-      do j=1,nkey-i+1
+      do j=1,nkey_lines-i+1
          next=1
          record = keyline(i+j)
          call gettext (record,keyword,next)
@@ -959,7 +959,7 @@ do i = 1, nkey
             end if
          end if
          if (keyword(1:13) .eq. '}') exit
-         if (j .eq. nkey-i) then
+         if (j .eq. nkey_lines-i) then
             write(*,*) "The NVT section has no second delimiter! (})"
             call fatal
          end if
@@ -973,7 +973,7 @@ end do
 !   A) The MECHA section
 !
 
-do i = 1, nkey
+do i = 1, nkey_lines
    next = 1
    record = keyline(i)
    call gettext (record,keyword,next)
@@ -982,7 +982,7 @@ do i = 1, nkey
    string = record(next:120)
    if (trim(adjustl(record(1:11))) .eq. 'MECHA {' .or. trim(adjustl(record(1:11))) &
               &  .eq. 'MECHA{') then
-      do j=1,nkey-i+1
+      do j=1,nkey_lines-i+1
          next=1
          record = keyline(i+j)
          call gettext (record,keyword,next)
@@ -993,7 +993,7 @@ do i = 1, nkey
             read(record,*,iostat=readstat) prefix,r_inf
          end if
          if (keyword(1:13) .eq. '}') exit
-         if (j .eq. nkey-i) then
+         if (j .eq. nkey_lines-i) then
             write(*,*) "The MECHA section has no second delimiter! (})"
             call fatal
          end if
@@ -1005,7 +1005,7 @@ end do
 !    B) The UMBRELLA section
 !
 
-do i = 1, nkey
+do i = 1, nkey_lines
    next = 1
    record = keyline(i)
    call gettext (record,keyword,next)
@@ -1015,7 +1015,7 @@ do i = 1, nkey
    if (trim(adjustl(record(1:15))) .eq. 'UMBRELLA {' .or. trim(adjustl(record(1:15))) &
               &  .eq. 'UMBRELLA{') then
       section=.true.
-      do j=1,nkey-i+1
+      do j=1,nkey_lines-i+1
          next=1
          record = keyline(i+j)
          call gettext (record,keyword,next)
@@ -1074,7 +1074,7 @@ do i = 1, nkey
             end if
          end if
          if (keyword(1:13) .eq. '}') exit
-         if (j .eq. nkey-i) then
+         if (j .eq. nkey_lines-i) then
             write(*,*) "The UMBRELLA section has no second delimiter! (})"
             call fatal
          end if
@@ -1086,7 +1086,7 @@ end do
 !
 !     C) The PMF section
 !
-do i = 1, nkey
+do i = 1, nkey_lines
    next = 1
    record = keyline(i)
    call gettext (record,keyword,next)
@@ -1096,7 +1096,7 @@ do i = 1, nkey
    if (trim(adjustl(record(1:15))) .eq. 'PMF {' .or. trim(adjustl(record(1:15))) &
               &  .eq. 'PMF{') then
       section=.true.
-      do j=1,nkey-i+1
+      do j=1,nkey_lines-i+1
          next=1
          record = keyline(i+j)
          call gettext (record,keyword,next)
@@ -1131,7 +1131,7 @@ do i = 1, nkey
             end if
          end if
          if (keyword(1:13) .eq. '}') exit
-         if (j .eq. nkey-i) then
+         if (j .eq. nkey_lines-i) then
             write(*,*) "The PMF section has no second delimiter! (})"
             call fatal
          end if
@@ -1142,7 +1142,7 @@ end do
 !
 !    D) The RECROSS section
 !
-do i = 1, nkey
+do i = 1, nkey_lines
    next = 1
    record = keyline(i)
    call gettext (record,keyword,next)
@@ -1152,7 +1152,7 @@ do i = 1, nkey
    if (trim(adjustl(record(1:15))) .eq. 'RECROSS {' .or. trim(adjustl(record(1:15))) &
               &  .eq. 'RECROSS{') then
       section=.true.
-      do j=1,nkey-i+1
+      do j=1,nkey_lines-i+1
          next=1
          record = keyline(i+j)
          call gettext (record,keyword,next)
@@ -1200,7 +1200,7 @@ do i = 1, nkey
             recross_check = .false.
          end if
          if (keyword(1:13) .eq. '}') exit
-         if (j .eq. nkey-i) then
+         if (j .eq. nkey_lines-i) then
             write(*,*) "The RECROSS section has no second delimiter! (})"
             call fatal
          end if
@@ -4193,12 +4193,15 @@ do i=1,temp_num
       write(15,'(a)') "##################################"
       write(15,'(a)') "# potential energy surface settings"
       write(15,'(a)') "##################################"
-      write(15,'(a)') "# names of the QMDFF files 1 and 2:"
-      write(15,'(a)') "    qmdffnames reactants.qmdff products.qmdff"
-      write(15,'(a)') "# QMDFF energy shifts for both minima:"
-      write(15,'(a,a)') "   ",qmdff_en_line 
       write(15,'(a)') "# Speficy the TREQ method as PES description."
       write(15,'(a)') " pes treq "
+      write(15,*)
+      write(15,'(a)') " qmdff {"
+      write(15,'(a)') "# names of the QMDFF files 1 and 2:"
+      write(15,'(a)') "      ffnames reactants.qmdff products.qmdff"
+      write(15,'(a)') "# QMDFF energy shifts for both minima:"
+      write(15,'(a,a)') "     ",qmdff_en_line
+      write(15,'(a)') " } "
       write(15,*)
       write(15,'(a)') " treq { "
       write(15,'(a)') "# file with xyz structures of the IRC:"

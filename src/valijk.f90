@@ -34,11 +34,12 @@
 !
 real(kind=8) function valijk(natoms,xyz,j,k,i)
 use qmdff
+use pbc_mod
 implicit none
-external::vecnorm
+external::vecnorm_loc
 integer::natoms,j,k,i,ic
 real(kind=8)::ra(3),rb(3),rab,eps
-real(kind=8)::xyz(3,natoms),vecnorm,ran,rbn
+real(kind=8)::xyz(3,natoms),vecnorm_loc,ran,rbn
 
 parameter (eps=1.d-14)
 
@@ -55,8 +56,8 @@ if (periodic) then
 end if
 
 
-ran=vecnorm(ra,3,1)
-rbn=vecnorm(rb,3,1)
+ran=vecnorm_loc(ra,3,1)
+rbn=vecnorm_loc(rb,3,1)
 rab=0.d0
 do ic=1,3
    rab=rab+ra(ic)*rb(ic)

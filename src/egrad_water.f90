@@ -37,6 +37,7 @@ subroutine egrad_water(xyz_act,g_act,e_act)
 use evb_mod
 use general
 use qmdff
+use pbc_mod
 implicit none
 !     Loop indices
 integer::i,j

@@ -122,16 +122,16 @@ if (exist) then
    rewind (unit=ikey)
    do while (.true.)
       read (ikey,'(A120)',err=40,end=40)  record
-      nkey = nkey + 1
-      keyline(nkey) = record
+      nkey_lines = nkey_lines + 1
+      keyline(nkey_lines) = record
    end do
    40    continue
    close (unit=ikey)
 end if
 !
-!     TEST: divide the nkey word through two!  
+!     TEST: divide the nkey_lines word through two!  
 !
-!nkey=nkey/2
+!nkey_lines=nkey_lines/2
 return
 end subroutine getkey
 

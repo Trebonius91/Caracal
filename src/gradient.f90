@@ -146,7 +146,6 @@ else
 
 end if
 !stop "hggf"
-
 !write(*,*) "max",maxval(xyz2(:,:))
 !
 !     If for test reasons an analytical potential shall be calculated, 
@@ -247,6 +246,17 @@ if (gfn_xtb) then
    g_evb=pot_grad(:,:,1)
    return
 end if
+
+!
+!     Invoke the pGFN-FF gradient from the GULP program, if compiled with the 
+!       respective libraries
+!
+if (pgfn_ff) then
+   call egrad_pgfn(natoms,xyz2,pot_grad,e_evb)
+   g_evb=pot_grad(:,:,1)
+   return
+end if
+
 !
 !     Invoke orca if ab-initio MD is to be used
 !
