@@ -103,7 +103,10 @@ The Makefile, which is located in the main directory, should be modified to meet
 ```
 $ make
 ```
+Currently, parallel make (-jN) is not recommended since problems with nested Fortran modules might arise.
 If the build is successful, the different programs of the package are located in the bin directory.
+
+If you want to use pGFN-FF as a PES description, the GULP program must be included as a patch. See [pGFN-FF with GULP](https://github.com/Trebonius91/CARACAL/wiki/dynamic#example-4-hh2-with-external-program) for how GULP can be obtained and the Caracal patch can be done.
 
 ## Executing the programs
 
@@ -121,6 +124,19 @@ A detailed set of tutorials describing the different programs, including a set o
 
 If you have further questions, suggestions what shall be added to Caracal, or detected a bug / unexpected behavior within Caracal, please do not hesitate to contact me! (either here on github, or via mail (mail@j-steffen.org)).        
 
+## Included methods (citations)
+
+Here, literature referring to the different methods included into Caracal are given. Please cite the one that you used during your research with Caracal.
+
+- QMDFF: S. Grimme; J. Chem. Theory Comput. 2014, 10, 4497-4514 (DOI: [10.1021/ct500573f](https://doi.org/10.1021/ct500573f))
+- dE-EVB: B. Hartke; S. Grimme; Phys. Chem. Chem. Phys. 2015, 17, 16715-16718 (DOI: [10.1039/C5CP02580J](https://doi.org/10.1039/C5CP02580J))
+- DG-EVB/dQ-EVB: J. Steffen; B. Hartke; J. Chem. Phys. 2017, 147, 161701 (DOI: [10.1063/1.4979712](https://doi.org/10.1063/1.4979712))
+- TREQ: J. Steffen; J. Chem. Phys. 2019, 150, 154105 (DOI: [10.1063/1.5092589](https://doi.org/10.1063/1.5092589))
+- pGFN-FF (with GULP): J. Gale et al.; J. Chem. Theory Comput. 2021, 17, 12, 7827-7849 (DOI: [10.1021/acs.jctc.1c00832](https://doi.org/10.1021/acs.jctc.1c00832))
+- GFN1-xTB: S. Grimme et al.; J. Chem. Theory Comput. 2017, 13, 1989-2009 (DOI: [10.1021/acs.jctc.7b00118](https://doi.org/10.1021/acs.jctc.7b00118)) 
+- GFN2-xTB: C. Bannwarth et al.; J. Chem. Theory Comput. 2019, 15, 1652-1671 (DOI: [10.1021/acs.jctc.8b01176](https://doi.org/10.1021/acs.jctc.8b01176))
+- ALPB solvation: S. Ehlert et al.; J. Chem. Theory Comput. 2021, 17, 4250-4261 (DOI: [10.1021/acs.jctc.1c00471](https://doi.org/10.1021/acs.jctc.1c00471))
+
 ## Future improvements
 
 - Implementing a periodic version of Grimme's GFN-FF as alternative to QMDFF, for an even simpler generation of (diabatic) force field descriptions
@@ -135,4 +151,4 @@ If you have further questions, suggestions what shall be added to Caracal, or de
 - 10/30/2023: The program file 'poly_qmdff.f90' which was missing so far, was now added.
 - 11/03/2023: Release version 1.1, addition of GFN-xTB methods (and related keywords)
 - 12/18/2023: The input format for QMDFF force field has been slightly changed. A new QMDFF input section was introduced (see Caracal wiki and examples)
-- 12/18/2023: Initial steps for including pGFN-FF from an ownstanding GULP program were implemented. So far not finished.
+- 12/20/2023: An optional call to the GULP program as been added, pGFN-FF calculations can now be done!
