@@ -139,7 +139,6 @@ Here, literature referring to the different methods included into Caracal are gi
 
 ## Future improvements
 
-- Implementing a periodic version of Grimme's GFN-FF as alternative to QMDFF, for an even simpler generation of (diabatic) force field descriptions
 - Development of local versions of TREQ, enabling the calculation of larger systems without complicated and error-prone sets of internal coordinates
 - Exact unimolecular rate constants: implementing theoretically stringent prefactors for the different unimolecular mechanisms
 - Reactions in solvents: Implementing a "QM/MM" scheme, with the reactive part described by TREQ and sampled with RPMD and the solvent described by GFN-FF and classical dynamics
