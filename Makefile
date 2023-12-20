@@ -17,7 +17,7 @@ LIBRARY = libcaracal.a
 CURRENT = $(shell pwd)
 
 #   Location of the GULP package, if compiled with Caracal
-#   Choose either Linux (for Linux) or 
+#   Choose either Linux (for Linux) or Darwin (for Mac) 
 #OSTYPE = Linux
 #   The absolute or relative path to the GULP main directory
 #GULPDIR =  ../../gulp-6.2
