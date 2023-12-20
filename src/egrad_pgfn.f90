@@ -113,6 +113,11 @@ libraryfile=" "
 call gulp_energy(coord_cell,xyz_local,charges,energy_act,grad_act, &
                  strainderivatives,lgradients,ierror)
 #endif
+if (ierror .ne. 0) then
+   write(*,*) "Something went wrong during calling the gulp_energy subroutine!"
+   write(*,*) "Please check your settings or the GULP installation!"
+   call fatal
+end if
 !
 !     comvert energy and derivatives from eV / eV/Ang  to Hartree / Hartree/bohr
 !

@@ -783,14 +783,14 @@ if (analyze) then
       act_dens=(mass_tot*1.6605402E-24*emass)/(act_vol*1E-24)
       
 
-      write(*,'(i8,f12.5,a,f10.4,a,f12.4,f14.5,a,f12.6)') istep,epot,"     ",act_temp,"  ",act_vol, & 
+      write(*,'(i8,f12.5,a,f10.4,a,f12.4,f14.5,a,f12.6)') istep,epot/nbeads,"     ",act_temp,"  ",act_vol, & 
                & press_avg*prescon/iwrite,"    ",act_dens
    else if (nvt) then 
       write(*,'(a,i8,a,f12.5,a,f10.4,a)') " Step: ",istep,"  --  pot. energy: ", &
-                & epot," Hartree  --  temperature: ",act_temp," K"
+                & epot/nbeads," Hartree  --  temperature: ",act_temp," K"
    else 
       write(*,'(a,i8,a,f12.5,a)') " Step: ",istep,"  --  pot. energy: ", &
-                & epot," Hartree "
+                & epot/nbeads," Hartree "
 
    end if
    if (.not. nve) then

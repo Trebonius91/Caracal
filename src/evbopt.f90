@@ -96,7 +96,7 @@ call mpi_comm_rank(mpi_comm_world,rank,ierr) ! index of current proc
 !
 !     set up the structure and mechanics calculation
 !
-call initial(rank)
+call prog_initial(rank)
 !
 !     print out help informations if -help or -h is given as command line argument
 !     call the respective subroutine, else, show infos about the possibility

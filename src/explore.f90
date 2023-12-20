@@ -104,6 +104,13 @@ integer::maxcycle,rest
 !     the MPI rank (here always 0)
 integer::rank
 integer::nkey_test
+
+real(kind=8),allocatable::xyz_init(:,:)  ! geometry for pGFN-FF init
+logical::read_init_struc
+character(len=2),allocatable::names_init(:)   ! element symbols for pGFN-FF init
+real(kind=8),allocatable::grad_act(:,:)
+real(kind=8)::energy_act
+
 !
 !     Set MPI rank to zero for this program
 !
@@ -119,7 +126,8 @@ use_calc_rate=.false.
 !
 !     set up the structure and mechanics calculation
 !
-call initial(rank)
+call prog_initial(rank)
+
 !
 !     print out help informations if -help or -h is given as command line argument
 !     call the respective subroutine, else, show infos about the possibility

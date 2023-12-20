@@ -74,7 +74,7 @@ real(kind=8)::xyz(3,natoms)
 !                                         containing the force field (if any) NB: This 
 !                                         can just be a blank string
 !
-lgulpoutput=.true.
+lgulpoutput=.false.
 !
 !     Set the periodicity
 !     Currently, only rectangular boxes are supported by Caracal
@@ -82,14 +82,14 @@ lgulpoutput=.true.
 !
 allocate(coord_cell(3,3))
 coord_cell(1:3,1:3) = 0.0d0
-!if (periodic) then
-!   ndim=3
-!   coord_cell(1,1)=boxlen_x
-!   coord_cell(2,2)=boxlen_y
-!   coord_cell(3,3)=boxlen_z
-!else
-ndim=0
-!end if
+if (periodic) then
+   ndim=3
+   coord_cell(1,1)=boxlen_x
+   coord_cell(2,2)=boxlen_y
+   coord_cell(3,3)=boxlen_z
+else
+   ndim=0
+end if
 
 !
 !  Set atomic coordinates
@@ -105,6 +105,7 @@ libraryfile=" "
 #ifdef GULP
 call init_gulp(lgulpoutput,ndim,natoms,coord_cell,names_init,xyz,charges,keywords,libraryfile)
 #endif
+
 
 return
 end subroutine

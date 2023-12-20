@@ -1,47 +1,60 @@
 # Makefile for compiling Caracal
 # Edited by Julien Steffen, 2023
 
-#  Fortran compiler for serial version:
-#FC = gfortran  # GNU Fortran
-# FC = ifort   # Intel Fortran compiler 
-#  Fortran compiler for MPI version
- FC = mpifort  # GNU Fortran
-# FC = mpifort # Intel Fortran compiler
+#   Fortran compiler for serial version:
+#   GNU Fortran compiler
+#FC = gfortran  
+#   Intel Fortran compiler
+#FC = ifort  
+#   GNU/Intel Fortran compiler for MPI version
+FC = mpifort 
 
-#  Location of the compiled and linked executables
+#   Location of the compiled and linked executables
 BINDIR = ~/bin
 
+#   The Caracal library file 
 LIBRARY = libcaracal.a
 CURRENT = $(shell pwd)
 
-#  Location of the GULP package, if compiled with Caracal
+#   Location of the GULP package, if compiled with Caracal
+#   Choose either Linux (for Linux) or 
 #OSTYPE = Linux
+#   The absolute or relative path to the GULP main directory
 #GULPDIR =  ../../gulp-6.2
+#   Comment in for the compiler flags 
 #GULPFF = -DGULP=def -I${GULPDIR}/Src/${OSTYPE}
+#   Comment in for the linking flags
 #GULPLINK = ${GULPDIR}/Src/${OSTYPE}/libgulp.a  ${GULPDIR}/Utils/pGFNFF/Src/libpGFNFF.a 
 
+#   The source files directory
 SRCDIR = src
-FFLAGS = -cpp -fopenmp ${GULPFF} -fno-align-commons -fallow-argument-mismatch -O1  #-ffree-form #-Wall # normal version
+#   Compiler flags, should usually work
+FFLAGS = -cpp -fopenmp ${GULPFF} -fno-align-commons -fallow-argument-mismatch -O1 
+#   Compiler flags, debug version
 #FFLAGS =  -fno-align-commons -g -ffpe-trap=zero,invalid,overflow,underflow  #-ffree-form #-Wall # debug version!
+#   Link against ownstanding Lapack, BLAS and FFTW libraries (probably deprecated)
 #LINKFLAGS = -static-libgcc -fopenmp -llapack -lblas -lfftw3 -fno-align-commons # normal version 
-#LINKFLAGS = -static-libgcc -fopenmp -llapack -lblas -lfftw3 -fno-align-commons -g -ffpe-trap=zero,invalid,overflow,underflow # debug version!
-# link against Intel MKL, has been tested with GNU Fortran MPI compiler
-#LINKFLAGS = -static-libgcc -fopenmp -L${MKLROOT}/lib/intel64 -Wl,--no-as-needed -lmkl_intel_lp64 -lmkl_gnu_thread -lmkl_core -lgomp -lpthread -lm -ldl
-# link with GULP 
+#   link against Intel MKL, has been tested with GNU Fortran MPI compiler
 LINKFLAGS = -fopenmp -static-libgcc -L${MKLROOT}/lib/intel64 -Wl,--no-as-needed -lmkl_intel_lp64 -lmkl_gnu_thread -lmkl_core -lgomp -lpthread -lm -ldl 
 
 
 
-# Targets by default
+#   Targets by default
 .PHONY: all
 .PHONY: clean
 
-# All objects, listed:
-# - modules
-# - QMDFF subroutines 
-# - EVB subroutines
-# - Other analytic PES
-# - program files
+#   All objects, listed:
+#    - modules
+#    - QMDFF subroutines 
+#    - EVB subroutines
+#    - MCTC subroutines
+#    - DFTD3 subroutines
+#    - Multicharge subroutines
+#    - DFTD4 subroutines
+#    - TOMLF subroutines
+#    - tblite subroutines
+#    - Other analytic PES
+#    - program files
 OBJS = general.o evb_mod.o qmdff.o lm_module.o debug.o h2co_mod.o \
        pbc_mod.o fftw_mod.o xtb_mod.o \
        \
@@ -79,7 +92,7 @@ OBJS = general.o evb_mod.o qmdff.o lm_module.o debug.o h2co_mod.o \
        ranvec.o erfinv.o erf.o erfcore.o temper.o  \
        normal.o calendar.o egqmdff.o eqmdff3.o eqmdff.o \
        fatal.o getxyz.o gmres.o gradient.o gradnum.o hessevb.o \
-       hessqmdff.o initial.o init_int.o xyz_2int.o grad2int.o \
+       hessqmdff.o prog_initial.o init_int.o xyz_2int.o grad2int.o \
        int2grad.o hess2int.o diagonalize.o dist.o ang.o oop.o \
        dihed.o optimize_3evb.o energy_1g.o mat_diag.o dmatinv.o \
        mdinit.o next_geo.o prepare.o promo.o promo_log.o random.o \
@@ -231,7 +244,7 @@ EXES = qmdffgen.x dynamic.x evbopt.x explore.x calc_rate.x \
 
 all: $(OBJS)  $(EXES)
 
-# compile all .f or .f90 files to .o files
+#    compile all .f or .f90 files to .o files
 
 %.o: %.f
 	$(FC) $(FFLAGS) -c $< -o $@
@@ -243,13 +256,13 @@ all: $(OBJS)  $(EXES)
 	$(FC) $(FFLAGS) -c $< -o $@
 
 
-#Create the library-file
+#    Create the library-file
 $(LIBRARY): $(OBJS)
 	ar -crusv $(LIBRARY) $(OBJS)
 
 
-#Make finally the exetuables and copy them into the bin directory
-#Generate the directory on the fly
+#    Make finally the exetuables and copy them into the bin directory
+#    Generate the directory on the fly
 # $@ is the actual element on the list
 %.x: %.o libcaracal.a ${GULPLINK} 
 	${FC} ${LINKFLAGS} -o  $@ $^ $(LINKLIBS) ; strip $@
@@ -258,7 +271,7 @@ $(LIBRARY): $(OBJS)
 	mv $@ $(BINDIR) 
 
 
-#remove all object and executable data
+#    remove all object and executable data
 clean:
 	rm -f *.o $(PROG)
 	rm -f */*.o $(PROG)

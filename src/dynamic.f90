@@ -134,7 +134,7 @@ use_calc_rate=.false.
 !
 !     set up the structure and molecular mechanics calculation
 !
-call initial(rank)
+call prog_initial(rank)
 !
 !     print out help informations if -help or -h is given as command line argument
 !     call the respective subroutine, else, show infos about the possibility
@@ -1044,16 +1044,11 @@ if (nvt) then
    write(*,'(a,f12.5)') "  - Desired temperature (K): ",kelvin
    write(*,*) " - The temperature will be applied by the ",trim(thermo)," thermostat"
    if (periodic) then
-      write(*,*) " - The periodic box has the dimensions (x,y,z) (Angstron):"
-      write(*,'(a,f14.6,f14.6,f14.6)') "    ",boxlen_x*bohr,boxlen_y*bohr,boxlen_z*bohr
-      write(*,*) " - Long range Coulomb interactions treated with: ",trim(coul_method)
    end if
    if (box_walls) then
       write(*,*) " - The hard walled box has the dimensions (x,y,z) (Angstron):"
       write(*,'(a,f14.6,f14.6,f14.6)') "    ",boxlen_x*bohr,boxlen_y*bohr,boxlen_z*bohr
    end if
-   write(*,'(a,f11.3,a)') "  - (Short) Coulomb interactions have a cutoff of ",coul_cut, " A"
-   write(*,'(a,f11.3,a)') "  - VDW interactions have a cutoff of ",vdw_cut, " A"
    if (thermo .eq. "ANDERSEN") then
       write(*,'(a,i6,a)') "  - The Andersen velocity rescaling is done every ",andersen_step," MD steps"
    end if 
@@ -1069,13 +1064,10 @@ if (npt) then
    write(*,*) " - The pressure will be applied by the ",trim(baro_name), " barostat"
    write(*,*) " - The periodic box has the initial dimensions (x,y,z) (Angstron):"
    write(*,'(a,f14.6,f14.6,f14.6)') "    ",boxlen_x*bohr,boxlen_y*bohr,boxlen_z*bohr
-   write(*,*) " - Long range Coulomb interactions treated with: ",trim(coul_method)
    if (box_walls) then
       write(*,*) " - The hard walled box has the dimensions (x,y,z) (Angstron):"
       write(*,'(a,f14.6,f14.6,f14.6)') "    ",boxlen_x*bohr,boxlen_y*bohr,boxlen_z*bohr
    end if
-   write(*,'(a,f11.3,a)') "  - (Short) Coulomb interactions have a cutoff of ",coul_cut, " A"
-   write(*,'(a,f11.3,a)') "  - VDW interactions have a cutoff of ",vdw_cut, " A"
    if (thermo .eq. "ANDERSEN") then
       write(*,'(a,i6,a)') "  - The Andersen velocity rescaling is done every ",andersen_step," MD steps"
    end if
@@ -1123,8 +1115,9 @@ if (verbose) then
    open(unit=30,file="md_velocities.dat",status="unknown")
 end if
 
+!    Morse for "here is Caracal"
 write(*,*) 
-write(*,*)  " . ...- -... --.- -- -.. ..-. ..-."
+write(*,*)  " .... . .-. .  .. ...  -.-. .- .-. .- -.-. .- .-.."
 !
 !    Measure the needed time for dynamic steps
 !

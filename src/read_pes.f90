@@ -52,6 +52,7 @@ character(len=120)::string
 character(len=20)::keyword
 character(len=120)::record
 character(len=70)::fileinfo,filegeo,ts_file
+character(len=70)::init_struc_file
 character(len=70)::file_irc_struc
 character(len=70)::file_irc_ens
 character(len=70)::filets,filets2,names
@@ -249,8 +250,8 @@ else if (method .eq. "GFN-XTB") then
 else if (method .eq. "PGFN-FF") then
    pgfn_ff = .true.
    if (rank .eq. 0) then
-      write(*,*) "The GULP program library will be called for"
-      write(*,*) " calculation of the pGFN-FF energy and gradient."
+   !   write(*,*) "The GULP program library will be called for"
+   !   write(*,*) " calculation of the pGFN-FF energy and gradient."
    end if
 
 else if (method .eq. "ORCA") then
@@ -913,6 +914,7 @@ if (pgfn_ff) then
                      read(38,*) names_init(k),xyz_init(:,k)
                   end do
                   close(38)
+                  init_struc_file=filegeo
                   read_init_struc = .true.
                end if   
             end if
@@ -2098,6 +2100,22 @@ if (rank .eq. 0) then
       write(*,*) "PES description: A single QMDFF"
       write(*,*) " - QMDFF file: ",trim(fffile1)
       write(*,'(a,i8)') "  - Number of atoms: ",natoms
+      if (periodic) then
+         write(*,'(a)') "  - The system is simulated in a cubix periodic box: "
+         write(*,'(a,f13.7,a,f13.7,a,f13.7,a)') "       x=", boxlen_x*bohr," Ang.  ,y=",boxlen_y*bohr, &
+                     & " Ang., z=",boxlen_z*bohr,"Ang."
+         write(*,*) " - Long range Coulomb interactions treated with: ",trim(coul_method)
+         write(*,'(a,f11.3,a)') "  - (Short) Coulomb interactions have a cutoff of ",coul_cut, " A"
+         write(*,'(a,f11.3,a)') "  - VDW interactions have a cutoff of ",vdw_cut, " A"
+      else if (box_walls) then
+         write(*,'(a)') "  - The system is simulated in a hard-walls nonperiodic box: "
+         write(*,'(a,f13.7,a,f13.7,a,f13.7,a)') "       x=", boxlen_x," Ang.  ,y=",boxlen_y, &
+                     & " Ang., z=",boxlen_z,"Ang."
+      else
+         write(*,*) " - The simulated system has no periodicity."
+      end if
+      
+
    end if
 !
 !     One of the GFN-xTB methods 
@@ -2105,6 +2123,17 @@ if (rank .eq. 0) then
    if (gfn_xtb) then
       write(*,*) "PES description: GFN-xTB semiempirics" 
       write(*,'(a,i8)') "  - Number of atoms: ",natoms
+      if (periodic) then
+         write(*,'(a)') "  - The system is simulated in a cubix periodic box: "
+         write(*,'(a,f13.7,a,f13.7,a,f13.7,a)') "       x=", boxlen_x*bohr," Ang.  ,y=",boxlen_y*bohr, &
+                     & " Ang., z=",boxlen_z*bohr,"Ang."
+      else if (box_walls) then
+         write(*,'(a)') "  - The system is simulated in a hard-walls nonperiodic box: "
+         write(*,'(a,f13.7,a,f13.7,a,f13.7,a)') "       x=", boxlen_x," Ang.  ,y=",boxlen_y, &
+                     & " Ang., z=",boxlen_z,"Ang."
+      else
+         write(*,*) " - The simulated system has no periodicity."
+      end if
       write(*,'(a,f12.6)') "  - Total charge of the system: ",xtb_charge
       write(*,*) " - Used Hamiltonian: ",trim(hamil_string)
 
@@ -2123,6 +2152,28 @@ if (rank .eq. 0) then
          end if
       end if
    end if
+!
+!     The pGFN-FF method by external  GULP call
+!
+   if (pgfn_ff) then
+      write(*,*) "PES description: pGFN-FF force field (from GULP call)"
+      write(*,'(a,i8)') "  - Number of atoms: ",natoms
+      write(*,'(a,a)') "  - Initial setup from structure in: ",init_struc_file
+      if (periodic) then
+         write(*,'(a)') "  - The system is simulated in a cubix periodic box: "
+         write(*,'(a,f13.7,a,f13.7,a,f13.7,a)') "        x=", boxlen_x*bohr," Ang.  ,y=",boxlen_y*bohr, &
+                     & " Ang., z=",boxlen_z*bohr,"Ang."
+      else if (box_walls) then
+         write(*,'(a)') "  - The system is simulated in a hard-walls nonperiodic box: "
+         write(*,'(a,f13.7,a,f13.7,a,f13.7,a)') "       x=", boxlen_x," Ang.  ,y=",boxlen_y, &
+                     & " Ang., z=",boxlen_z,"Ang."
+      else
+         write(*,*) " - The simulated system has no periodicity."
+      end if
+
+   end if
+
+  
 !
 !     The SPC water model
 !
