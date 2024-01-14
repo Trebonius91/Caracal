@@ -101,7 +101,8 @@ do 55 j=iend,nl
    n=ichar(a(j:j))
    iend2=j
    if (n.eq.ibl) return
-   55 if(n.eq.nd .or. n.eq.ne) goto 57
+   if(n.eq.nd .or. n.eq.ne) goto 57
+   55 continue
 return
 57 c1=0.0d0
 one=1.0d0

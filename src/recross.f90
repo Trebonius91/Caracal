@@ -240,7 +240,7 @@ if (rank .eq. 0) then
 !
       do j=1,psize-1
          if (i .lt. loop_large+1) then
-            message=0
+            message=0.d0
             call mpi_recv(message, child_evol+2, MPI_DOUBLE_PRECISION, MPI_ANY_SOURCE,tag_mpi, &
                & MPI_COMM_WORLD,status,ierr)
             t_actual=t_actual+message(1)

@@ -173,7 +173,8 @@
       IERR = 0
       IF (N .EQ. 1) GO TO 160
       DO 10   I = 2, N
-   10 E(I-1) = E(I)
+      E(I-1) = E(I)
+   10   CONTINUE
       F=0.0D0
       B=0.0D0
       E(N)=0.0D0
@@ -198,7 +199,8 @@
          D(L)=E(L)/(P+SIGN (R,P))
          H = G - D(L)
          DO 50   I = L1, N
-   50    D(I) = D(I) - H
+         D(I) = D(I) - H
+   50    CONTINUE
          F = F + H
 !     ********** QL TRANSFORMATION **********
          P = D(M)
@@ -311,7 +313,8 @@
       IERR = 0
       IF (N .EQ. 1) GO TO 140
       DO 10   I = 2, N
-   10 E2(I-1) = E2(I)
+      E2(I-1) = E2(I)
+   10 CONTINUE
       F=0.0D0
       B=0.0D0
       E2(N)=0.0D0
@@ -339,7 +342,8 @@
          D(L)=S/(P+SIGN (R,P))
          H = G - D(L)
          DO 60   I = L1, N
-   60    D(I) = D(I) - H
+         D(I) = D(I) - H
+   60    CONTINUE
          F = F + H
 !     ********** RATIONAL QL TRANSFORMATION **********
          G = D(M)
@@ -565,11 +569,13 @@
             F = D(J)
             G = E(J) - HH * F
             E(J) = G
-            DO 80   K = 1, J
+            DO 85   K = 1, J
                JK = JK + 1
                A(JK) = A(JK) - F * E(K) - G * D(K)
+   85    CONTINUE
    80    CONTINUE
-   90    D(I) = A(IZ+1)
+         D(I) = A(IZ+1)
+   90    CONTINUE
          A(IZ+1)=SCALE*SQRT (H)
   100 CONTINUE
 !

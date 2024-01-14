@@ -576,7 +576,8 @@ C
                 TRM1 = 0.0D0
                 IF (Q(I).EQ.0.0D0) GO TO 40
                 TRM1 = DQ(I)/Q(I)
-   40           DEDR(I) = E*(TRM1+(DP(I)/P))
+                DEDR(I) = E*(TRM1+(DP(I)/P))
+   40           CONTINUE
           TEMP = DEDR(2)
           DEDR(2) = DEDR(3)
           DEDR(3) = TEMP

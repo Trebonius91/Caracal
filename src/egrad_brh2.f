@@ -398,7 +398,7 @@ C    EVALUATE DERIVATIVES OF LOWEST ROOT
       DO 20 L = 1,4
       T1 = U(L,1)
       LL = (L*(L-1))/2
-      DO 20 K = 1,4
+      DO 25 K = 1,4
       T2 = T1*U(K,1)
       KK = (K*(K-1))/2
       IF(L.GE.K) INDEX = LL + K
@@ -406,6 +406,7 @@ C    EVALUATE DERIVATIVES OF LOWEST ROOT
       D1 = D1 + T2*DH1(INDEX)
       D2 = D2 + T2*DH2(INDEX)
       D3 = D3 + T2*DH3(INDEX)
+   25 CONTINUE
    20 CONTINUE
 C
 C   SUPPLEMENTARY TERM
@@ -656,9 +657,10 @@ C     ********** FORM REDUCED A **********
             G = E(J) - HH * F
             E(J) = G
 C
-            DO 260 K = 1, J
+            DO 265 K = 1, J
                JK = JK + 1
                A(JK) = A(JK) - F * E(K) - G * D(K)
+  265    CONTINUE
   260    CONTINUE
 C
   290    D(I) = A(IZ+1)
@@ -719,7 +721,8 @@ C
       IF (N .EQ. 1) GO TO 1001
 C
       DO 100 I = 2, N
-  100 E2(I-1) = E2(I)
+      E2(I-1) = E2(I)
+  100 CONTINUE
 C
       F = ZERO
       B = ZERO
@@ -751,7 +754,8 @@ C     ********** FORM SHIFT **********
          H = G - D(L)
 C
          DO 140 I = L1, N
-  140    D(I) = D(I) - H
+         D(I) = D(I) - H
+  140    CONTINUE
 C
          F = F + H
 C     ********** RATIONAL QL TRANSFORMATION **********
@@ -870,7 +874,8 @@ C
       IF (N .EQ. 1) GO TO 1001
 C
       DO 100 I = 2, N
-  100 E(I-1) = E(I)
+      E(I-1) = E(I)
+  100 CONTINUE
 C
       F = ZERO
       B = ZERO
@@ -899,7 +904,8 @@ C     ********** FORM SHIFT **********
          H = G - D(L)
 C
          DO 140 I = L1, N
-  140    D(I) = D(I) - H
+         D(I) = D(I) - H
+  140    CONTINUE
 C
          F = F + H
 C     ********** QL TRANSFORMATION **********
