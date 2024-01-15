@@ -240,7 +240,7 @@ use_explore = .false.
 !
 !     set up the structure and molecular mechanics calculation
 !
-call initial(rank)
+call prog_initial(rank)
 !
 !     print out help informations if -help or -h is given as command line argument
 !     call the respective subroutine, else, show infos about the possibility
