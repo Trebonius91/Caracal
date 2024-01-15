@@ -151,3 +151,4 @@ Here, literature referring to the different methods included into Caracal are gi
 - 11/03/2023: Release version 1.1, addition of GFN-xTB methods (and related keywords)
 - 12/18/2023: The input format for QMDFF force field has been slightly changed. A new QMDFF input section was introduced (see Caracal wiki and examples)
 - 12/20/2023: An optional call to the GULP program as been added, pGFN-FF calculations can now be done!
+- 01/15/2024: Internal coordinate analyses and Wilson matrix calculations can be done with explore.x, using the 'pes topol' option
