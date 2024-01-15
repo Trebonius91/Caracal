@@ -348,6 +348,8 @@ real(kind=8)::stepmax ! maximal step size
 real(kind=8)::ethr,gthr,dthr,gmaxthr,dmaxthr  ! convergence criteria (geoopt)
 real(kind=8)::irc_ethr,irc_gthr  ! convergence criteria (IRC)
 integer::rp_evb_mode  ! if only energies and gradients shall be used for RP-EVB coupling
+! for topology determination (PES TOPOL)
+character(len=3),allocatable::el_names(:)
 ! for error handling
 logical::act_check    ! if error handling is activated at all..
 logical::recross_check  ! if checking is activated for recrossing

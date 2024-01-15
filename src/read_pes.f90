@@ -93,6 +93,7 @@ params=.false.
 filegeo="dummy" ! is not used in this context
 orca=.false.
 water_spc=.false.
+pes_topol=.false.
 !
 !     mainly for test reasons: activate numerical gradient
 !
@@ -587,6 +588,18 @@ else if (method .eq. "ANA_C2H7") then
 !   (no initialization needed)
    natoms=9  ! store number of atoms..
    pot_ana=.true.
+else if (method .eq. "TOPOL") then
+   if (rank .eq. 0) then
+      if (.not. use_explore) then
+         write(*,*) "Currently, the PES TOPOL keyword can only be used with the explore program!"
+         call fatal
+      end if
+      pes_topol = .true.
+      write(*,*) "A topology analysis will be done for all structures given."
+      write(*,*) " A list of all bonds, angles, dihedrals and out of planes will be"
+      write(*,*) " given as well as the Wilson matrix elements and derivatives."
+      
+   end if
 else
    if (rank .eq. 0) then
       write(*,*) "No valid potential energy surface was chosen!"
@@ -594,7 +607,8 @@ else
       write(*,*) "QMDFF, DE_EVB, DQ_EVB, DG_EVB, TREQ, ORCA (QM call),"
       write(*,*) "EXTERNAL (providing your own energy/gradient program),"
       write(*,*) "analytical PES (ANA_H3, ANA_BRH2, ANA_O3, ANA_OH3, "
-      write(*,*) " ANA_CH4H, ANA_NH3OH, ANA_CH4OH, ANA_GEH4OH, ANA_C2H7) "
+      write(*,*) " ANA_CH4H, ANA_NH3OH, ANA_CH4OH, ANA_GEH4OH, ANA_C2H7), "
+      write(*,*) "TOPOL (coordinate analysis with explore program)"
       call fatal
    end if
 end if
@@ -860,6 +874,14 @@ if (gfn_xtb) then
 
 end if
 
+!
+!     If the topology of a structure or of a number of structures in a 
+!     trajectory shall be analyzed with explore.x, jump directly to the end
+!
+if (pes_topol) then
+   goto 678
+
+end if
 
 !
 !     For pGFN-FF calculations with the GULP library: Read in the initial

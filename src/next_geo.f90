@@ -46,8 +46,9 @@ character(len=3)::atom
 real(kind=8),parameter::ang2bohr=0.52917720859d0
 logical::has_next
 has_next=.true.
+
 !
-!      usual molecular structures
+!     usual molecular structures
 ! 
 read(input_unit,*,iostat=status) atom_number
 if (status/=0) then
@@ -64,9 +65,20 @@ if (readstat .ne. 0) then
    write(*,*) "The structure file seems to be currupted!"
    call fatal
 end if
+!
+!     if the PES TOPOL option is activated, give the element names     
+! 
+if (pes_topol) then
+   if (allocated(el_names)) deallocate(el_names)
+   allocate(el_names(num_atoms))
+end if
+
 
 do i=1,num_atoms
    read(input_unit,*,iostat=readstat)atom,xr,yr,zr
+   if (pes_topol) then
+      el_names(i)=atom
+   end if
    if (readstat .ne. 0) then
       write(*,*) "The structure file seems to be currupted!"
       call fatal

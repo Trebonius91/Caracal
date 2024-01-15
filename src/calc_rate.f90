@@ -234,6 +234,10 @@ recross_calc=.false.
 !
 use_calc_rate=.true.
 !
+!     The explore program is not used
+!
+use_explore = .false.
+!
 !     set up the structure and molecular mechanics calculation
 !
 call initial(rank)

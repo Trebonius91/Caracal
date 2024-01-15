@@ -110,6 +110,10 @@ logical::read_init_struc
 character(len=2),allocatable::names_init(:)   ! element symbols for pGFN-FF init
 real(kind=8),allocatable::grad_act(:,:)
 real(kind=8)::energy_act
+real(kind=8),allocatable::rab_ref(:,:)  ! for bond determinations in PES TOPOL mode
+real(kind=8)::r_act,dist,r_ref
+integer::ind_act,bond_sum,ang_sum
+integer,allocatable::el_inds(:)  ! element indices 
 
 !
 !     Set MPI rank to zero for this program
@@ -123,6 +127,10 @@ use_mpi=.false.
 !     The program calc_rate is not used..
 !
 use_calc_rate=.false.
+!
+!     The explore program is used
+!
+use_explore = .true.
 !
 !     set up the structure and mechanics calculation
 !
@@ -243,6 +251,13 @@ else
    write(*,*) "No valid job was chosen! Choose one of the following: "
    write(*,*) " OPT_MIN, OPT_TS, IRC, FREQ, OPTFREQ"
    call fatal
+end if
+
+if (pes_topol) then
+   if (.not. calc_egrad) then
+      write(*,*) "With PES TOPOL, only the EGRAD option can be chosen!"
+      call fatal
+   end if
 end if
 !
 !    Read in sections for different job types 
@@ -509,7 +524,15 @@ time1_omp = omp_get_wtime()
 !    For energy+gradient calculations: start here!
 !
 if (calc_egrad) then
-
+!
+!     If the PES TOPOL mode is activated, initialize the reference bond 
+!      length array (r0ab)
+!
+   if (pes_topol) then
+      allocate(rab_ref(94,94))
+      call setr0 (94,rab_ref)
+      allocate(coord_tmp(1000000,5))
+   end if
 !
 !     If the debugging mode shall be started to print out more details!
 !
@@ -574,18 +597,33 @@ if (calc_egrad) then
       parts_labels=" "
    end if
 !
+!     If the PES TOPOL option is used, open a file for internal coordinate values 
+!
+   if (pes_topol) then
+      open(unit=214,file="pes_topol.dat",status="replace")
+      write(214,'(a)') "#This file contains the definition and actual values of "
+      write(214,'(a)') "# all internal coordinates of each given trajectory frame."
+      write(214,'(a)') "#Bond lenghts are given in bohr, angles in radians"
+      write(214,'(a)') "# No.     type         atom1    atom2    atom3    atom4    value"
+      write(*,*) "The definitions and values of all internal coordinates are written &
+              &to 'pes_topol.dat'"
+   end if  
+
+!
 !     Read in the internal coordinates from file if the Wilson matrix 
 !     shall be calculated for each structure
+!     Perform no allocation for the PES TOPOL mode
 !
    if (print_wilson) then
-      call init_int("wilson",0,0,1)
-      allocate(internal(nat6),B_mat(nat6,3*natoms))
       open(unit=215,file="wilson_mat.dat",status="replace")
-      write(215,*) "# No. int. coord.(i)   No. cart. coord(j)        B(i,j)"
+      write(215,'(a)') "# This file contains the Wilson matrix values of each structure"
+      write(215,'(a)') "# Values given in bohrs or radians"
+      write(215,'(a)') "# No. int. coord.(i)   No. cart. coord(j)        B(i,j)"
       if (wilson_mode .eq. 2) then
-         allocate(dB_mat(nat6,3*natoms,3*natoms))
          open(unit=216,file="wilson_deriv.dat",status="replace")
-         write(216,*) "# No. int. coord.(i)   No. cart. coord(j)    No.cart.coord(k)     B'(i,j,k)"
+         write(216,'(a)') "# This file contains the Wilson matrix derivatives of each structure"
+         write(216,'(a)') "# Values given in bohrs or radians"
+         write(216,'(a)') "# No. int. coord.(i)   No. cart. coord(j)    No.cart.coord(k)     B'(i,j,k)"
       end if
       write(*,*) "The Wilson matrices of the structures are written to 'wilson_mat.dat'"
       if (wilson_mode .eq. 2) then
@@ -621,6 +659,168 @@ if (calc_egrad) then
       ref_count=ref_count+1
       call next_geo(coord,natoms,166,has_next)
       if (.not.has_next) exit
+!
+!     If the PES TOPOL mode is activated, determine the internal coordinates 
+!
+      if (pes_topol) then
+!
+!     First, determine all element indices
+!
+         if (allocated(el_inds)) deallocate(el_inds)
+         if (allocated(coord_def)) deallocate(coord_def)
+         
+         allocate(el_inds(natoms))
+         do i=1,natoms
+            call elem(el_names(i),el_inds(i))
+         end do
+!
+!     Then, calculate all possible bond lengths and compare them with R0AB values 
+!         
+         ind_act=0
+         do i=1,natoms
+            do j=i+1,natoms
+               r_act=dist(i,j,coord)
+               r_ref=rab_ref(el_inds(i),el_inds(j))*bohr/2*1.2
+               if (r_act .lt. r_ref) then
+                  ind_act=ind_act+1
+                  coord_tmp(ind_act,1) = 1
+                  coord_tmp(ind_act,2) = i
+                  coord_tmp(ind_act,3) = j
+               end if
+            end do
+         end do
+         bond_sum=ind_act
+
+!
+!     Determine the bond angles: all pairs of neighbored bonds!
+!
+         do i=1,bond_sum
+            do j=i+1,bond_sum
+!
+!     i2=j2: i3-i2-j3
+!
+               if (coord_tmp(i,2) .eq. coord_tmp(j,2)) then
+                  ind_act = ind_act +1   
+                  coord_tmp(ind_act,1) = 2
+                  coord_tmp(ind_act,2) = coord_tmp(i,3)
+                  coord_tmp(ind_act,3) = coord_tmp(i,2)
+                  coord_tmp(ind_act,4) = coord_tmp(j,3)
+!
+!     i2=j3: i3-i2-j2
+!
+               else if (coord_tmp(i,2) .eq. coord_tmp(j,3)) then
+                  ind_act = ind_act +1
+                  coord_tmp(ind_act,1) = 2
+                  coord_tmp(ind_act,2) = coord_tmp(i,3)
+                  coord_tmp(ind_act,3) = coord_tmp(i,2)
+                  coord_tmp(ind_act,4) = coord_tmp(j,2)
+!
+!     j2=i3: i2-i3-j3
+!
+               else if (coord_tmp(i,3) .eq. coord_tmp(j,2)) then
+                  ind_act = ind_act +1
+                  coord_tmp(ind_act,1) = 2
+                  coord_tmp(ind_act,2) = coord_tmp(i,2)
+                  coord_tmp(ind_act,3) = coord_tmp(i,3)
+                  coord_tmp(ind_act,4) = coord_tmp(j,3)
+!
+!     j3=i3: i2-i3-j2
+!
+               else if (coord_tmp(i,3) .eq. coord_tmp(j,3)) then
+                  ind_act = ind_act +1
+                  coord_tmp(ind_act,1) = 2
+                  coord_tmp(ind_act,2) = coord_tmp(i,2)
+                  coord_tmp(ind_act,3) = coord_tmp(i,3)
+                  coord_tmp(ind_act,4) = coord_tmp(j,2)
+               end if
+            end do
+         end do
+
+         ang_sum=ind_act-bond_sum
+!
+!     Determine the dihedral or out of plane angles: all pairs of angles
+!      with two identical atoms!
+!     dihedral: third atoms must be bound at two different center atoms
+!     out-of-plane: third atoms must be bound at the same center atom
+!
+         do i=1,ang_sum
+            do j=i+1,ang_sum
+!       
+!     i2=j2 and i3=j3 (rest: i4, j4): out-of-plane
+!
+               if ((coord_tmp(i+bond_sum,2) .eq. coord_tmp(j+bond_sum,2)) .and.  &
+                &   (coord_tmp(i+bond_sum,3) .eq. coord_tmp(j+bond_sum,3))) then 
+                  ind_act = ind_act + 1
+                  coord_tmp(ind_act,1) = 4
+                  coord_tmp(ind_act,2) = coord_tmp(i+bond_sum,3)
+                  coord_tmp(ind_act,3) = coord_tmp(i+bond_sum,2)
+                  coord_tmp(ind_act,4) = coord_tmp(i+bond_sum,4)
+                  coord_tmp(ind_act,5) = coord_tmp(j+bond_sum,4)
+!
+!     i3=j3 and i4=j4 (rest: i2, j2): out-of-plane
+!
+               else if ((coord_tmp(i+bond_sum,3) .eq. coord_tmp(j+bond_sum,3)) .and.  &
+                &   (coord_tmp(i+bond_sum,4) .eq. coord_tmp(j+bond_sum,4))) then
+                  ind_act = ind_act + 1
+                  coord_tmp(ind_act,1) = 4
+                  coord_tmp(ind_act,2) = coord_tmp(i+bond_sum,3)
+                  coord_tmp(ind_act,3) = coord_tmp(i+bond_sum,4)
+                  coord_tmp(ind_act,4) = coord_tmp(i+bond_sum,2)
+                  coord_tmp(ind_act,5) = coord_tmp(j+bond_sum,2)
+!
+!     i3=j2 and i4=i3 (rest: i2, j4): dihedral
+!
+               else if ((coord_tmp(i+bond_sum,3).eq. coord_tmp(j+bond_sum,2)) .and.  &
+                &   (coord_tmp(i+bond_sum,4) .eq. coord_tmp(j+bond_sum,3))) then
+                  ind_act = ind_act + 1
+                  coord_tmp(ind_act,1) = 3
+                  coord_tmp(ind_act,2) = coord_tmp(i+bond_sum,2)
+                  coord_tmp(ind_act,3) = coord_tmp(i+bond_sum,3)
+                  coord_tmp(ind_act,4) = coord_tmp(i+bond_sum,4)
+                  coord_tmp(ind_act,5) = coord_tmp(j+bond_sum,4)
+!
+!     i2=j3 and i3=j4 (rest: i4, i2): dihedral
+!
+               else if ((coord_tmp(i+bond_sum,2) .eq. coord_tmp(j+bond_sum,3)) .and.  &
+                &   (coord_tmp(i+bond_sum,3) .eq. coord_tmp(j+bond_sum,4))) then
+                  ind_act = ind_act + 1
+                  coord_tmp(ind_act,1) = 3
+                  coord_tmp(ind_act,2) = coord_tmp(j+bond_sum,2)
+                  coord_tmp(ind_act,3) = coord_tmp(j+bond_sum,3)
+                  coord_tmp(ind_act,4) = coord_tmp(j+bond_sum,4)
+                  coord_tmp(ind_act,5) = coord_tmp(i+bond_sum,4)
+!
+!     i3=j4 and i4=j3 (rest: i2 and j2): dihedral
+!
+               else if ((coord_tmp(i+bond_sum,3) .eq. coord_tmp(j+bond_sum,4)) .and.  &
+                &   (coord_tmp(i+bond_sum,4) .eq. coord_tmp(j+bond_sum,3))) then
+                  ind_act = ind_act + 1
+                  coord_tmp(ind_act,1) = 3
+                  coord_tmp(ind_act,2) = coord_tmp(i+bond_sum,2)
+                  coord_tmp(ind_act,3) = coord_tmp(i+bond_sum,3)
+                  coord_tmp(ind_act,4) = coord_tmp(i+bond_sum,4)
+                  coord_tmp(ind_act,5) = coord_tmp(j+bond_sum,2)
+!
+!     i3=j2 and i2=j3 (rest: i4 and j4): dihedral
+!
+               else if ((coord_tmp(i+bond_sum,3) .eq. coord_tmp(j+bond_sum,2)) .and.  &
+                &   (coord_tmp(i+bond_sum,2) .eq. coord_tmp(j+bond_sum,3))) then
+                  ind_act = ind_act + 1
+                  coord_tmp(ind_act,1) = 3
+                  coord_tmp(ind_act,2) = coord_tmp(i+bond_sum,4)
+                  coord_tmp(ind_act,3) = coord_tmp(i+bond_sum,3)
+                  coord_tmp(ind_act,4) = coord_tmp(i+bond_sum,2)
+                  coord_tmp(ind_act,5) = coord_tmp(j+bond_sum,4)
+               end if
+            end do
+         end do      
+!
+!     The number of internal coordinates
+!   
+         nat6=ind_act
+         allocate(coord_def(nat6,5))
+         coord_def(1:nat6,:)=coord_tmp(1:nat6,:)
+      end if
 ! 
 !     Distinguish between debug and normal calculation
 !
@@ -629,24 +829,60 @@ if (calc_egrad) then
 !
 !     If desired, calculate the Wilson matrix the structure and print it to file
 !
+!     Determine internal coordinates, if no pes_topol keyword is used
+
       if (print_wilson) then
-         write(215,*) "Structure",ref_count,":"
+         if (.not. pes_topol) then
+            call init_int("wilson",0,0,1)
+         end if
+         if (allocated(internal)) deallocate(internal)
+         if (allocated(B_mat)) deallocate(B_mat)
+         allocate(internal(nat6),B_mat(nat6,3*natoms))
+         if (wilson_mode .eq. 2) then
+            if (allocated(dB_mat)) deallocate(dB_mat)
+            allocate(dB_mat(nat6,3*natoms,3*natoms))
+         end if
+
          call xyz_2int(coord,internal,natoms)
+!
+!     If PES TOPOL option is activated, write internal coordinate definition and values 
+!         to file pes_topol.dat
+!
+         write(214,'(a,i6,a)') "#-------- structure",ref_count,": -------------------------"
+         do i=1,nat6
+            if (coord_def(i,1) .eq. 1) then
+               write(214,'(i9,a,i9,i9,a,f14.7)') i,"  bond  ",coord_def(i,2),coord_def(i,3),&
+                  & "                  ",internal(i)
+            else if (coord_def(i,1) .eq. 2) then
+               write(214,'(i9,a,i9,i9,i9,a,f14.7)') i,"  angle ",coord_def(i,2),coord_def(i,3), &
+                  & coord_def(i,4),"         ",internal(i)
+            else if (coord_def(i,1) .eq. 3) then
+               write(214,'(i9,a,i9,i9,i9,i9,f14.7)') i,"  dihed.",coord_def(i,2),coord_def(i,3), &
+                  & coord_def(i,4),coord_def(i,5),internal(i)
+            else if (coord_def(i,1) .eq. 4) then
+               write(214,'(i9,a,i9,i9,i9,i9,f14.7)') i,"  oop.  ",coord_def(i,2),coord_def(i,3), &
+                  & coord_def(i,4),coord_def(i,5),internal(i)
+            end if
+         end do
+
+         write(215,'(a,i6,a)') "#-------- structure",ref_count,": -------------------------"
          call calc_wilson(coord,internal,B_mat)
          do i=1,nat6
-            do j=1,3*n_one
-               write(215,*) i,"      ",j,"      ",B_mat(i,j)
+            do j=1,3*natoms
+               write(215,'(a,i9,a,i9,a,f16.8)') "    ",i,"         ",j,"           ",B_mat(i,j)
             end do
          end do
 !
 !     If ordered, calculate and print also the Wilson matrix derivative!
 !
          if (wilson_mode .eq. 2) then
+            write(216,'(a,i6,a)') "#-------- structure",ref_count,": -------------------------"
             call calc_dwilson(coord,internal,dB_mat)
             do i=1,nat6
-               do j=1,3*n_one
-                  do k=1,3*n_one
-                     write(216,*) i,"      ",j,"      ",k,"      ",dB_mat(i,j,k)
+               do j=1,3*natoms
+                  do k=1,3*natoms
+                     write(216,'(a,i9,a,i9,a,i9,a,f16.8)') "    ",i,"        ",j,"         ",k, &
+                          & "           ",dB_mat(i,j,k)
                   end do
                end do
             end do
@@ -670,6 +906,7 @@ if (calc_egrad) then
       close(215)
       if (wilson_mode .eq. 2) close(216)
    end if
+   if (pes_topol) close(214)
 
    if (treq) close(48)
    close(172)

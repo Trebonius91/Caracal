@@ -89,6 +89,11 @@ rank=0
 !     no MPI is used
 !
 use_mpi=.false.
+
+!
+!     The explore program is not used
+!
+use_explore = .false.
  
 !
 !     Show the nice promo-banner at the beginning!

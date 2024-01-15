@@ -93,6 +93,12 @@ integer::readstat
 call mpi_init(ierr)
 call mpi_comm_size(mpi_comm_world,psize,ierr) ! total number of procs
 call mpi_comm_rank(mpi_comm_world,rank,ierr) ! index of current proc
+
+!
+!     The explore program is not used
+!
+use_explore = .false.
+
 !
 !     set up the structure and mechanics calculation
 !

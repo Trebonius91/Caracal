@@ -340,7 +340,14 @@ character(len=80)::pot_type
 !     For printout of GFN-xTB calculation details: number of calculations
 !
 integer::xtb_calc_num
-
+!
+!     For certain structure analysis tools: if the program explore is used
+!
+logical::use_explore
+!
+!     If PES topology analysis shall be done 
+!
+logical::pes_topol
 !
 !     for MPI parallelization: tells, when it is used
 !

@@ -131,6 +131,10 @@ use_rpmd=.true.
 !
 use_calc_rate=.false.
 !
+!     The explore program is not used
+!
+use_explore = .false.
+!
 !
 !     set up the structure and molecular mechanics calculation
 !

@@ -131,7 +131,10 @@ ndiheds=0
 !     set tolerance factor for bondlengths (if a bond shall still be defined..)
 !
 bondlentol=1.2d0
-
+!
+!     If some coordinate arrays were already allocated, deallocate them!
+!
+if (allocated(coord_def)) deallocate(coord_def)
 ! 
 !     decide if Wilson matrix for conversion from/in internal coordinates shall
 !     be calculated numerically or analytically
