@@ -641,18 +641,23 @@ if (calc_egrad) then
       write(*,*) "Please edit the XYZSTART keyword!"
       call fatal
    end if
-
-   open(unit=44,file="energies.dat",status='unknown')
-   open(unit=45,file="gradients.dat",status='unknown')
-   write(*,*)  " -.-. .- .-. .- -.-. .- .-.. "
-   write(*,*) "Calculating energy and gradient ..."
+   if (.not. pes_topol) then
+      open(unit=44,file="energies.dat",status='unknown')
+      open(unit=45,file="gradients.dat",status='unknown')
+      write(*,*)  " -.-. .- .-. .- -.-. .- .-.. "
+      write(*,*) "Calculating energy and gradient ..."
+   else
+      write(*,*)  " -.-. .- .-. .- -.-. .- .-.. "
+      write(*,*) "Perform coordinate analyses  ..."
+   end if
    allocate(g_evb(3,natoms))
    allocate(coord(3,natoms))
 !
 !     open file with single QMDFF energies
 !
-   open (unit=99,file="single_qmdff.dat",status='unknown')
-   open(unit=172,file="grad_square.dat",status="unknown")  ! TEST for gradients
+   if (.not. pes_topol) then
+      open (unit=99,file="single_qmdff.dat",status='unknown')
+   end if
    if (treq) open (unit=48,file="treq.out",status="unknown")
    if (int_grad_plot) open (unit=192,file="int_grad.out",status="unknown")
    do
@@ -896,11 +901,13 @@ if (calc_egrad) then
          call eqmdff(coord,e_qmdff1,e_qmdff2)
          write(99,*) e_qmdff1,e_qmdff2
       end if
-      write(44,*) e_evb
-      write(45,*) "Structure",ref_count,":"
-      do k=1,natoms
-         write(45,*) g_evb(:,k)
-      end do
+      if (.not. pes_topol) then
+         write(44,*) e_evb
+         write(45,*) "Structure",ref_count,":"
+         do k=1,natoms
+            write(45,*) g_evb(:,k)
+         end do
+      end if
    end do
    if (print_wilson) then
       close(215)
@@ -915,9 +922,11 @@ if (calc_egrad) then
 !
    close(166)
    close(192)
-   close(44)
-   close(45)
-   close(99)
+   if (.not. pes_topol) then
+      close(44)
+      close(45)
+      close(99)
+   end if
    if (treq) close(48)
    if (int_grad_plot) close(192)
    if (do_debug) then
@@ -975,9 +984,11 @@ if (calc_egrad) then
       close(289)
       close(290)
    end if
-   write(*,*) "Energies written to 'energies.dat', gradients written to 'gradients.dat'."
-   if ((.not. treq) .and. (.not. pot_ana) .and. (nqmdff .gt. 1) ) then
-      write(*,*) "Energies of QMDFFs written to 'single_qmdff.dat'."
+   if (.not. pes_topol) then
+      write(*,*) "Energies written to 'energies.dat', gradients written to 'gradients.dat'."
+      if ((.not. treq) .and. (.not. pot_ana) .and. (nqmdff .gt. 1) ) then
+         write(*,*) "Energies of QMDFFs written to 'single_qmdff.dat'."
+      end if
    end if
    goto 389
 end if
