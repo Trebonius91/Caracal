@@ -348,6 +348,8 @@ logical::use_explore
 !     If PES topology analysis shall be done 
 !
 logical::pes_topol
+character(len=3)::topol_bonds
+real(kind=8)::topol_vdw_scale,topol_eht_cutoff
 !
 !     for MPI parallelization: tells, when it is used
 !

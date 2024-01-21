@@ -31,8 +31,8 @@
 !        programs in the CARACAL program package: short 
 !        introduction, basic calculations and list of all 
 !        keywords
-!        after this subroutine, the code for help_evb follows
-!        which contains all general EVB keywords
+!        after this subroutine, the code for help_pes follows
+!        which contains all general PES keywords
 !
 !     part of EVB
 !
@@ -552,7 +552,7 @@ if (trim(progname) .eq. "calc_rate") then
    write(*,*) "    The specified file should include all atoms to be fixed."
    write(*,*) " * TDUMP [value]: Time, after which a new trajectory structure"
    write(*,*) "    shall be written out, in fs (only for PRINT_POLYMER)."
-   write(*,*) " * RANDOM_SEED [value]: The random number generator will be initialized"
+   write(*,*) " * RANDOM_SEED [value]: The random number generator is initialized"
    write(*,*) "    manually to the given value. For benchmarking and exact "
    write(*,*) "    reproduction of results."
    write(*,*) " * GEN_TEST: Only the structure generation part will be calculated"
@@ -921,7 +921,16 @@ write(*,*) " * CUSTOM { \n [COMMANDS \n}: If you want to add you own (Fortan)"
 write(*,*) "    PES to Caracal, it can be called here."
 write(*,*) "    - PES_NUMBER [number]: Which one of your implemented PES "
 write(*,*) "       functions shall be called (see Caracal Wiki (page dynamic)"
-write(*,*)"        for more details concerning the addition process)." 
+write(*,*) "       for more details concerning the addition process)." 
+write(*,*) " * TOPOL { \n [COMMANDS \n}: If the coordinates of a structure "
+write(*,*) "    shall be analyzed (only with explore.x!)"
+write(*,*) "    - BONDS [string]: Which method shall be used to determine all"
+write(*,*) "       bonds in the system: EHT (default, W-M bond orders via "
+write(*,*) "       extended Hückel theory) or VDW (compare to v.d.-Waals radii)"
+write(*,*) "    - VDW_SCALE [value]: scale reference bond lengths from VDW"
+write(*,*) "       radii. Larger, more bonds will be found (default: 1.0)."
+write(*,*) "    - EHT_CUTOFF [value]: Wiberg-Mayer bond order, above which a"
+write(*,*) "       bond will be counted, the larger, the more (default: 1.0)"
 write(*,*) " * INT_GRAD_PLOT: Plot internal gradients for all"
 write(*,*) "    structures during a calculation (DG-EVB/TREQ)."
 write(*,*) " * INT_COORD_PLOT: Plot internal coordinates for all structures"

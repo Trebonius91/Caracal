@@ -876,9 +876,87 @@ end if
 
 !
 !     If the topology of a structure or of a number of structures in a 
-!     trajectory shall be analyzed with explore.x, jump directly to the end
+!     trajectory shall be analyzed with explore.x, read in the method for 
+!     bond determination (van der Waals radii or extended Hückel theory)
 !
 if (pes_topol) then
+   topol_vdw_scale = 1.0
+   topol_eht_cutoff = 1.0 
+   topol_bonds = "EHT"    !  default: extended Hückel calculation
+   do i = 1, nkey_lines
+      next = 1
+      record = keyline(i)
+      call gettext (record,keyword,next)
+      call upcase (keyword)
+      call upcase (record)
+      string = record(next:120)
+      if (trim(adjustl(record(1:11))) .eq. 'TOPOL {' .or. trim(adjustl(record(1:11))) &
+              &  .eq. 'TOPOL{') then
+         do j=1,nkey_lines-i+1
+            next=1
+            record = keyline(i+j)
+            call gettext (record,keyword,next)
+            call upcase (keyword)
+            record=adjustl(record)
+!
+!     In which way the bonds of the system shall be calculated: VDW (comparison to
+!       pairwise van-der-Waals radii) or EHT (Extended Hückel theory)
+!
+            if (keyword(1:14) .eq. 'BONDS ') then
+               read(record,*,iostat=readstat) names,topol_bonds
+               if (readstat .ne. 0) then
+                  if (rank .eq. 0) then
+                     write(*,*) "The BONDS keyword seems to be corrupted!"
+                  end if
+                  call fatal
+               end if
+               call upcase (topol_bonds)
+               if (trim(adjustl(topol_bonds)) .eq. "VDW") then
+                  if (rank .eq. 0) then
+                  end if
+               else if (trim(adjustl(topol_bonds)) .eq. "EHT") then
+                  if (rank .eq. 0) then
+                  end if
+               else
+                  if (rank .eq. 0) then
+                     write(*,*) "No valid TOPOL BONDS has been chosen!"
+                     write(*,*) "Either VDW or EHT can be used."
+                     call fatal
+                  end if
+               end if
+!
+!     Scaling for VDW bond comparisons
+!
+            else if (keyword(1:14) .eq. 'VDW_SCALE ') then
+               read(record,*,iostat=readstat) names,topol_vdw_scale
+               if (readstat .ne. 0) then
+                  if (rank .eq. 0) then
+                     write(*,*) "The VDW_SCALE keyword seems to be corrupted!"
+                  end if
+                  call fatal
+               end if
+!
+!     Cutoff for Wiberg-Mayer bond orders in EHT
+!
+
+            else if (keyword(1:14) .eq. 'EHT_CUTOFF ') then
+               read(record,*,iostat=readstat) names,topol_eht_cutoff
+               if (readstat .ne. 0) then
+                  if (rank .eq. 0) then
+                     write(*,*) "The EHT_CUTOFF keyword seems to be corrupted!"
+                  end if
+                  call fatal
+               end if
+            end if
+            if (keyword(1:11) .eq. '}') exit
+            if (j .eq. nkey_lines-i) then
+               write(*,*) "The TOPOL section has no second delimiter! (})"
+               call fatal
+            end if
+         end do
+      end if
+   end do
+
    goto 678
 
 end if

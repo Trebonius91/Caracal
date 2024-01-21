@@ -113,6 +113,13 @@ real(kind=8)::energy_act
 real(kind=8),allocatable::rab_ref(:,:)  ! for bond determinations in PES TOPOL mode
 real(kind=8)::r_act,dist,r_ref
 integer::ind_act,bond_sum,ang_sum
+integer::nel,nbf ! for EHT basis set
+real(kind=8),allocatable::at_charges(:) ! partial charges of all atoms
+real(kind=8),allocatable::wbo(:,:)  ! Wiberg-Mayer bond orders
+logical::okbas
+real(kind=8)::eel
+real(kind=8)::bond_order(100000)
+real(kind=8)::wbo_cutoff
 integer,allocatable::el_inds(:)  ! element indices 
 
 !
@@ -529,8 +536,18 @@ if (calc_egrad) then
 !      length array (r0ab)
 !
    if (pes_topol) then
-      allocate(rab_ref(94,94))
-      call setr0 (94,rab_ref)
+      if (topol_bonds .eq. "VDW") then
+         allocate(rab_ref(94,94))
+         call setr0 (94,rab_ref)
+      end if
+!
+!    For EHT calculations: set zeta basis functions and valence electrons
+!
+      if (topol_bonds .eq. "EHT") then
+         call setvalel
+         call setZETAandIP
+         wbo_cutoff=0.5d0*topol_eht_cutoff
+      end if
       allocate(coord_tmp(1000000,5))
    end if
 !
@@ -604,7 +621,12 @@ if (calc_egrad) then
       write(214,'(a)') "#This file contains the definition and actual values of "
       write(214,'(a)') "# all internal coordinates of each given trajectory frame."
       write(214,'(a)') "#Bond lenghts are given in bohr, angles in radians"
-      write(214,'(a)') "# No.     type         atom1    atom2    atom3    atom4    value"
+      if (topol_bonds .eq. "VDW") then
+         write(214,'(a)') "# No.     type         atom1    atom2    atom3    atom4    value"
+      else if (topol_bonds .eq. "EHT") then
+         write(214,'(a)') "# No.     type         atom1    atom2    atom3    atom4  &
+                  &   value      (bond-order)"
+      end if
       write(*,*) "The definitions and values of all internal coordinates are written &
               &to 'pes_topol.dat'"
    end if  
@@ -679,21 +701,64 @@ if (calc_egrad) then
             call elem(el_names(i),el_inds(i))
          end do
 !
-!     Then, calculate all possible bond lengths and compare them with R0AB values 
+!     Now, determine the list of bonds in the system
 !         
+!     A: comparison of atom distances with VDW pair radii
+!
          ind_act=0
-         do i=1,natoms
-            do j=i+1,natoms
-               r_act=dist(i,j,coord)
-               r_ref=rab_ref(el_inds(i),el_inds(j))*bohr/2*1.2
-               if (r_act .lt. r_ref) then
-                  ind_act=ind_act+1
-                  coord_tmp(ind_act,1) = 1
-                  coord_tmp(ind_act,2) = i
-                  coord_tmp(ind_act,3) = j
-               end if
+         if (topol_bonds .eq. "VDW") then
+            do i=1,natoms
+               do j=i+1,natoms
+                  r_act=dist(i,j,coord)
+!
+!     Optional: scale the VDW reference radii with the topol_vdw_scale parameter
+!      the larger the parameter, the larger the reference bonds get, and the 
+!      more bonds in the system will be detected
+!
+                  r_ref=rab_ref(el_inds(i),el_inds(j))*bohr/2*1.2*topol_vdw_scale
+                  if (r_act .lt. r_ref) then
+                     ind_act=ind_act+1
+                     coord_tmp(ind_act,1) = 1
+                     coord_tmp(ind_act,2) = i
+                     coord_tmp(ind_act,3) = j
+                  end if
+               end do
             end do
-         end do
+         end if
+!
+!     B: Perform an Extended Hückel Theory (EHT) calculation and get
+!       Wiberg-Mayer bond orders. Define all bonds which bond orders are 
+!       above value topol_eht_cutoff
+!
+         if (topol_bonds .eq. "EHT") then
+            call basis0(natoms,el_inds,nel,nbf)
+            call basis (natoms,el_inds,nbf,okbas) 
+
+            if (.not. okbas) then
+               write(*,*) "Problem with EHT basis set! Maybe try BONDS VDW?"
+               call fatal
+            end if
+            if (allocated(at_charges)) deallocate(at_charges)
+            if (allocated(wbo)) deallocate(wbo)
+            allocate(at_charges(natoms))
+            allocate(wbo(natoms,natoms))
+            at_charges=0.d0 ! set partial charges of atoms to zero (seems to work well)
+            call ehtfull(natoms,el_inds,coord/bohr,at_charges,nel,nbf,eel,wbo,1.0d0)
+!
+!     Check all bond orders: if one is above the cutoff, set the bond
+!
+            do i=1,natoms
+               do j=i+1,natoms
+                  if (wbo(i,j) .gt. wbo_cutoff) then
+                     ind_act=ind_act+1
+                     coord_tmp(ind_act,1) = 1
+                     coord_tmp(ind_act,2) = i
+                     coord_tmp(ind_act,3) = j
+                     bond_order(ind_act) = wbo(i,j)
+                  end if
+               end do
+            end do
+         end if
          bond_sum=ind_act
 
 !
@@ -856,8 +921,13 @@ if (calc_egrad) then
          write(214,'(a,i6,a)') "#-------- structure",ref_count,": -------------------------"
          do i=1,nat6
             if (coord_def(i,1) .eq. 1) then
-               write(214,'(i9,a,i9,i9,a,f14.7)') i,"  bond  ",coord_def(i,2),coord_def(i,3),&
-                  & "                  ",internal(i)
+               if (topol_bonds .eq. "VDW") then               
+                  write(214,'(i9,a,i9,i9,a,f14.7)') i,"  bond  ",coord_def(i,2),coord_def(i,3),&
+                     & "                  ",internal(i)
+               else if (topol_bonds .eq. "EHT") then
+                  write(214,'(i9,a,i9,i9,a,2f14.7)') i,"  bond  ",coord_def(i,2),coord_def(i,3),&
+                     & "                  ",internal(i),bond_order(i)
+               end if
             else if (coord_def(i,1) .eq. 2) then
                write(214,'(i9,a,i9,i9,i9,a,f14.7)') i,"  angle ",coord_def(i,2),coord_def(i,3), &
                   & coord_def(i,4),"         ",internal(i)
