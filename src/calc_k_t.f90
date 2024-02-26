@@ -108,6 +108,9 @@ if ((umbr_type .eq. "BIMOLEC") .or. (umbr_type .eq. "CYCLOADD") .or. &
    write(15,'(a,f15.8,a)') "   * m1 = ",mass_reac(1)," amu"
    write(15,'(a,f15.8,a)') "   * m2 = ",mass_reac(2)," amu"
    write(15,'(a,f15.8,a)') "   * my_R = ",my_R," amu"
+   if (xi_pos_manual .gt. -1D50) then
+      write(15,*) "HINT: xi_TS has been chosen manually by MANUAL_POS!"
+   end if
    write(15,'(a,f15.8,a,f12.8)') "   * W(xi_TS) = ",pmf_max," hartee at xi= ",xi_max
    write(15,'(a,f15.8,a,f12.8)') "   * w(xi_min) = ",pmf_min, " hartree at xi= ",xi_min
    write(15,'(a,f15.8,a)') "   * deltaW = ",(pmf_max-pmf_min)*hartree*joule, " kJ/mol"
@@ -120,8 +123,11 @@ if ((umbr_type .eq. "BIMOLEC") .or. (umbr_type .eq. "CYCLOADD") .or. &
    write(*,'(a,f15.8,a)') "   * m1 = ",mass_reac(1)," amu"
    write(*,'(a,f15.8,a)') "   * m2 = ",mass_reac(2)," amu"
    write(*,'(a,f15.8,a)') "   * my_R = ",my_R," amu"
+   if (xi_pos_manual .gt. -1D50) then
+      write(*,*) "HINT: xi_TS has been chosen manually by MANUAL_POS!"
+   end if
    write(*,'(a,f15.8,a,f12.8)') "   * W(xi_TS) = ",pmf_max," hartee at xi= ",xi_max
-   write(*,'(a,f15.8,a,f12.8)') "   * w(0) = ",pmf_min, " hartree at xi= ",xi_min
+   write(*,'(a,f15.8,a,f12.8)') "   * w(xi_min) = ",pmf_min, " hartree at xi= ",xi_min
    write(*,'(a,f15.8,a)') "   * deltaW = ",(pmf_max-pmf_min)*hartree*joule, "kJ/mol"
 !
 !     calculate the rate constant in atomic units

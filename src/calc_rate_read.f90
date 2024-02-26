@@ -149,6 +149,8 @@ child_interv = 0
 child_point = 0
 !     timesteps for a single child trajectory
 child_evol = 0
+!     If the recrossing shall be calculated at a manually define position
+xi_pos_manual = -1D52
 !     Method for location of minimum PMF value on path (asympototic or global min.)
 pmf_minloc = "ZERO"
 !     If a single umbrella trajectory shall be printed to illustrate RPMD
@@ -957,6 +959,13 @@ do i = 1, nkey_lines
                write(*,*) "Correct format: CHILD_STEPS [Number of MD steps per child]"
                call fatal
             end if
+!     If the recrossing position (xi-value) shall be defined manually
+         else if (keyword(1:20) .eq. 'MANUAL_POS') then
+            read(record,*,iostat=readstat) names,xi_pos_manual
+            if (readstat .ne. 0) then
+               write(*,*) "Correct format: MANUAL_POS [Xi-value for recrossing calc.]"
+               call fatal
+            end if            
 !     If recrossing shall be calculated with MPI
          else if (keyword(1:20) .eq. 'MPI ') then
             recross_mpi = .true.
@@ -1164,12 +1173,21 @@ if (rank .eq. 0) then
       else if (child_evol .eq. 0) then
          write(*,*) "No timestep number for each single child trajectory is given!"
          write(*,*) "Add the keyword CHILD_EVOL!"
+         call fatal
       end if
       child_times=child_tot/child_point
       if (child_times .ne. real(child_tot/child_point)) then
          write(*,*) "The total number of child trajectories is no multiplicity of the child"
          write(*,*) "number per sampling point! Alter keywords CHILD_TOTAL and/or CHILD_PERPOINT!"
          call fatal
+      end if
+      if (xi_pos_manual .gt. -1D50) then
+         if ((xi_pos_manual .lt. xi_min) .or. (xi_pos_manual .gt. xi_max)) then
+            write(*,*) "You have chosen a manual recrossing position (MANUAL_POS), which is"
+            write(*,*) " located outside the given PMF integration borders!"
+            write(*,'(a,f12.5,a,f12.5,a)') " Please give it between ",xi_min," and ",xi_max,"!"
+            call fatal
+         end if
       end if
    else 
       child_times=100

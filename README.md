@@ -152,3 +152,4 @@ Here, literature referring to the different methods included into Caracal are gi
 - 12/18/2023: The input format for QMDFF force field has been slightly changed. A new QMDFF input section was introduced (see Caracal wiki and examples)
 - 12/20/2023: An optional call to the GULP program as been added, pGFN-FF calculations can now be done!
 - 01/15/2024: Internal coordinate analyses and Wilson matrix calculations can be done with explore.x, using the 'pes topol' option
+- 02/26/2024: The position along the reaction path were the recrossing is calculated in calc_rate.x can now be chosen manually.

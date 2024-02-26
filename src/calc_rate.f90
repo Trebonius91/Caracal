@@ -134,6 +134,8 @@ real(kind=8),allocatable::pmf(:)   ! array with all free energies on path
 real(kind=8),allocatable::pmf_wham(:)  ! array with all free energies calculated with WHAM
 real(kind=8)::dx  !  width for numerical integration
 real(kind=8),allocatable::bin_coord(:)  ! xi coordinates for the bin entries
+real(kind=8),allocatable::bin_tmp(:)  ! temporary xi coordinates - xi_max diff array
+real(kind=8),allocatable::xi_tmp(:)  ! temporar xi coordinates for recross parent selection
 parameter(k_B=3.16681517576e-06)  ! the boltzmann constant in au/kelvin
 real(kind=8)::print_poly  ! position along the reaction path for which an umbrella 
                           ! trajectory shall be printed out
@@ -142,6 +144,7 @@ logical::do_presamp   ! if the pre sampling shall be activated
 character(len=80)::ts_file ! filename of the ts structure (the starting point!)
 integer::istat ! check if an integer has been read in correctly
 integer::n_presample   ! number of structures to be presampled
+integer::ts_locate   ! index of the recrossing TS within the umbrella equi array
 real(kind=8)::xi_ideal   ! dummy for calc_xi call
 real(kind=8)::centom(3)  ! center of masses of preequilized structures
 real(kind=8)::average_act,variance_act   ! actual values of average and variance for this traj.
@@ -982,6 +985,7 @@ allocate(p_i(3,natoms,nbeads))
 if (rank .eq. 1) then
    call random_init_local(rank)
 end if
+
 if (.not. dont_umbr) then
 !
 !     Generate the two folders for run statistics and xi distributions if not 
@@ -1721,7 +1725,21 @@ if (rank .eq. 0) then
 !   MOD 11.02.2023: Replaced complicated maxloc formula by simple one..
    maxlocate=maxloc(pmf(:),dim=1)
 !   maxlocate=maxloc(pmf(-int(xi_min/((xi_max-xi_min)/(nbins)))+1:nbins-1),dim=1)
-   xi_barrier=bin_coord(maxlocate)
+!
+!     If the position for the recrossing has been chosen manually, 
+!         set its value here
+!
+   if (xi_pos_manual .gt. -1D50) then
+      allocate(bin_tmp(nbins))
+      do i=1,nbins
+         bin_tmp(i)=abs(bin_coord(i)-xi_pos_manual)
+      end do
+      xi_barrier=xi_pos_manual
+      maxlocate=minloc(bin_tmp(:),dim=1)
+      deallocate(bin_tmp)
+   else
+      xi_barrier=bin_coord(maxlocate)
+   end if
 !
 !     Take the reactant asymptotic (xi=zero) as lowest PMF value
 !
@@ -1766,6 +1784,16 @@ if (rank .eq. 0) then
    write(*,*) "First, sample a parent trajectory, then start "
    write(*,*) "many child trajectories from its configurations."
    write(*,*) "----------------------------------------------"
+   if (xi_pos_manual .gt. -1D50) then
+      write(15,*) "For this calculation, the position of the recrossing plane "
+      write(15,*) " (usually at the PMF maximum) has been altered manually"
+      write(15,'(a,f12.6,a)') "  to ",xi_pos_manual,"!"
+      write(*,*) "For this calculation, the position of the recrossing plane "
+      write(*,*) " (usually at the PMF maximum) has been altered manually"
+      write(*,'(a,f12.6,a)') "  to ",xi_pos_manual,"!"
+   end if
+
+
 end if
 
 !
@@ -1785,50 +1813,42 @@ end if
 !
 !     Read in all equilibrated structures in order to find that next to the TS
 !
-if (rank .eq. 0) then
-!
 !     allocate array with starting structures
 !
-   if (allocated(xi_wins) .eqv. .false.) allocate(xi_wins(n_all))
-   if (allocated(struc_equi) .eqv. .false.) allocate(struc_equi(n_all,3,natoms))
+if (allocated(xi_wins) .eqv. .false.) allocate(xi_wins(n_all))
+if (allocated(struc_equi) .eqv. .false.) allocate(struc_equi(n_all,3,natoms))
 !
 !     open written file with starting structure
 !
-   open(unit=55,file="xi_pos.dat",status="unknown")
-   open(unit=56,file="equilibrated_struc.xyz",status="unknown")
-   do i=1,n_all-1
-      read(56,*) natoms
-      read(56,*)
-      read(55,*) xi_wins(i)
-      do j=1,natoms
-         read(56,*) names,struc_equi(i,:,j)
-      end do
-!
-!     If one Xi value is larger than that of the maximum at the PMF surface, take
-!     the corresponding structure and use it as starting point for the recrossing
-!     ---> take the structure in bohr!
-!
-!      if (xi_wins(i) .gt. xi_barrier) then
-!         do j=1,nbeads
-!            q_i(:,:,j)=struc_equi(i,:,:)
-!         end do 
-!         exit
-!      end if
-!      if (pot_ana) then
-!         q_i=q_i/bohr
-!      end if
+open(unit=55,file="xi_pos.dat",status="unknown")
+open(unit=56,file="equilibrated_struc.xyz",status="unknown")
+do i=1,n_all-1
+   read(56,*) natoms
+   read(56,*)
+   read(55,*) xi_wins(i)
+   do j=1,natoms
+      read(56,*) names,struc_equi(i,:,j)
    end do
-   close(56)
-   close(55)
-end if
+end do
+close(56)
+close(55)
 !
-!     Test: take the TS structure as starting point for Recrossing
+!     Choose the starting structure for the recrossing parent trajectory:
+!      the equilibrated structure with its xi-value nearest to the 
+!      calculated xi max value (or the manually chosen value)
 !
+allocate(xi_tmp(n_all-1))
+do i=1,n_all-1
+   xi_tmp(i)=abs(xi_wins(i)-xi_barrier)
+end do
+
+ts_locate=minloc(xi_tmp(:),dim=1)
+
 do j=1,nbeads
    do i=1,natoms
-      q_i(1,i,j)=ts_ref(1,i)
-      q_i(2,i,j)=ts_ref(2,i)
-      q_i(3,i,j)=ts_ref(3,i)
+      q_i(1,i,j)=struc_equi(ts_locate,1,i)/bohr
+      q_i(2,i,j)=struc_equi(ts_locate,2,i)/bohr
+      q_i(3,i,j)=struc_equi(ts_locate,3,i)/bohr
    end do
 end do
 
@@ -1899,7 +1919,7 @@ else
    read(33,*) kappa
    close(33)
    if (rank .eq. 0) then
-      if (kappa .lt. 0.02d0) then
+      if (kappa .lt. 0.002d0) then
          write(15,*)
          write(15,*) "Warning! The computed recrossing coefficient is very low!"
          write(15,*) "The value is just:",kappa

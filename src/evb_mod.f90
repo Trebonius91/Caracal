@@ -257,6 +257,7 @@ real(kind=8)::R_inf   ! reference distance of both/all reactants
 integer,allocatable::n_reac(:) ! number of atoms in the reactants (up to four for ADDITION4)
 real(kind=8),allocatable::mass_reac(:)  ! masses of the reactants (up to four for ADDITION4)
 real(kind=8)::beta  ! inverse temperature
+real(kind=8)::xi_pos_manual ! if the xi-position for recrossing is determined manually, its value
 real(kind=8)::andersen_time ! application interval for Andersen thermostat
 character(len=40)::thermo ! which thermostat shall be used (character)?
 !integer::thermostat   ! switch for thermostat: 0: Anderson, 1: GLE
