@@ -109,7 +109,8 @@ if ((umbr_type .eq. "BIMOLEC") .or. (umbr_type .eq. "CYCLOADD") .or. &
    write(15,'(a,f15.8,a)') "   * m2 = ",mass_reac(2)," amu"
    write(15,'(a,f15.8,a)') "   * my_R = ",my_R," amu"
    if (xi_pos_manual .gt. -1D50) then
-      write(15,*) "HINT: xi_TS has been chosen manually by MANUAL_POS!"
+      write(15,*) "HINT: recrossing position has been chosen manually by MANUAL_POS!"
+      write(15,*) "  xi_TS is, however, still located at the PMF maximum."
    end if
    write(15,'(a,f15.8,a,f12.8)') "   * W(xi_TS) = ",pmf_max," hartee at xi= ",xi_max
    write(15,'(a,f15.8,a,f12.8)') "   * w(xi_min) = ",pmf_min, " hartree at xi= ",xi_min
@@ -124,7 +125,8 @@ if ((umbr_type .eq. "BIMOLEC") .or. (umbr_type .eq. "CYCLOADD") .or. &
    write(*,'(a,f15.8,a)') "   * m2 = ",mass_reac(2)," amu"
    write(*,'(a,f15.8,a)') "   * my_R = ",my_R," amu"
    if (xi_pos_manual .gt. -1D50) then
-      write(*,*) "HINT: xi_TS has been chosen manually by MANUAL_POS!"
+      write(*,*) "HINT: recrossing position has been chosen manually by MANUAL_POS!"
+      write(*,*) "  xi_TS is, however, still located at the PMF maximum."
    end if
    write(*,'(a,f15.8,a,f12.8)') "   * W(xi_TS) = ",pmf_max," hartee at xi= ",xi_max
    write(*,'(a,f15.8,a,f12.8)') "   * w(xi_min) = ",pmf_min, " hartree at xi= ",xi_min

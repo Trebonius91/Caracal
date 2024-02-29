@@ -150,8 +150,8 @@ real(kind=8)::centom(3)  ! center of masses of preequilized structures
 real(kind=8)::average_act,variance_act   ! actual values of average and variance for this traj.
 real(kind=8)::pmf_int  ! integral of PMF profile for unimolecular reactions
 !     for recrossing calculation
-integer::maxlocate,minlocate  ! the bin in which the PMF has its maximum/minimum
-real(kind=8)::xi_barrier,xi_minimum  ! the xi-value at which the PMF is maximal/minimal
+integer::pmf_maxlocate,maxlocate,minlocate  ! the bin in which the PMF has its maximum/minimum
+real(kind=8)::xi_barrier,xi_pmf_max,xi_minimum  ! the xi-value at which the PMF is maximal/minimal
 real(kind=8)::kappa  ! the final recrossing coefficient
 !     for k(T) calculation
 character(len=10)::pmf_minloc
@@ -1729,6 +1729,8 @@ if (rank .eq. 0) then
 !     If the position for the recrossing has been chosen manually, 
 !         set its value here
 !
+   pmf_maxlocate=maxlocate
+   xi_pmf_max=bin_coord(maxlocate)
    if (xi_pos_manual .gt. -1D50) then
       allocate(bin_tmp(nbins))
       do i=1,nbins
@@ -1990,9 +1992,9 @@ end if
 
 call mpi_barrier(mpi_comm_world,ierr)
 if (rank .eq. 0) then
-   pmf_max=pmf(maxlocate)
+   pmf_max=pmf(pmf_maxlocate)
    pmf_min=pmf(minlocate)
-   call calc_k_t(pmf_max,pmf_min,xi_barrier,xi_minimum,kappa,pmf_int)
+   call calc_k_t(pmf_max,pmf_min,xi_pmf_max,xi_minimum,kappa,pmf_int)
 end if
 
 !
