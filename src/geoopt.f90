@@ -36,6 +36,7 @@
 subroutine geoopt(coord)
 use evb_mod
 use general
+use pbc_mod
                           
 implicit none
 !integer at(natoms)
@@ -54,8 +55,11 @@ real(kind=8) ,allocatable :: gold(:)
 real(kind=8) ,allocatable :: xvar(:),gvar(:),xparam(:),xlast(:),gg(:)
 real(kind=8) alpha,eold,f,emin,alp,el,xyz2(3,natoms),yhy,sy,ang,pnorm
 real(kind=8) ggi,xvari,ddot,gnorm,alp0
+real(kind=8) :: cell_mat(3,3),cell_mat_inv(3,3)  ! for VASP files
+real(kind=8) :: x_frac,y_frac,z_frac  ! direct coordinates (CONTCAR)
 character(len=2) asym
 logical::converged
+logical::act_fix
 !
 !     max. # of steps
 !
@@ -264,7 +268,9 @@ write(15,'('' iteration : '',i4,''  E='',F14.8, &
 close(85)
 
 deallocate(d4,g4,gold,xparam,hesinv,xvar,gvar,xlast,gg)
-
+!
+!     Print the final optimized geometry
+!
 open(unit=49,file="opt_final.xyz",status="replace")
 write(49,*) nats
 write(49,*)
@@ -273,7 +279,57 @@ do i=1,nats
 end do
 close(49)
 
+!
+!    In the case of VASP type input coordinates (POSCAR), 
+!      also print out a CONTCAR file!
+!
+
+if (coord_vasp) then
+   open(unit=50,file="CONTCAR",status="replace")
+   write(50,*) "CONTCAR file written by Caracal (explore.x)"
+   write(50,*) vasp_scale
+   write(50,*) vasp_a_vec
+   write(50,*) vasp_b_vec
+   write(50,*) vasp_c_vec
+   do i=1,nelems_vasp
+      write(50,'(a,a)',advance="no") " ",trim(vasp_names(i))
+   end do
+   write(50,*)
+   write(50,*) vasp_numbers(1:nelems_vasp)
+   write(50,*) "Direct"
+   if (vasp_selective) then
+      write(50,*) "Selective dynamics"
+   end if
+!
+!     As in usual CONTCAR files, give the positions in direct coordinates!
+!     convert them back from cartesians, by using the inverse matrix
+!
+   cell_mat(1,:)=vasp_a_vec
+   cell_mat(2,:)=vasp_b_vec
+   cell_mat(3,:)=vasp_c_vec
+   call matinv3(cell_mat,cell_mat_inv)
+   do i=1,nats
+      x_frac=dot_product(coord(:,indi(i))*bohr,cell_mat_inv(1,:))
+      y_frac=dot_product(coord(:,indi(i))*bohr,cell_mat_inv(2,:))
+      z_frac=dot_product(coord(:,indi(i))*bohr,cell_mat_inv(3,:))
+      if (vasp_selective) then
+         act_fix=.false.
+         do j=1,fix_num
+            if (fix_list(j) .eq. indi(i)) then
+               act_fix=.true.
+            end if
+         end do
+         if (act_fix) then
+            write(50,*) x_frac,y_frac,z_frac,"   F   F   F "
+         else 
+            write(50,*) x_frac,y_frac,z_frac,"   T   T   T "
+         end if
+      else
+         write(50,*) x_frac,y_frac,z_frac
+      end if  
+   end do
+   close(50)
+end if
 
 end subroutine geoopt
-
 

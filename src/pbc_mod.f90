@@ -61,6 +61,11 @@ real(kind=8)::boxlen_x,boxlen_y,boxlen_z,boxlen_x2,boxlen_y2,boxlen_z2
 real(kind=8)::box_vol  ! volume of the box
 
 !
+!     VASP unit cell vectors
+!
+real(kind=8)::vasp_scale
+real(kind=8)::vasp_a_vec(3),vasp_b_vec(3),vasp_c_vec(3)
+!
 !     Parameters for periodic potentials (cutoffs, Ewald, etc)
 !
 real(kind=8)::coul_cut,cut_low,vdw_cut  ! the value for the Coulomb/dispersion cutoff

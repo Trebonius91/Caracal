@@ -327,6 +327,15 @@ integer,allocatable::kmol(:)
 integer,allocatable::molcule(:)
 real(kind=8),allocatable::molmass(:)
 !
+!     If a POSCAR file is given for geometry, assume VASP format for output
+!
+logical::coord_vasp
+logical::vasp_selective   ! if selective dynamics is activated
+logical::vasp_direct     ! if direct coordinates are given
+character(len=2)::vasp_names(20)  ! the element names header section (VASP)
+integer::vasp_numbers(20) ! the element numbers header section (VASP)
+integer::nelems_vasp  ! number of elements in the header line
+!
 !     from subroutine getkey: to define it globally
 !
 character(len=120)::keyfile

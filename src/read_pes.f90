@@ -2211,7 +2211,13 @@ if (rank .eq. 0) then
          write(*,'(a)') "  - The system is simulated in a hard-walls nonperiodic box: "
          write(*,'(a,f13.7,a,f13.7,a,f13.7,a)') "       x=", boxlen_x," Ang.  ,y=",boxlen_y, &
                      & " Ang., z=",boxlen_z,"Ang."
-      else
+      else if (coord_vasp) then
+         write(*,'(a)') "  - The system is simulated in a periodic box given by POSCAR: "
+         write(*,'(a,3f13.7)') "     a = ",vasp_a_vec(:)
+         write(*,'(a,3f13.7)') "     b = ",vasp_b_vec(:)
+         write(*,'(a,3f13.7)') "     c = ",vasp_c_vec(:)
+
+      else 
          write(*,*) " - The simulated system has no periodicity."
       end if
       
@@ -2231,6 +2237,11 @@ if (rank .eq. 0) then
          write(*,'(a)') "  - The system is simulated in a hard-walls nonperiodic box: "
          write(*,'(a,f13.7,a,f13.7,a,f13.7,a)') "       x=", boxlen_x," Ang.  ,y=",boxlen_y, &
                      & " Ang., z=",boxlen_z,"Ang."
+      else if (coord_vasp) then
+         write(*,'(a)') "  - The system is simulated in a periodic box given by POSCAR: "
+         write(*,'(a,3f13.7)') "     a = ",vasp_a_vec(:)
+         write(*,'(a,3f13.7)') "     b = ",vasp_b_vec(:)
+         write(*,'(a,3f13.7)') "     c = ",vasp_c_vec(:)
       else
          write(*,*) " - The simulated system has no periodicity."
       end if

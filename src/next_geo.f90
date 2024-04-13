@@ -35,59 +35,106 @@
 subroutine next_geo(coord,num_atoms,input_unit,has_next)
 use evb_mod
 use general
+use pbc_mod
 
 implicit none
 integer::num_atoms,input_unit,atom_number,status,i
 integer::readstat
 real(kind=8),dimension(3,num_atoms)::coord
 real(kind=8)::xr,yr,zr
+real(kind=8)::x_tmp,y_tmp,z_tmp
 character(len=80)::line
 character(len=3)::atom
 real(kind=8),parameter::ang2bohr=0.52917720859d0
 logical::has_next
 has_next=.true.
-
 !
-!     usual molecular structures
-! 
-read(input_unit,*,iostat=status) atom_number
-if (status/=0) then
-   has_next=.false.
-   return
-end if
-if (atom_number/=num_atoms) then
-   write(*,*) atom_number,num_atoms
-   write(*,*)"atom number mismatch! This should not happen..."
-   stop 'atom number emergency!'
-end if
-read(input_unit,*,iostat=readstat) 
-if (readstat .ne. 0) then
-   write(*,*) "The structure file seems to be currupted!"
-   call fatal
-end if
+!     If the main input file was a VASP file, assume that this 
+!     file is also a VASP file (POSCAR or XDATCAR)
 !
-!     if the PES TOPOL option is activated, give the element names     
-! 
-if (pes_topol) then
-   if (allocated(el_names)) deallocate(el_names)
-   allocate(el_names(num_atoms))
-end if
-
-
-do i=1,num_atoms
-   read(input_unit,*,iostat=readstat)atom,xr,yr,zr
-   if (pes_topol) then
-      el_names(i)=atom
+if (coord_vasp) then
+   read(input_unit,*,iostat=status)
+   if (status/=0) then
+      has_next=.false.
+      return
    end if
+   do i=1,7
+      read(input_unit,*,iostat=status)
+      if (readstat .ne. 0) then
+         write(*,*) "The structure file seems to be currupted!"
+         call fatal
+      end if
+   end do
+   if (vasp_selective) then
+      read(input_unit,*,iostat=status)
+      if (readstat .ne. 0) then
+         write(*,*) "The structure file seems to be currupted!"
+         call fatal
+      end if
+   end if
+   do i=1,num_atoms
+      read(input_unit,*,iostat=readstat) xr,yr,zr
+      if (readstat .ne. 0) then
+         write(*,*) "The structure file seems to be currupted!"
+         call fatal
+      end if
+
+      if (vasp_direct) then
+         x_tmp=xr
+         y_tmp=yr
+         z_tmp=zr
+         xr=(x_tmp*vasp_a_vec(1)+y_tmp*vasp_b_vec(1)+z_tmp*vasp_c_vec(1))*vasp_scale
+         yr=(x_tmp*vasp_a_vec(2)+y_tmp*vasp_b_vec(2)+z_tmp*vasp_c_vec(2))*vasp_scale
+         zr=(x_tmp*vasp_a_vec(3)+y_tmp*vasp_b_vec(3)+z_tmp*vasp_c_vec(3))*vasp_scale
+      end if
+      coord(1,i)=xr
+      coord(2,i)=yr
+      coord(3,i)=zr
+   end do
+else
+
+!
+!     Read in a usual xyz file
+! 
+   read(input_unit,*,iostat=status) atom_number
+   if (status/=0) then
+      has_next=.false.
+      return
+   end if
+   if (atom_number/=num_atoms) then
+      write(*,*) atom_number,num_atoms
+      write(*,*)"atom number mismatch! This should not happen..."
+      stop 'atom number emergency!'
+   end if
+   read(input_unit,*,iostat=readstat) 
    if (readstat .ne. 0) then
       write(*,*) "The structure file seems to be currupted!"
       call fatal
    end if
+!
+!     if the PES TOPOL option is activated, give the element names     
+! 
+   if (pes_topol) then
+      if (allocated(el_names)) deallocate(el_names)
+      allocate(el_names(num_atoms))
+   end if
 
-   coord(1,i)=xr
-   coord(2,i)=yr
-   coord(3,i)=zr
-end do
+
+   do i=1,num_atoms
+      read(input_unit,*,iostat=readstat)atom,xr,yr,zr
+      if (pes_topol) then
+         el_names(i)=atom
+      end if
+      if (readstat .ne. 0) then
+         write(*,*) "The structure file seems to be currupted!"
+         call fatal
+      end if
+
+      coord(1,i)=xr
+      coord(2,i)=yr
+      coord(3,i)=zr
+   end do
+end if
 
 return
 end subroutine next_geo

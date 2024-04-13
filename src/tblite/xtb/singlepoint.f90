@@ -246,6 +246,7 @@ subroutine xtb_singlepoint(ctx, mol, calc, wfn, accuracy, energy, gradient, sigm
             & escape(merge(ctx%terminal%green, ctx%terminal%red, pconverged)) // &
             & format_string(mixer%get_error(), "(es16.7)") // &
             & escape(ctx%terminal%reset)
+         flush(84)
       end if
       if (allocated(error)) then
          call ctx%set_error(error)

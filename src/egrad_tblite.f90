@@ -126,18 +126,27 @@ c_uhf = 0
 !
 !     For periodic systems (currently only cubic): initialize it
 !
-if (periodic) then
-   c_periodic = .true. 
-   c_lattice = 0.d0
-   c_lattice(1,1)= boxlen_x
-   c_lattice(2,2) = boxlen_y
-   c_lattice(3,3) = boxlen_z
-else 
-   c_periodic = .false.
-   c_lattice = 0.d0
-   c_lattice(1,1)= 100.0
-   c_lattice(2,2) = 100.0
-   c_lattice(3,3) = 100.0
+!     If the input was read from a POSCAR file, apply the VASP symmetry directly!
+!
+if (coord_vasp) then
+   c_periodic = .true.
+   c_lattice(:,1) = vasp_a_vec/bohr
+   c_lattice(:,2) = vasp_b_vec/bohr
+   c_lattice(:,3) = vasp_c_vec/bohr
+else
+   if (periodic) then
+      c_periodic = .true. 
+      c_lattice = 0.d0
+      c_lattice(1,1)= boxlen_x
+      c_lattice(2,2) = boxlen_y
+      c_lattice(3,3) = boxlen_z
+   else 
+      c_periodic = .false.
+      c_lattice = 0.d0
+      c_lattice(1,1)= 100.0
+      c_lattice(2,2) = 100.0
+      c_lattice(3,3) = 100.0
+   end if
 end if
 
 !

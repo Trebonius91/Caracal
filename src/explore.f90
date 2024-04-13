@@ -1066,13 +1066,14 @@ end if
 
 
 !
-!    Open file with start structure and read it in
+!    Translate the read in coordinates (x,y,z arrays) to the coord array
 !
 allocate(coord(3,natoms))
-write(15,*) "Read in the structure file: ",xyzfile
-open (unit=98,file=xyzfile,status="unknown")
-   call next_geo(coord,natoms,98,has_next)               
-close(98)
+do i=1,natoms
+   coord(1,i)=x(i)
+   coord(2,i)=y(i)
+   coord(3,i)=z(i)
+end do
 !
 !     Convert coordinates to bohr
 !
@@ -1103,6 +1104,9 @@ if (trim(jobtype) .eq. "OPT_MIN" .or. trim(jobtype) .eq. "OPTFREQ") then
    write(*,*) "Finished!"
    write(*,*) "Succession of optimized structures written to geoopt.xyz"
    write(*,*) "Final optimized structure written to opt_final.xyz"
+   if (coord_vasp) then
+      write(*,*) "Optimized structure also written to CONTCAR (VASP format)"
+   end if
    write(*,*) "Calculate gradient and energy of optimized structure..."
 else  
    write(*,*) "Calculate energy and gradient of given structure..."

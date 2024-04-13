@@ -89,7 +89,7 @@ OBJS = general.o evb_mod.o qmdff.o lm_module.o debug.o h2co_mod.o \
        version.o lowcase.o optimize_de.o optimize_dq.o lm_de_func.o \
        lm_dq_func.o deltaq.o dg_evb_init_ser.o solving_lgs.o \
        lm_function.o mdstat.o mdrest.o invert.o verlet.o maxwell.o \
-       ranvec.o erfinv.o erf.o erfcore.o temper.o  \
+       ranvec.o erfinv.o erf.o erfcore.o temper.o matinv3.o \
        normal.o calendar.o egqmdff.o eqmdff3.o eqmdff.o \
        fatal.o getxyz.o gmres.o gradient.o gradnum.o hessevb.o \
        hessqmdff.o prog_initial.o init_int.o xyz_2int.o grad2int.o \
