@@ -18,13 +18,13 @@ CURRENT = $(shell pwd)
 
 #   Location of the GULP package, if compiled with Caracal
 #   Choose either Linux (for Linux) or Darwin (for Mac) 
-#OSTYPE = Linux
+OSTYPE = Linux
 #   The absolute or relative path to the GULP main directory
-#GULPDIR =  ../../gulp-6.2
+GULPDIR =  ../../gulp-6.2
 #   Comment in for the compiler flags 
-#GULPFF = -DGULP=def -I${GULPDIR}/Src/${OSTYPE}
+GULPFF = -DGULP=def -I${GULPDIR}/Src/${OSTYPE}
 #   Comment in for the linking flags
-#GULPLINK = ${GULPDIR}/Src/${OSTYPE}/libgulp.a  ${GULPDIR}/Utils/pGFNFF/Src/libpGFNFF.a 
+GULPLINK = ${GULPDIR}/Src/${OSTYPE}/libgulp.a  ${GULPDIR}/Utils/pGFNFF/Src/libpGFNFF.a 
 
 #   The source files directory
 SRCDIR = src
@@ -61,7 +61,7 @@ OBJS = general.o evb_mod.o qmdff.o lm_module.o debug.o h2co_mod.o \
        moment.o ff_e.o eabh0.o thermo.o axis.o thermocal.o heat.o \
        bonde.o gethirsh.o docm5.o cm5mod.o copyc6.o limit.o rsp.o \
        basis0.o basis.o setsto3.o setsto4.o dex2.o ehtfull.o eht.o \
-       stints.o fermismear.o gab.o compmodel.o ff_anal.o pqn.o   \
+       stints.o fermismear_eht.o gab.o compmodel.o ff_anal.o pqn.o   \
        ff_bond.o pairs.o lina.o ff_clean.o ff_mod.o rdfix.o getf.o \
        hbpara.o checktrip.o doeht.o abdamp.o eabhag.o eabxag.o   \
        eabx.o egrestrain.o ff_nonb.o ff_hb.o ff_eg.o ff_nonbe.o \

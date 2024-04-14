@@ -123,16 +123,16 @@ if (2*(nel/2).ne.nel) then
    ihomo=nel/2+1
    ep=0
    ep(1:ihomo)=1.0
-   call fermismear(.false.,nbf,ihomo,temp,emo,ep)
+   call fermismear_eht(.false.,nbf,ihomo,temp,emo,ep)
    focc=0
    if (ihomo.gt.1) then
       focc(1:ihomo-1)=1.0
-      call fermismear(.false.,nbf,ihomo-1,temp,emo,focc)
+      call fermismear_eht(.false.,nbf,ihomo-1,temp,emo,focc)
    end if
    focc(1:nbf)=focc(1:nbf)+ep(1:nbf)
 else
    ihomo=nel/2
-   call fermismear(.false.,nbf,ihomo,temp,emo,focc)
+   call fermismear_eht(.false.,nbf,ihomo,temp,emo,focc)
    focc=focc*2.
 end if
 

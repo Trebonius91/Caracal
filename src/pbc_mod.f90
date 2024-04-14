@@ -61,6 +61,15 @@ real(kind=8)::boxlen_x,boxlen_y,boxlen_z,boxlen_x2,boxlen_y2,boxlen_z2
 real(kind=8)::box_vol  ! volume of the box
 
 !
+!     If a POSCAR file is given for geometry, assume VASP format for output
+!
+logical::coord_vasp
+logical::vasp_selective   ! if selective dynamics is activated
+logical::vasp_direct     ! if direct coordinates are given
+character(len=2)::vasp_names(20)  ! the element names header section (VASP)
+integer::vasp_numbers(20) ! the element numbers header section (VASP)
+integer::nelems_vasp  ! number of elements in the header line
+!
 !     VASP unit cell vectors
 !
 real(kind=8)::vasp_scale

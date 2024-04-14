@@ -91,16 +91,27 @@ lgradients=.true.
 !     Currently, only rectangular boxes are supported by Caracal
 !     TODO: add support for arbitrary box shapes!
 !
-if (periodic) then
+!     Extra case: a POSCAR file contains the coordinates, use 
+!     its shape for the box (in Angstroms!)
+!
+if (coord_vasp) then
    ndim=3
    allocate(coord_cell(3,ndim))
-   coord_cell(1:3,1:3) = 0.0d0
-   coord_cell(1,1)=boxlen_x
-   coord_cell(2,2)=boxlen_y
-   coord_cell(3,3)=boxlen_z
-else 
-   ndim=0
-   allocate(coord_cell(3,ndim))
+   coord_cell(:,1)=vasp_a_vec
+   coord_cell(:,2)=vasp_b_vec
+   coord_cell(:,3)=vasp_c_vec
+else    
+   if (periodic) then
+      ndim=3
+      allocate(coord_cell(3,ndim))
+      coord_cell(1:3,1:3) = 0.0d0
+      coord_cell(1,1)=boxlen_x
+      coord_cell(2,2)=boxlen_y
+      coord_cell(3,3)=boxlen_z
+   else 
+      ndim=0
+      allocate(coord_cell(3,ndim))
+   end if
 end if
 
 charges=0.d0

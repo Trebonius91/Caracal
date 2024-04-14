@@ -47,6 +47,7 @@
 program explore
 use general
 use evb_mod
+use pbc_mod
 use debug
 use omp_lib
 
@@ -99,7 +100,7 @@ integer::maxline
 character(len=40)::commarg ! string for command line argument
 ! for fragment calculations
 integer::indi_tmp(100)
-character(len=80) a80
+character(len=80) a80,adum
 integer::maxcycle,rest
 !     the MPI rank (here always 0)
 integer::rank
@@ -198,16 +199,17 @@ calc_irc=.false.
 !
 maxiter=500
 stepmax=0.05d0
-ethr=1D-7
-gthr=1D-7
-dthr=1E-7
-gmaxthr=1D-7
-dmaxthr=1D-7
+ethr=1D-6
+gthr=5D-5
+dthr=5D-5
+gmaxthr=2D-4
+dmaxthr=2D-4
 newton_raphson=.false.
+geoopt_algo = "cg"
 irc_maxstep=200
 irc_steplen=0.1d0
 irc_eulerlen=0.005d0
-irc_ethr=1D-7
+irc_ethr=1D-6
 irc_gthr=1D-6
 
 !
@@ -295,6 +297,20 @@ if (trim(jobtype) .eq. "OPT_MIN" .or. trim(jobtype) .eq. "OPT_TS" &
                   write(*,*) "Correct format MAXITER [No. of iterations]"
                   call fatal
                end if
+!     which optimization algorithm shall be used 
+            else if (keyword(1:15) .eq. 'ALGO ') then
+               read(record,*,iostat=readstat) names,adum
+               if (readstat .ne. 0) then
+                  write(*,*) "Correct format ALGO [specifier]"
+                  call fatal
+               end if
+               call upcase(adum)
+               if (trim(adum) .eq. "CONJ_GRAD") then
+                  geoopt_algo = "cg"
+               else if (trim(adum) .eq. "BFGS") then
+                  geoopt_algo = "bfgs"
+               end if
+
 !     maximum length of a single optimization step
             else if (keyword(1:20) .eq. 'STEPSIZE ') then
                read(record,*,iostat=readstat) names,stepmax
@@ -303,35 +319,35 @@ if (trim(jobtype) .eq. "OPT_MIN" .or. trim(jobtype) .eq. "OPT_TS" &
                   call fatal
                end if
 !     energy change convergence criterion
-            else if (keyword(1:20) .eq. 'ETHR ') then
+            else if (keyword(1:20) .eq. 'CRIT_DE ') then
                read(record,*) names,ethr
                if (readstat .ne. 0) then
                   write(*,*) "Correct format ETHR [energy (Hartree)]"
                   call fatal
                end if
 !     gradient norm convergence criterion
-            else if (keyword(1:20) .eq. 'GTHR ') then
+            else if (keyword(1:20) .eq. 'CRIT_GNORM ') then
                read(record,*) names,gthr
                if (readstat .ne. 0) then
                   write(*,*) "Correct format ETHR [gradient comp.]"
                   call fatal
                end if
 !     geometry step norm convergence criterion
-            else if (keyword(1:20) .eq. 'DTHR ') then
+            else if (keyword(1:20) .eq. 'CRIT_QNORM ') then
                read(record,*) names,dthr
                if (readstat .ne. 0) then
                   write(*,*) "Correct format DTHR [geom. step]"
                   call fatal
                end if
 !     largest component in gradient vector
-            else if (keyword(1:20) .eq. 'GMAXTHR ') then
+            else if (keyword(1:20) .eq. 'CRIT_GMAX ') then
                read(record,*) names,gmaxthr
                if (readstat .ne. 0) then
                   write(*,*) "Correct format GMAXTHR [gradient comp.]"
                   call fatal
                end if
 !     largest component in geometry change vector
-            else if (keyword(1:20) .eq. 'DMAXTHR ') then
+            else if (keyword(1:20) .eq. 'CRIT_QMAX ') then
                read(record,*) names,dmaxthr
                if (readstat .ne. 0) then
                   write(*,*) "Correct format GMAXTHR [geom. change]"

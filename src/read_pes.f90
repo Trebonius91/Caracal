@@ -67,6 +67,8 @@ integer::mode,next,j,k,readstatus,dg_evb_mode,mat_size,num_struc
 integer::int_mode ! method of defining internal coordinates
 real(kind=8)::s_q1_r  ! temporary variable for QMDFF damping range (RP-EVB)
 real(kind=8),allocatable::xyz_init(:,:)  ! geometry for pGFN-FF init
+real(kind=8)::xr,yr,zr
+real(kind=8)::x_tmp,y_tmp,z_tmp
 logical::read_init_struc
 character(len=2),allocatable::names_init(:)   ! element symbols for pGFN-FF init
 logical::path_struc,path_energy,coupl,params
@@ -1004,19 +1006,72 @@ if (pgfn_ff) then
 !
             if (keyword(1:16) .eq. 'STRUC_INIT ') then
                if (.not. read_init_struc) then
+
                   read(record,*,iostat=readstat) names,filegeo
-                  open(unit=38,file=filegeo,status="old")
-                  read(38,*) natoms
-                  read(38,*)
-                  allocate(xyz_init(3,natoms))
-                  allocate(names_init(natoms))
-                  do k=1,natoms
-                     read(38,*) names_init(k),xyz_init(:,k)
-                  end do
-                  close(38)
+!
+!     If the VASP formate is used for input (main keyword), read the POSCAR file
+!
+                  if (coord_vasp) then
+                     allocate(xyz_init(3,natoms))
+                     allocate(names_init(natoms))
+
+                     open(unit=38,file=filegeo,status="old")
+                     do k=1,8
+                        read(38,*,iostat=readstat)
+                        if (readstat .ne. 0) then
+                           write(*,*) "The structure file seems to be currupted!"
+                           call fatal
+                        end if
+                     end do
+                     if (vasp_selective) then
+                        read(38,*,iostat=readstat)
+                        if (readstat .ne. 0) then
+                           write(*,*) "The structure file seems to be currupted!"
+                           call fatal
+                        end if
+                     end if
+                     write(*,*) "Natoms",natoms
+                     do k=1,natoms
+                        read(38,*,iostat=readstat) xr,yr,zr
+                        if (readstat .ne. 0) then
+                           write(*,*) "The structure file seems to be currupted!"
+                           call fatal
+                        end if
+
+                        if (vasp_direct) then
+                           x_tmp=xr
+                           y_tmp=yr
+                           z_tmp=zr
+                           xr=(x_tmp*vasp_a_vec(1)+y_tmp*vasp_b_vec(1)+ &
+                                       & z_tmp*vasp_c_vec(1))*vasp_scale
+                           yr=(x_tmp*vasp_a_vec(2)+y_tmp*vasp_b_vec(2)+ &
+                                       & z_tmp*vasp_c_vec(2))*vasp_scale
+                           zr=(x_tmp*vasp_a_vec(3)+y_tmp*vasp_b_vec(3)+ &
+                                       & z_tmp*vasp_c_vec(3))*vasp_scale
+                        end if
+                        xyz_init(1,k)=xr
+                        xyz_init(2,k)=yr
+                        xyz_init(3,k)=zr
+                        names_init(k)=name(k)
+                     end do
+                     close(38)
+                  else 
+!
+!     The usual xyz file input
+!
+                     open(unit=38,file=filegeo,status="old")
+                     read(38,*) natoms
+                     read(38,*)
+                     allocate(xyz_init(3,natoms))
+                     allocate(names_init(natoms))
+                     do k=1,natoms
+                        read(38,*) names_init(k),xyz_init(:,k)
+                     end do
+                     close(38)
+                  end if
                   init_struc_file=filegeo
                   read_init_struc = .true.
-               end if   
+               end if
             end if
             if (keyword(1:11) .eq. '}') exit
             if (j .eq. nkey_lines-i) then

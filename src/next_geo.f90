@@ -60,21 +60,21 @@ if (coord_vasp) then
    end if
    do i=1,7
       read(input_unit,*,iostat=status)
-      if (readstat .ne. 0) then
+      if (status .ne. 0) then
          write(*,*) "The structure file seems to be currupted!"
          call fatal
       end if
    end do
    if (vasp_selective) then
       read(input_unit,*,iostat=status)
-      if (readstat .ne. 0) then
+      if (status .ne. 0) then
          write(*,*) "The structure file seems to be currupted!"
          call fatal
       end if
    end if
    do i=1,num_atoms
-      read(input_unit,*,iostat=readstat) xr,yr,zr
-      if (readstat .ne. 0) then
+      read(input_unit,*,iostat=status) xr,yr,zr
+      if (status .ne. 0) then
          write(*,*) "The structure file seems to be currupted!"
          call fatal
       end if

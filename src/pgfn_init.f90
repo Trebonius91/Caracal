@@ -80,17 +80,26 @@ lgulpoutput=.false.
 !     Currently, only rectangular boxes are supported by Caracal
 !     TODO: add support for arbitrary box shapes!
 !
+!     If a VASP POSCAR file is the input, take its box shape!
+!
+
 allocate(coord_cell(3,3))
 coord_cell(1:3,1:3) = 0.0d0
-if (periodic) then
+if (coord_vasp) then
    ndim=3
-   coord_cell(1,1)=boxlen_x
-   coord_cell(2,2)=boxlen_y
-   coord_cell(3,3)=boxlen_z
+   coord_cell(:,1)=vasp_a_vec
+   coord_cell(:,2)=vasp_b_vec
+   coord_cell(:,3)=vasp_c_vec
 else
-   ndim=0
+   if (periodic) then
+      ndim=3
+      coord_cell(1,1)=boxlen_x
+      coord_cell(2,2)=boxlen_y
+      coord_cell(3,3)=boxlen_z
+   else
+      ndim=0
+   end if
 end if
-
 !
 !  Set atomic coordinates
 !
@@ -105,6 +114,7 @@ libraryfile=" "
 #ifdef GULP
 call init_gulp(lgulpoutput,ndim,natoms,coord_cell,names_init,xyz,charges,keywords,libraryfile)
 #endif
+
 
 
 return
