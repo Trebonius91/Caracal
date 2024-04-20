@@ -74,6 +74,7 @@ real(kind=8)::xyz(3,natoms)
 !                                         containing the force field (if any) NB: This 
 !                                         can just be a blank string
 !
+!     Activate for verbose GULP initialization output
 lgulpoutput=.false.
 !
 !     Set the periodicity
@@ -107,14 +108,13 @@ xyz(:,:)=xyz_init(:,:)
 
 atomicsymbols(:)=names_init(:)
 
-charges(1:9) = 0.0d0
+charges(:) = 0.0d0
 
 keywords="gfnff gwolf"
 libraryfile=" "
 #ifdef GULP
 call init_gulp(lgulpoutput,ndim,natoms,coord_cell,names_init,xyz,charges,keywords,libraryfile)
 #endif
-
 
 
 return

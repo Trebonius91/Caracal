@@ -167,6 +167,18 @@ do i = 1, nkey_lines
       end if
    end if
 end do
+!
+!     If the input structure is read from a VASP POSCAR file, set the coordinates
+!      to periodic, automatically!
+!     Box sizes: diagonal elements of the VASP box shape (TEMPORARY!)
+!
+
+if (coord_vasp) then
+   periodic = .true.
+   boxlen_x=vasp_a_vec(1)
+   boxlen_y=vasp_b_vec(2)
+   boxlen_z=vasp_c_vec(3)
+end if
 
 !
 !     The general Method keyword
@@ -2256,22 +2268,23 @@ if (rank .eq. 0) then
       write(*,*) " - QMDFF file: ",trim(fffile1)
       write(*,'(a,i8)') "  - Number of atoms: ",natoms
       if (periodic) then
-         write(*,'(a)') "  - The system is simulated in a cubix periodic box: "
-         write(*,'(a,f13.7,a,f13.7,a,f13.7,a)') "       x=", boxlen_x*bohr," Ang.  ,y=",boxlen_y*bohr, &
-                     & " Ang., z=",boxlen_z*bohr,"Ang."
-         write(*,*) " - Long range Coulomb interactions treated with: ",trim(coul_method)
-         write(*,'(a,f11.3,a)') "  - (Short) Coulomb interactions have a cutoff of ",coul_cut, " A"
-         write(*,'(a,f11.3,a)') "  - VDW interactions have a cutoff of ",vdw_cut, " A"
+         if (coord_vasp) then
+            write(*,'(a)') "  - The system is simulated in a periodic box given by POSCAR: "
+            write(*,'(a,3f13.7)') "     a = ",vasp_a_vec(:)
+            write(*,'(a,3f13.7)') "     b = ",vasp_b_vec(:)
+            write(*,'(a,3f13.7)') "     c = ",vasp_c_vec(:)
+         else 
+            write(*,'(a)') "  - The system is simulated in a cubix periodic box: "
+            write(*,'(a,f13.7,a,f13.7,a,f13.7,a)') "       x=", boxlen_x*bohr," Ang.  ,y=",boxlen_y*bohr, &
+                        & " Ang., z=",boxlen_z*bohr,"Ang."
+            write(*,*) " - Long range Coulomb interactions treated with: ",trim(coul_method)
+            write(*,'(a,f11.3,a)') "  - (Short) Coulomb interactions have a cutoff of ",coul_cut, " A"
+            write(*,'(a,f11.3,a)') "  - VDW interactions have a cutoff of ",vdw_cut, " A"
+         end if
       else if (box_walls) then
          write(*,'(a)') "  - The system is simulated in a hard-walls nonperiodic box: "
          write(*,'(a,f13.7,a,f13.7,a,f13.7,a)') "       x=", boxlen_x," Ang.  ,y=",boxlen_y, &
                      & " Ang., z=",boxlen_z,"Ang."
-      else if (coord_vasp) then
-         write(*,'(a)') "  - The system is simulated in a periodic box given by POSCAR: "
-         write(*,'(a,3f13.7)') "     a = ",vasp_a_vec(:)
-         write(*,'(a,3f13.7)') "     b = ",vasp_b_vec(:)
-         write(*,'(a,3f13.7)') "     c = ",vasp_c_vec(:)
-
       else 
          write(*,*) " - The simulated system has no periodicity."
       end if
@@ -2285,18 +2298,20 @@ if (rank .eq. 0) then
       write(*,*) "PES description: GFN-xTB semiempirics" 
       write(*,'(a,i8)') "  - Number of atoms: ",natoms
       if (periodic) then
-         write(*,'(a)') "  - The system is simulated in a cubix periodic box: "
-         write(*,'(a,f13.7,a,f13.7,a,f13.7,a)') "       x=", boxlen_x*bohr," Ang.  ,y=",boxlen_y*bohr, &
-                     & " Ang., z=",boxlen_z*bohr,"Ang."
+         if (coord_vasp) then
+            write(*,'(a)') "  - The system is simulated in a periodic box given by POSCAR: "
+            write(*,'(a,3f13.7)') "     a = ",vasp_a_vec(:)
+            write(*,'(a,3f13.7)') "     b = ",vasp_b_vec(:)
+            write(*,'(a,3f13.7)') "     c = ",vasp_c_vec(:)
+         else 
+            write(*,'(a)') "  - The system is simulated in a cubix periodic box: "
+            write(*,'(a,f13.7,a,f13.7,a,f13.7,a)') "       x=", boxlen_x*bohr," Ang.  ,y=",boxlen_y*bohr, &
+                        & " Ang., z=",boxlen_z*bohr,"Ang."
+         end if
       else if (box_walls) then
          write(*,'(a)') "  - The system is simulated in a hard-walls nonperiodic box: "
          write(*,'(a,f13.7,a,f13.7,a,f13.7,a)') "       x=", boxlen_x," Ang.  ,y=",boxlen_y, &
                      & " Ang., z=",boxlen_z,"Ang."
-      else if (coord_vasp) then
-         write(*,'(a)') "  - The system is simulated in a periodic box given by POSCAR: "
-         write(*,'(a,3f13.7)') "     a = ",vasp_a_vec(:)
-         write(*,'(a,3f13.7)') "     b = ",vasp_b_vec(:)
-         write(*,'(a,3f13.7)') "     c = ",vasp_c_vec(:)
       else
          write(*,*) " - The simulated system has no periodicity."
       end if
@@ -2326,9 +2341,16 @@ if (rank .eq. 0) then
       write(*,'(a,i8)') "  - Number of atoms: ",natoms
       write(*,'(a,a)') "  - Initial setup from structure in: ",init_struc_file
       if (periodic) then
-         write(*,'(a)') "  - The system is simulated in a cubix periodic box: "
-         write(*,'(a,f13.7,a,f13.7,a,f13.7,a)') "        x=", boxlen_x*bohr," Ang.  ,y=",boxlen_y*bohr, &
-                     & " Ang., z=",boxlen_z*bohr,"Ang."
+         if (coord_vasp) then
+            write(*,'(a)') "  - The system is simulated in a periodic box given by POSCAR: "
+            write(*,'(a,3f13.7)') "     a = ",vasp_a_vec(:)
+            write(*,'(a,3f13.7)') "     b = ",vasp_b_vec(:)
+            write(*,'(a,3f13.7)') "     c = ",vasp_c_vec(:)
+         else 
+            write(*,'(a)') "  - The system is simulated in a cubix periodic box: "
+            write(*,'(a,f13.7,a,f13.7,a,f13.7,a)') "        x=", boxlen_x*bohr," Ang.  ,y=",boxlen_y*bohr, &
+                        & " Ang., z=",boxlen_z*bohr,"Ang."
+         end if
       else if (box_walls) then
          write(*,'(a)') "  - The system is simulated in a hard-walls nonperiodic box: "
          write(*,'(a,f13.7,a,f13.7,a,f13.7,a)') "       x=", boxlen_x," Ang.  ,y=",boxlen_y, &

@@ -114,7 +114,7 @@ else
    end if
 end if
 
-charges=0.d0
+!charges=0.d0
 !
 !     Set GULP input keywords for pGFN-FF calculation
 !

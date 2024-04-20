@@ -950,40 +950,46 @@ end do
 !     and check if the given box lengths are large enough to contain it     
 !
 if (periodic .or. box_walls) then
-   xmin=minval(x(:))
-   ymin=minval(y(:))
-   zmin=minval(z(:))
+   if (.not. coord_vasp) then
+      xmin=minval(x(:))
+      ymin=minval(y(:))
+      zmin=minval(z(:))
 
-   x(:)=x(:)-xmin
-   y(:)=y(:)-ymin
-   z(:)=z(:)-zmin
+      x(:)=x(:)-xmin
+      y(:)=y(:)-ymin
+      z(:)=z(:)-zmin
    
-   xmax=maxval(x(:))
-   ymax=maxval(y(:))
-   zmax=maxval(z(:))
-   if (xmax .gt. boxlen_x) then
-      write(*,*) "ERROR! You have chosen a periodic/hard box, but the elongation"
-      write(*,*) " of the given structure in x-direction is too large!"
-      call fatal
-   else if (ymax .gt. boxlen_y) then
-      write(*,*) "ERROR! You have chosen a periodic/hard box, but the elongation"
-      write(*,*) " of the given structure in y-direction is too large!"
-      call fatal
-   else if (zmax .gt. boxlen_z) then
-      write(*,*) "ERROR! You have chosen a periodic/hard box, but the elongation"
-      write(*,*) " of the given structure in z-direction is too large!"
-      call fatal
-   end if
+      xmax=maxval(x(:))
+      ymax=maxval(y(:))
+      zmax=maxval(z(:))
+      if (xmax .gt. boxlen_x) then
+         write(*,*) "ERROR! You have chosen a periodic/hard box, but the elongation"
+         write(*,*) " of the given structure in x-direction is too large!"
+         call fatal
+      else if (ymax .gt. boxlen_y) then
+         write(*,*) "ERROR! You have chosen a periodic/hard box, but the elongation"
+         write(*,*) " of the given structure in y-direction is too large!"
+         call fatal
+      else if (zmax .gt. boxlen_z) then
+         write(*,*) "ERROR! You have chosen a periodic/hard box, but the elongation"
+         write(*,*) " of the given structure in z-direction is too large!"
+         call fatal
+      end if
 !
 !     Place the initial structure(s) in the center of the box!
 !   
-   x(:)=x(:)+0.5d0*(boxlen_x-xmax)
-   y(:)=y(:)+0.5d0*(boxlen_y-ymax)
-   z(:)=z(:)+0.5d0*(boxlen_z-zmax)
+      x(:)=x(:)+0.5d0*(boxlen_x-xmax)
+      y(:)=y(:)+0.5d0*(boxlen_y-ymax)
+      z(:)=z(:)+0.5d0*(boxlen_z-zmax)
 !
 !     If a barostat shall be applied, set the initial values 
 !
-   vel_baro=0.d0
+      vel_baro=0.d0
+    end if
+end if
+if (npt .and. coord_vasp) then
+   write(*,*) "Currently, the NpT ensemble cannot be used with VASP coordinates!"
+   call fatal
 end if
 if (npt .and. .not. periodic) then
    write(*,*) "The NPT ensemble can only be used for periodic systems!"
@@ -999,7 +1005,7 @@ do k=1,nbeads
    do i=1,natoms
       q_i(1,i,k)=x(i)/bohr
       q_i(2,i,k)=y(i)/bohr
-      q_i(3,i,k)=z(i)/bohr
+      q_i(3,i,k)=z(i)/bohr    
    end do
 end do
 !
@@ -1106,11 +1112,16 @@ end if
 !
 !     write trajectory in tdump-intervals: open file
 !
-open(unit=28,file="trajectory.xyz",status="unknown")
+open(unit=28,file="trajectory.xyz",status="replace")
 if (nbeads .gt. 1) then
-   open(unit=128,file="traj_centroid.xyz",status="unknown")
+   open(unit=128,file="traj_centroid.xyz",status="replace")
 end if
-
+!
+!     If the VASP format is used, write steps also to XDATCAR file
+!
+if (coord_vasp) then
+   open(unit=51,file="XDATCAR",status="replace")
+end if
 !
 if (verbose) then
 !     verbose output: also write gradients of all atoms to file 

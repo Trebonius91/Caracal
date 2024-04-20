@@ -58,8 +58,8 @@ real(kind=8) ,allocatable :: xvar(:),gvar(:),xparam(:),xlast(:),gg(:)
 real(kind=8) alpha,e_old,f,emin,alp,el,xyz2(3,natoms),yhy,sy,ang,pnorm
 real(kind=8) ggi,xvari,ddot,gnorm,alp0,step_norm,gmax_act,dmax_act,de_act
 real(kind=8),allocatable::grd_1d(:),grd_old_1d(:)
-real(kind=8) :: cell_mat(3,3),cell_mat_inv(3,3)  ! for VASP files
-real(kind=8) :: x_frac,y_frac,z_frac  ! direct coordinates (CONTCAR)
+real(kind=8) :: coord_mat(3,3),coord_inv(3,3)  ! for VASP files
+real(kind=8) :: q_act_frac(3)  ! direct coordinates (CONTCAR)
 character(len=2) asym
 logical::converged
 logical::act_fix
@@ -75,7 +75,12 @@ nline=10
 !     start value for alpha
 !
 alp0=0.1
-
+!
+!     If VASP is used, print geometry progess to XDATCAR file
+!
+if (coord_vasp) then
+   open(unit=51,file="XDATCAR",status="replace")
+end if
 if (geoopt_algo .eq. "bfgs") then
 
    restart=.false.
@@ -168,10 +173,18 @@ if (geoopt_algo .eq. "bfgs") then
 !
       gnorm=0.d0
       do i=1,n
-         do j=1,3
-            k=k+1
-            gnorm=gnorm+grd(j,i)*grd(j,i)
+         act_fix=.false.
+         do j=1,fix_num
+            if (fix_list(j) .eq. i) then
+               act_fix=.true.
+            end if
          end do
+         if (.not. act_fix) then
+            do j=1,3
+               k=k+1
+               gnorm=gnorm+grd(j,i)*grd(j,i)
+            end do
+         end if
       end do
       gnorm=sqrt(gnorm)/natoms
       conv_gthr = .false.
@@ -181,24 +194,63 @@ if (geoopt_algo .eq. "bfgs") then
 !      
       step_norm=0.d0
       do i=1,n
-         do j=1,3
-            k=k+1
-            step_norm=step_norm+(coord(j,i)-coord_old(j,i))**2
+         act_fix=.false.
+         do j=1,fix_num
+            if (fix_list(j) .eq. i) then
+               act_fix=.true.
+            end if
          end do
+         if (.not. act_fix) then
+            do j=1,3
+               k=k+1
+               step_norm=step_norm+(coord(j,i)-coord_old(j,i))**2
+            end do
+         end if
       end do
       conv_dthr = .false.
       if (step_norm .lt. dthr) conv_dthr = .true.
 !
 !     D: gradient maximum component
 !
+      gmax_act=0.d0
+      do i=1,n
+         act_fix=.false.
+         do j=1,fix_num
+            if (fix_list(j) .eq. i) then
+               act_fix=.true.
+            end if
+         end do
+         if (.not. act_fix) then
+            do j=1,3
+               if (abs(grd(j,i)) .gt. gmax_act) then
+                  gmax_act = abs(grd(j,i))
+               end if
+            end do
+         end if
+      end do
       conv_gmaxthr = .false.
-      gmax_act=maxval(abs(grd))
       if (gmax_act .lt. gmaxthr) conv_gmaxthr = .true.
 !
 !     E: geometry step largest component
 !
+      dmax_act=0.d0
+      do i=1,n
+         act_fix=.false.
+         do j=1,fix_num
+            if (fix_list(j) .eq. i) then
+               act_fix=.true.
+            end if
+         end do
+         if (.not. act_fix) then
+            do j=1,3
+               if (abs(coord(j,i)-coord_old(j,i)) .gt. gmax_act) then
+                  gmax_act = abs(coord(j,i)-coord_old(j,i))
+               end if
+            end do
+         end if
+      end do
+
       conv_dmaxthr = .false.
-      dmax_act=maxval(abs(coord-coord_old))
       if (dmax_act .lt. dmaxthr) conv_dmaxthr = .true.
 
       write(*,'(i6,f17.9,a,es10.3,a,L1,a,es10.3,a,L1,a,es10.3,a,L1,a, &
@@ -282,10 +334,20 @@ if (geoopt_algo .eq. "bfgs") then
       do m=1,nline
          k=0
          do i=1,n
-            do j=1,3
-               k=k+1
-               xyz2(j,i)=coord(j,i)-d4(k)*alp
+            act_fix=.false.
+            do j=1,fix_num
+               if (fix_list(j) .eq. i) then
+                  act_fix=.true.
+               end if
             end do
+            if (.not. act_fix) then
+               do j=1,3
+                  k=k+1
+                  xyz2(j,i)=coord(j,i)-d4(k)*alp
+               end do
+            else
+               xyz2(:,i)=coord(:,i)
+            end if
          end do
 !
 !     energy only     
@@ -317,15 +379,94 @@ if (geoopt_algo .eq. "bfgs") then
       coord_old=coord
       k=0
       do i=1,n
-         do j=1,3
-            k=k+1
-            xlast(k)=coord(j,i)
-            coord(j,i)=coord(j,i)-d4(k)*alpha
-            xparam(k)=coord(j,i)
+         act_fix=.false.
+         do j=1,fix_num
+            if (fix_list(j) .eq. i) then
+               act_fix=.true.
+            end if
          end do
+         if (.not. act_fix) then
+            do j=1,3
+               k=k+1
+               xlast(k)=coord(j,i)
+               coord(j,i)=coord(j,i)-d4(k)*alpha
+               xparam(k)=coord(j,i)
+            end do
+         else
+            do j=1,3
+               k=k+1
+               xlast(k)=coord(j,i)
+               coord(j,i)=coord(j,i)
+               xparam(k)=coord(j,i)
+            end do
+         end if
       end do
 
       yhy=ddot(nvar,d4,1,d4,1)
+!
+!     If the VASP formate is used for input, write new CONTCAR and new frame 
+!       in XDATCAR files!
+!
+      if (coord_vasp  .and. nbeads .eq. 1) then
+         coord_mat(:,1)=vasp_a_vec(:)
+         coord_mat(:,2)=vasp_b_vec(:)
+         coord_mat(:,3)=vasp_c_vec(:)
+
+         call matinv3(coord_mat,coord_inv)
+
+         open(unit=50,file="CONTCAR",status="replace")
+         write(50,'(a,i9,a)') "CONTCAR (step ",icycle,"), written by Caracal (explore.x)"
+         write(51,'(a,i9,a)') "step ",icycle,", written by Caracal (explore.x)"
+         write(50,*) vasp_scale
+         write(51,*) vasp_scale
+         write(50,*) vasp_a_vec
+         write(51,*) vasp_a_vec
+         write(50,*) vasp_b_vec
+         write(51,*) vasp_b_vec
+         write(50,*) vasp_c_vec
+         write(51,*) vasp_c_vec
+         do i=1,nelems_vasp
+           write(50,'(a,a)',advance="no") " ",trim(vasp_names(i))
+           write(51,'(a,a)',advance="no") " ",trim(vasp_names(i))
+         end do
+         write(50,*)
+         write(51,*)
+         write(50,*) vasp_numbers(1:nelems_vasp)
+         write(51,*) vasp_numbers(1:nelems_vasp)
+         if (vasp_selective) then
+            write(50,*) "Selective dynamics"
+         end if
+         write(50,*) "Direct"
+         write(51,*) "Direct"
+!  
+!     As in usual CONTCAR files, give the positions in direct coordinates!
+!     convert them back from cartesians, by using the inverse matrix
+!  
+         do i=1,natoms
+            q_act_frac=matmul(coord_inv,coord(:,i)*bohr)
+            if (vasp_selective) then
+               act_fix=.false.
+               do j=1,fix_num
+                  if (fix_list(j) .eq. i) then
+                     act_fix=.true.
+                  end if
+               end do
+               if (act_fix) then
+                  write(50,*) q_act_frac(:),"   F   F   F "
+                  write(51,*) q_act_frac(:)!,"   F   F   F "
+               else
+                  write(50,*) q_act_frac(:),"   T   T   T "
+                  write(51,*) q_act_frac(:)!,"   T   T   T "
+               end if
+            else
+               write(50,*) q_act_frac(:)
+               write(51,*) q_act_frac(:)
+            end if
+         end do
+         close(50)
+         flush(51)
+      end if
+
 
    end do
    if (.not. converged) then
@@ -504,6 +645,70 @@ else if (geoopt_algo .eq. "cg") then
              & es10.3,a,L1,a,es10.3,a,L1,a)') icycle,epot," ",de_act," (",conv_ethr, &
              &   ") ",gnorm," (",conv_gthr,") ",step_norm," (",conv_dthr,") ", &
              & gmax_act," (",conv_gmaxthr,") ",dmax_act," (",conv_dmaxthr,")" 
+
+!     If the VASP formate is used for input, write new CONTCAR and new frame 
+!       in XDATCAR files!
+!
+      if (coord_vasp  .and. nbeads .eq. 1) then
+         coord_mat(:,1)=vasp_a_vec(:)
+         coord_mat(:,2)=vasp_b_vec(:)
+         coord_mat(:,3)=vasp_c_vec(:)
+
+         call matinv3(coord_mat,coord_inv)
+
+         open(unit=50,file="CONTCAR",status="replace")
+         write(50,'(a,i9,a)') "CONTCAR (step ",icycle,"), written by Caracal (explore.x)"
+         write(51,'(a,i9,a)') "step ",icycle,", written by Caracal (explore.x)"
+         write(50,*) vasp_scale
+         write(51,*) vasp_scale
+         write(50,*) vasp_a_vec
+         write(51,*) vasp_a_vec
+         write(50,*) vasp_b_vec
+         write(51,*) vasp_b_vec
+         write(50,*) vasp_c_vec
+         write(51,*) vasp_c_vec
+         do i=1,nelems_vasp
+           write(50,'(a,a)',advance="no") " ",trim(vasp_names(i))
+           write(51,'(a,a)',advance="no") " ",trim(vasp_names(i))
+         end do
+         write(50,*)
+         write(51,*)
+         write(50,*) vasp_numbers(1:nelems_vasp)
+         write(51,*) vasp_numbers(1:nelems_vasp)
+         if (vasp_selective) then
+            write(50,*) "Selective dynamics"
+         end if
+         write(50,*) "Direct"
+         write(51,*) "Direct"
+!  
+!     As in usual CONTCAR files, give the positions in direct coordinates!
+!     convert them back from cartesians, by using the inverse matrix
+!  
+         do i=1,natoms
+            q_act_frac=matmul(coord_inv,coord(:,i)*bohr)
+            if (vasp_selective) then
+               act_fix=.false.
+               do j=1,fix_num
+                  if (fix_list(j) .eq. i) then
+                     act_fix=.true.
+                  end if
+               end do
+               if (act_fix) then
+                  write(50,*) q_act_frac(:),"   F   F   F "
+                  write(51,*) q_act_frac(:)!,"   F   F   F "
+               else
+                  write(50,*) q_act_frac(:),"   T   T   T "
+                  write(51,*) q_act_frac(:)!,"   T   T   T "
+               end if
+            else
+               write(50,*) q_act_frac(:)
+               write(51,*) q_act_frac(:)
+            end if
+         end do
+         close(50)
+         flush(51)
+      end if
+
 !
 !     If all criteria are fulfilled, declare the optimization as successful
 !      
@@ -532,6 +737,9 @@ else if (geoopt_algo .eq. "cg") then
    end if
 
 end if
+if (coord_vasp) then
+   close(51)
+end if
 !
 !     Print the final optimized geometry
 !
@@ -543,57 +751,6 @@ do i=1,nats
 end do
 close(49)
 
-!
-!    In the case of VASP type input coordinates (POSCAR), 
-!      also print out a CONTCAR file!
-!
-
-if (coord_vasp) then
-   open(unit=50,file="CONTCAR",status="replace")
-   write(50,*) "CONTCAR file written by Caracal (explore.x)"
-   write(50,*) vasp_scale
-   write(50,*) vasp_a_vec
-   write(50,*) vasp_b_vec
-   write(50,*) vasp_c_vec
-   do i=1,nelems_vasp
-      write(50,'(a,a)',advance="no") " ",trim(vasp_names(i))
-   end do
-   write(50,*)
-   write(50,*) vasp_numbers(1:nelems_vasp)
-   write(50,*) "Direct"
-   if (vasp_selective) then
-      write(50,*) "Selective dynamics"
-   end if
-!
-!     As in usual CONTCAR files, give the positions in direct coordinates!
-!     convert them back from cartesians, by using the inverse matrix
-!
-   cell_mat(1,:)=vasp_a_vec
-   cell_mat(2,:)=vasp_b_vec
-   cell_mat(3,:)=vasp_c_vec
-   call matinv3(cell_mat,cell_mat_inv)
-   do i=1,nats
-      x_frac=dot_product(coord(:,indi(i))*bohr,cell_mat_inv(1,:))
-      y_frac=dot_product(coord(:,indi(i))*bohr,cell_mat_inv(2,:))
-      z_frac=dot_product(coord(:,indi(i))*bohr,cell_mat_inv(3,:))
-      if (vasp_selective) then
-         act_fix=.false.
-         do j=1,fix_num
-            if (fix_list(j) .eq. indi(i)) then
-               act_fix=.true.
-            end if
-         end do
-         if (act_fix) then
-            write(50,*) x_frac,y_frac,z_frac,"   F   F   F "
-         else 
-            write(50,*) x_frac,y_frac,z_frac,"   T   T   T "
-         end if
-      else
-         write(50,*) x_frac,y_frac,z_frac
-      end if  
-   end do
-   close(50)
-end if
 
 end subroutine geoopt
 

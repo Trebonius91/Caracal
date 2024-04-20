@@ -118,6 +118,10 @@ real(kind=8)::ndoft ! number degrees of freedom
 real(kind=8)::nose_zeta2
 integer::tries  ! number of periodic corrections before throwing an error
 integer::j_lower,j_upper
+!   for VASP coordinate input
+real(kind=8)::coord_mat(3,3),coord_inv(3,3)
+real(kind=8)::q_act_frac(3)
+logical::act_fix
 !   for Nose-Hoover barostat
 real(kind=8)::e2,e4,e6,e8
 real(kind=8)::eterm2,term,term2,resize,expterm
@@ -164,6 +168,71 @@ if (constrain .lt. 0) then
             write(28,*) name(i),q_i(:,i,k)*bohr
          end do
       end do
+      flush(28)
+!
+!     If the VASP formate is used for input, write new CONTCAR and new frame 
+!       in XDATCAR files!
+!
+      if (coord_vasp  .and. nbeads .eq. 1) then
+         coord_mat(:,1)=vasp_a_vec(:)
+         coord_mat(:,2)=vasp_b_vec(:)
+         coord_mat(:,3)=vasp_c_vec(:)
+
+         call matinv3(coord_mat,coord_inv)
+
+         open(unit=50,file="CONTCAR",status="replace")
+         write(50,'(a,i9,a)') "CONTCAR (step ",istep,"), written by Caracal (dynamic.x)"
+         write(51,'(a,i9,a)') "step ",istep,", written by Caracal (dynamic.x)"
+         write(50,*) vasp_scale
+         write(51,*) vasp_scale
+         write(50,*) vasp_a_vec
+         write(51,*) vasp_a_vec
+         write(50,*) vasp_b_vec
+         write(51,*) vasp_b_vec
+         write(50,*) vasp_c_vec
+         write(51,*) vasp_c_vec
+         do i=1,nelems_vasp
+           write(50,'(a,a)',advance="no") " ",trim(vasp_names(i))
+           write(51,'(a,a)',advance="no") " ",trim(vasp_names(i))
+         end do
+         write(50,*)
+         write(51,*)
+         write(50,*) vasp_numbers(1:nelems_vasp)
+         write(51,*) vasp_numbers(1:nelems_vasp)
+         if (vasp_selective) then
+            write(50,*) "Selective dynamics"
+         end if
+         write(50,*) "Direct"
+         write(51,*) "Direct"
+!  
+!     As in usual CONTCAR files, give the positions in direct coordinates!
+!     convert them back from cartesians, by using the inverse matrix
+!  
+         do i=1,natoms
+            q_act_frac=matmul(coord_inv,q_i(:,i,1)*bohr)
+            if (vasp_selective) then
+               act_fix=.false.
+               do j=1,fix_num
+                  if (fix_list(j) .eq. i) then
+                     act_fix=.true.
+                  end if
+               end do
+               if (act_fix) then
+                  write(50,*) q_act_frac(:),"   F   F   F "
+                  write(51,*) q_act_frac(:)!,"   F   F   F "
+               else
+                  write(50,*) q_act_frac(:),"   T   T   T "
+                  write(51,*) q_act_frac(:)!,"   T   T   T "
+               end if
+            else
+               write(50,*) q_act_frac(:)
+               write(51,*) q_act_frac(:)
+            end if
+         end do
+         close(50)
+         flush(51)
+      end if
+
    end if
 end if
 
@@ -477,61 +546,105 @@ end if
 !     For periodic systems: shift all atoms that were moved outside the 
 !     box on the other side!  If several RPMD beads are involved, change the 
 !     coordinates of all of them in the same way
-!     
+! 
+!     Special case for VASP coordinates: correct for arbitrary cell shape
+!     in fractional coordinates! (might be extended to all calculations in the
+!     future)
+!
+    
 if (periodic) then
-   do i=1,nbeads
-      do j=1,natoms
-         do k=1,3
-            tries=0
-            do while (q_i(k,j,i) .lt. 0) 
-               if (k .eq. 1) then
-                  q_i(k,j,:)=q_i(k,j,:)+boxlen_x
-               else if (k .eq. 2) then
-                  q_i(k,j,:)=q_i(k,j,:)+boxlen_y
-               else if (k .eq. 3) then
-                  q_i(k,j,:)=q_i(k,j,:)+boxlen_z
-               end if
-               tries=tries+1
-               if (tries .gt. 20) then
-                  write(*,*) "Too many correction steps needed for periodic dynamics! (lower)"
-                  write(*,*) "The system seems to be exploded! Check your settings!"
-                  call fatal
-               end if
-            end do
-            if (k .eq. 1) then
-               do while (q_i(1,j,i) .gt. boxlen_x)
-                  q_i(1,j,:)=q_i(1,j,:)-boxlen_x
-                  tries=tries+1
+   if (coord_vasp) then
+      coord_mat(:,1)=vasp_a_vec(:)
+      coord_mat(:,2)=vasp_b_vec(:)
+      coord_mat(:,3)=vasp_c_vec(:)
+
+      call matinv3(coord_mat,coord_inv)
+
+      
+
+      do i=1,nbeads
+         do j=1,natoms
+            q_act_frac=matmul(coord_inv,q_i(:,j,i)*bohr)
+            do k=1,3
+               tries=0
+               do while (q_act_frac(k) .lt. 0.d0) 
+                  q_act_frac(k)=q_act_frac(k) + 1.d0
+                  tries = tries+1
                   if (tries .gt. 20) then
-                     write(*,*) "Too many correction steps needed for periodic dynamics! (x, upper)"
+                     write(*,*) "Too many correction steps needed for periodic dynamics! (lower)"
+                     write(*,*) "The system seems to be exploded! Check your settings!"
+                     call fatal
+                  end if                
+               end do
+               do while (q_act_frac(k) .gt. 1.d0)
+                  q_act_frac(k)=q_act_frac(k) - 1.d0
+                  tries = tries +1
+                  if (tries .gt. 20) then
+                     write(*,*) "Too many correction steps needed for periodic dynamics! (upper)"
                      write(*,*) "The system seems to be exploded! Check your settings!"
                      call fatal
                   end if
-               end do
-            else if (k .eq. 2) then
-               do while (q_i(2,j,i) .gt. boxlen_y)
-                  q_i(2,j,:)=q_i(2,j,:)-boxlen_y
-                  tries=tries+1
-                  if (tries .gt. 20) then
-                     write(*,*) "Too many correction steps needed for periodic dynamics! (y,upper)"
-                     write(*,*) "The system seems to be exploded! Check your settings!"
-                     call fatal
-                  end if
-               end do
-            else if (k .eq. 3) then
-               do while (q_i(3,j,i) .gt. boxlen_z)
-                  q_i(3,j,:)=q_i(3,j,:)-boxlen_z
-                  tries=tries+1
-                  if (tries .gt. 20) then
-                     write(*,*) "Too many correction steps needed for periodic dynamics! (z,upper)"
-                     write(*,*) "The system seems to be exploded! Check your settings!"
-                     call fatal
-                  end if
-               end do
-            end if
+               end do 
+            end do    
+            q_i(:,j,i)=matmul(coord_mat,q_act_frac)/bohr
          end do
       end do
-   end do
+
+   else 
+      do i=1,nbeads
+         do j=1,natoms
+            do k=1,3
+               tries=0
+               do while (q_i(k,j,i) .lt. 0) 
+                  if (k .eq. 1) then
+                     q_i(k,j,:)=q_i(k,j,:)+boxlen_x
+                  else if (k .eq. 2) then
+                     q_i(k,j,:)=q_i(k,j,:)+boxlen_y
+                  else if (k .eq. 3) then
+                     q_i(k,j,:)=q_i(k,j,:)+boxlen_z
+                  end if
+                  tries=tries+1
+                  if (tries .gt. 20) then
+                     write(*,*) "Too many correction steps needed for periodic dynamics! (lower)"
+                     write(*,*) "The system seems to be exploded! Check your settings!"
+                     call fatal
+                  end if
+               end do
+               if (k .eq. 1) then
+                  do while (q_i(1,j,i) .gt. boxlen_x)
+                     q_i(1,j,:)=q_i(1,j,:)-boxlen_x
+                     tries=tries+1
+                     if (tries .gt. 20) then
+                        write(*,*) "Too many correction steps needed for periodic dynamics! (x, upper)"
+                        write(*,*) "The system seems to be exploded! Check your settings!"
+                        call fatal
+                     end if
+                  end do
+               else if (k .eq. 2) then
+                  do while (q_i(2,j,i) .gt. boxlen_y)
+                     q_i(2,j,:)=q_i(2,j,:)-boxlen_y
+                     tries=tries+1
+                     if (tries .gt. 20) then
+                        write(*,*) "Too many correction steps needed for periodic dynamics! (y,upper)"
+                        write(*,*) "The system seems to be exploded! Check your settings!"
+                        call fatal
+                     end if
+                  end do
+               else if (k .eq. 3) then
+                  do while (q_i(3,j,i) .gt. boxlen_z)
+                     q_i(3,j,:)=q_i(3,j,:)-boxlen_z
+                     tries=tries+1
+                     if (tries .gt. 20) then
+                        write(*,*) "Too many correction steps needed for periodic dynamics! (z,upper)"
+                        write(*,*) "The system seems to be exploded! Check your settings!"
+                        call fatal
+                     end if
+                  end do
+               end if
+            end do
+         end do
+      end do
+   end if
 end if
 !
 !     Calculate the centroid (center of masses) for the 
@@ -555,6 +668,64 @@ if (constrain .lt. 0) then
       do i=1,natoms
          write(128,*) name(i),centroid(:,i)*bohr
       end do
+!
+!     If the VASP formate is used for input, write new CONTCAR and new frame 
+!       in XDATCAR files!
+!     Only write centroid if more than one bead is present!
+!
+      if (coord_vasp) then
+         open(unit=50,file="CONTCAR",status="replace")
+         write(50,*) "CONTCAR (step ",istep,"), written by Caracal (dynamic.x)"
+         write(51,*) "step ",istep,", written by Caracal (dynamic.x)"
+         write(50,*) vasp_scale
+         write(51,*) vasp_scale
+         write(50,*) vasp_a_vec
+         write(51,*) vasp_a_vec
+         write(50,*) vasp_b_vec
+         write(51,*) vasp_b_vec
+         write(50,*) vasp_c_vec
+         write(51,*) vasp_c_vec
+         do i=1,nelems_vasp
+           write(50,'(a,a)',advance="no") " ",trim(vasp_names(i))
+           write(51,'(a,a)',advance="no") " ",trim(vasp_names(i))
+         end do
+         write(50,*)
+         write(51,*)
+         write(50,*) vasp_numbers(1:nelems_vasp)
+         write(51,*) vasp_numbers(1:nelems_vasp)
+         write(50,*) "Direct"
+         write(51,*) "Direct"
+         if (vasp_selective) then
+            write(50,*) "Selective dynamics"
+            write(51,*) "Selective dynamics"
+         end if
+!  
+!     As in usual CONTCAR files, give the positions in direct coordinates!
+!     convert them back from cartesians, by using the inverse matrix
+!  
+         do i=1,natoms
+            q_act_frac=matmul(coord_inv,centroid(:,i)*bohr)
+            if (vasp_selective) then
+               act_fix=.false.
+               do j=1,fix_num
+                  if (fix_list(j) .eq. i) then
+                     act_fix=.true.
+                  end if
+               end do
+               if (act_fix) then
+                  write(50,*) q_act_frac(:),"   F   F   F "
+                  write(51,*) q_act_frac(:)!,"   F   F   F "
+               else 
+                  write(50,*) q_act_frac(:),"   T   T   T "
+                  write(51,*) q_act_frac(:)!,"   T   T   T "
+               end if
+            else
+               write(50,*) q_act_frac(:)
+               write(51,*) q_act_frac(:)
+            end if  
+         end do
+         close(50)
+      end if
    end if
 end if
 
@@ -880,7 +1051,9 @@ end if
 !      (especially needed for Nose-Hoover thermostat!)
 !
 if (constrain .lt. 0) then
-   call transrot(centroid)
+   if (.not. coord_vasp) then
+      call transrot(centroid)
+   end if
 end if
 return
 end subroutine verlet

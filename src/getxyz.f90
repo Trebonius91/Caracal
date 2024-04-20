@@ -144,7 +144,9 @@ if (trim(xyzfile) .eq. "POSCAR") then
    if (trim(string) .eq. "Selective dynamics" .or. & 
           & trim(string) .eq. "selective dynamics" .or. &
           & trim(string) .eq. "Selective" .or. &
-          & trim(string) .eq. "selective") then
+          & trim(string) .eq. "selective" .or. &
+          & trim(string) .eq. "Selective Dynamics" .or. &
+          & trim(string) .eq. "Selective Dynamics") then
       vasp_selective = .true.
       fix_atoms = .true.
       allocate(fix_list(natoms))
@@ -159,7 +161,6 @@ if (trim(xyzfile) .eq. "POSCAR") then
          vasp_direct = .true.
       end if
    end if
-
 !
 !     Now read in the coordinates
 !     If selective is activated, read in the first flag as well and 
