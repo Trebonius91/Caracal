@@ -74,6 +74,11 @@ integer::nelems_vasp  ! number of elements in the header line
 !
 real(kind=8)::vasp_scale
 real(kind=8)::vasp_a_vec(3),vasp_b_vec(3),vasp_c_vec(3)
+! for Hessian matrix and IR spectra calculations
+logical::calc_freq_int
+integer::int_incr
+real(kind=8),allocatable::int_pos_vecs(:,:,:)  ! numerical elongations 
+real(kind=8),allocatable::dip_list(:,:)  ! numerical dipole derivatives
 !
 !     Parameters for periodic potentials (cutoffs, Ewald, etc)
 !

@@ -41,6 +41,7 @@ use m_gulp_interface
 use pbc_mod
 implicit none 
 integer,intent(in)::natoms
+integer::i,j
 real(kind=8),intent(in)::xyz_act(3,natoms)
 real(kind=8),intent(out)::grad_act(3,natoms)
 real(kind=8),intent(out)::energy_act
@@ -49,6 +50,7 @@ real(kind=8)::charges(natoms)
 real(kind=8),allocatable::coord_cell(:,:)
 real(kind=8)::strainderivatives(6)
 real(kind=8)::bohr,evolt
+real(kind=8)::charge_com(3),dipolemom(3)
 character(len=120)::keywords,libraryfile
 logical::lgradients
 integer::ndim
@@ -130,7 +132,37 @@ if (ierror .ne. 0) then
    call fatal
 end if
 !
-!     comvert energy and derivatives from eV / eV/Ang  to Hartree / Hartree/bohr
+!     If needed, calculate the dipole moment of the current structure
+!
+!     Calculate the charge center of mass
+!
+if (sum(charges) .gt. 0.1d0) then
+   charge_com=0.d0
+   do i=1,natoms
+      do j=1,3
+         charge_com(j)=charge_com(j)+charges(i)*xyz_local(j,i)      
+      end do
+   end do
+   charge_com=charge_com/sum(charges)
+else 
+   charge_com=0.d0
+end if
+!
+!    Calculate the dipole moment relative to the center of charge
+!
+dipolemom=0.d0
+do i=1,natoms
+   dipolemom=dipolemom-charges(i)*(xyz_local(:,i)-charge_com(:))
+end do
+!
+!     For intensities of numerical frequencies: store dipole vector in global array
+!
+if (calc_freq_int) then
+   dip_list(:,int_incr) = dipolemom
+end if
+
+!
+!     convert energy and derivatives from eV / eV/Ang  to Hartree / Hartree/bohr
 !
 grad_act=grad_act/bohr/evolt
 energy_act=energy_act/evolt

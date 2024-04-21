@@ -57,6 +57,10 @@ logical::reorder
 !     ask for the user specified input structure filename
 !
 exist= .false.
+!
+!     Default: no atoms are fixed!
+!
+fix_num=0  
 
 do i = 1, nkey_lines
    next = 1
@@ -141,23 +145,25 @@ if (trim(xyzfile) .eq. "POSCAR") then
    fix_atoms = .false.
    
    read(ixyz,'(a)',err=60,end=60) string 
-   if (trim(string) .eq. "Selective dynamics" .or. & 
-          & trim(string) .eq. "selective dynamics" .or. &
-          & trim(string) .eq. "Selective" .or. &
-          & trim(string) .eq. "selective" .or. &
-          & trim(string) .eq. "Selective Dynamics" .or. &
-          & trim(string) .eq. "Selective Dynamics") then
+   if (adjustl(trim(string)) .eq. "Selective dynamics" .or. & 
+          & adjustl(trim(string)) .eq. "selective dynamics" .or. &
+          & adjustl(trim(string)) .eq. "Selective" .or. &
+          & adjustl(trim(string)) .eq. "selective" .or. &
+          & adjustl(trim(string)) .eq. "Selective Dynamics" .or. &
+          & adjustl(trim(string)) .eq. "Selective Dynamics") then
       vasp_selective = .true.
       fix_atoms = .true.
       allocate(fix_list(natoms))
    else
-      if (trim(string) .eq. "direct" .or. trim(string) .eq. "Direct") then
+      if (adjustl(trim(string)) .eq. "direct" .or.  & 
+                  & adjustl(trim(string)) .eq. "Direct") then
          vasp_direct = .true.
       end if
    end if
    if (vasp_selective) then
       read(ixyz,'(a)',err=60,end=60) string
-      if (trim(string) .eq. "direct" .or. trim(string) .eq. "Direct") then
+      if (adjustl(trim(string)) .eq. "direct" .or. &
+                  & adjustl(trim(string)) .eq. "Direct") then
          vasp_direct = .true.
       end if
    end if
@@ -195,31 +201,46 @@ if (trim(xyzfile) .eq. "POSCAR") then
    end if
 
    close (unit=ixyz)
-   return
-end if
-
+else
 !
 !    Read in a usual xyz file
 !
-open (unit=ixyz,file=xyzfile,status='old')
-rewind (unit=ixyz)
+   open (unit=ixyz,file=xyzfile,status='old')
+   rewind (unit=ixyz)
 
-read(ixyz,*,err=60,end=60) n
-natoms=n
-read(ixyz,*,err=60,end=60) 
-allocate(elem_index(natoms))
-do i=1,n
-   read(ixyz,*,err=60,end=60) name(i),x(i),y(i),z(i)
-   call atommass(i)
-   call upcase(name(i))
+   read(ixyz,*,err=60,end=60) n
+   natoms=n
+   read(ixyz,*,err=60,end=60)
+   allocate(elem_index(natoms))
+   do i=1,n
+      read(ixyz,*,err=60,end=60) name(i),x(i),y(i),z(i)
+      call atommass(i)
+      call upcase(name(i))
 !
 !    Store element indices 
 !
-   call elem(name(i),elem_index(i))
+      call elem(name(i),elem_index(i))
 
-end do
+   end do
 
-close (unit=ixyz)
+   close (unit=ixyz)
+end if
+!
+!     Determine all fixed atoms for the dynamics
+!
+if (allocated(at_move)) deallocate(at_move)
+allocate(at_move(natoms))
+at_move=.true.
+if (fix_atoms) then
+   do i=1,natoms
+      do j=1,fix_num
+         if (fix_list(j) .eq. i) then
+            at_move(i) = .false.
+         end if
+      end do
+   end do
+end if
+
 
 return
 60 continue

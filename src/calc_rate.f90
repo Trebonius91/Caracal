@@ -74,6 +74,7 @@
 program calc_rate
 use general
 use evb_mod
+use pbc_mod
 use debug
 use qmdff
 implicit none
@@ -240,6 +241,11 @@ use_calc_rate=.true.
 !     The explore program is not used
 !
 use_explore = .false.
+!
+!     No frequency intensities as default
+!
+calc_freq_int = .false.
+
 !
 !     set up the structure and molecular mechanics calculation
 !

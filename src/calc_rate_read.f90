@@ -1246,6 +1246,20 @@ if (fix_atoms) then
    fix_num=k-1
 end if
 
+!
+!     Determine all fixed atoms for the dynamics
+!
+allocate(at_move(natoms))
+at_move=.true.
+if (fix_atoms) then
+   do i=1,natoms
+      do j=1,fix_num
+         if (fix_list(j) .eq. i) then
+            at_move(i) = .false.
+         end if
+      end do
+   end do
+end if
 
 !
 !     Control if additional settings are correct/useful/appropriate

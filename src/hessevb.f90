@@ -34,6 +34,7 @@
 subroutine hessevb(xyz2,h)
 use general
 use evb_mod
+use pbc_mod
 
 implicit none
 integer mode
@@ -62,28 +63,50 @@ allocate(gr(3,n),gl(3,n),isqm(n3),xsave(3,n))
 
 xsave = xyz2
 
-! step length
-step=0.0000001
+!   step length
+step=0.00001d0
 !
-! compute the EVB-QMDFF-Hessian by moving the coordinates 
+!   compute the EVB-QMDFF-Hessian by moving the coordinates 
 !
+!   If IR intensities shall be calculatd, increment the storage index
+!   and store the elongation of the geometry
+!
+if (calc_freq_int) then
+   allocate(int_pos_vecs(3,natoms,6*(natoms-fix_num)))
+   allocate(dip_list(3,6*(natoms-fix_num)))
+   int_incr=0
+end if
+
 do ia = 1, natoms
-   do ic = 1, 3
-      ii = (ia-1)*3+ic
-      xyz2(ic,indi(ia))=xyz2(ic,indi(ia))+step
+   if (at_move(ia)) then
+      do ic = 1, 3
+         ii = (ia-1)*3+ic
+         xyz2(ic,indi(ia))=xyz2(ic,indi(ia))+step
 
-      call gradient(xyz2,e,gr,1,1)
-      xyz2(ic,indi(ia))=xyz2(ic,indi(ia))-2.*step
+         if (calc_freq_int) then
+            int_incr=int_incr+1
+            int_pos_vecs(:,:,int_incr)=xyz2*bohr
+         end if
+         
 
-      call gradient(xyz2,e,gl,1,1)
-      xyz2(ic,indi(ia))=xyz2(ic,indi(ia))+step
-      do ja = 1, natoms
-         do jc = 1, 3
-            jj = (ja-1)*3 + jc
-            h (ii,jj) =(gr(jc,indi(ja)) - gl(jc,indi(ja))) / (2.*step)
-         end do
+         call gradient(xyz2,e,gr,1,1)
+         xyz2(ic,indi(ia))=xyz2(ic,indi(ia))-2.*step
+
+         if (calc_freq_int) then
+            int_incr=int_incr+1
+            int_pos_vecs(:,:,int_incr)=xyz2*bohr
+         end if
+
+         call gradient(xyz2,e,gl,1,1)
+         xyz2(ic,indi(ia))=xyz2(ic,indi(ia))+step
+         do ja = 1, natoms
+            do jc = 1, 3
+               jj = (ja-1)*3 + jc
+               h (ii,jj) =(gr(jc,indi(ja)) - gl(jc,indi(ja))) / (2.*step)
+            end do
+         end do 
       end do 
-   end do 
+   end if
 end do
 
 xyz2=xsave

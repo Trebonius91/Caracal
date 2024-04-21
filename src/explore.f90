@@ -140,6 +140,10 @@ use_calc_rate=.false.
 !
 use_explore = .true.
 !
+!     No frequency intensities as default
+!
+calc_freq_int = .false.
+!
 !     set up the structure and mechanics calculation
 !
 call prog_initial(rank)
@@ -1157,6 +1161,11 @@ end if
 !   hessian calculation and normal mode analysis
 !
 if (frequency) then
+!
+!    Default: activate intensities
+!
+   calc_freq_int = .true.
+
    write(*,*) "Calculate frequencies of the structure..."
    write(15,*)"*The hessian of the structure is:"
    write(15,*)
@@ -1164,8 +1173,6 @@ if (frequency) then
    allocate(h_out(9*nats*nats),freqs(3*nats))
    allocate(eigvecs(3*nats,3*nats))
    call hessevb(coord,hess)
-
-  
 !   write out the hessian
 !  hess=hess/bohr/bohr
   do j=1,3*nats
@@ -1285,8 +1292,8 @@ if (frequency) then
 !
 !     Write out the normal modes in molden formate for better handling
 !
-   call g98fake("explore.molden",natoms,atind,coord,freqs,eigvecs,eigvecs)
-   write(15,*) "File explore.molden with normal mode spectum written."
+!   call g98fake("explore.molden",natoms,atind,coord,freqs,eigvecs,eigvecs)
+!   write(15,*) "File explore.molden with normal mode spectum written."
 
    deallocate(hess)
    deallocate(eigvecs)

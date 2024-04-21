@@ -244,6 +244,7 @@ integer::shift_atom,shift_coord  ! for the ATOM_SHIFT coordinate
 real(kind=8)::shift_lo,shift_hi  ! for the ATOM_SHIFT coordinate 
 logical::fix_atoms  ! if some atoms shall be fixed in dynamics calculations
 integer,allocatable::fix_list(:) ! file with list of fixed atoms
+logical,allocatable::at_move(:)  ! boolean mask for all atoms, if moved or fixed
 integer::fix_num  ! number of fixed atoms
 integer::umbr_traj ! number of umbrella trajectories per Xi value
 real(kind=8)::t_avg ! TEST for temperature equilibrium

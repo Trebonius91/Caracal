@@ -46,6 +46,7 @@
 program evbopt
 use general
 use evb_mod
+use pbc_mod
 
 implicit none
 !
@@ -98,6 +99,10 @@ call mpi_comm_rank(mpi_comm_world,rank,ierr) ! index of current proc
 !     The explore program is not used
 !
 use_explore = .false.
+!
+!     No frequency intensities as default
+!
+calc_freq_int = .false.
 
 !
 !     set up the structure and mechanics calculation

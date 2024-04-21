@@ -242,7 +242,12 @@ call get_result_bond_orders_api(verror,calc_results,wbo_act)
 call get_result_dipole_api(verror,calc_results,dipole_act)
 call get_result_quadrupole_api(verror,calc_results,quadrupole_act)
 call get_result_virial_api(verror,calc_results,virial_act)
-
+!
+!     For intensities of numerical frequencies: store dipole vector in global array
+!
+if (calc_freq_int) then
+   dip_list(:,int_incr) = dipole_act
+end if
 write(84,*) "   FURTHER RESULTS: "
 write(84,*)
 write(84,*) "   * Partial charges"

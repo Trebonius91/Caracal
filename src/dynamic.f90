@@ -135,6 +135,11 @@ use_calc_rate=.false.
 !
 use_explore = .false.
 !
+!     No frequency intensities as default
+!
+calc_freq_int = .false.
+
+!
 !
 !     set up the structure and molecular mechanics calculation
 !
@@ -185,6 +190,7 @@ change_mass=.false.
 !
 !     Read in the start structure for dynamics (keyword: XYZSTART)
 !
+fix_atoms=.false.
 call getxyz
 !
 !     Read in the QMDFF and EVB terms
@@ -904,44 +910,46 @@ nbeads_store=nbeads
 !
 !     Option for fixing of distinct atoms in order to make e.g. metal slab calculations 
 !     possible 
+!     Activate only if no VASP input file with selective dynamics has been used
 !
-fix_atoms=.false.
-do i = 1, nkey_lines
-    next = 1
-    record = keyline(i)
-    call gettext (record,keyword,next)
-    call upcase (keyword)
-    string = record(next:120)
-    if (keyword(1:20) .eq. 'FIX_ATOMS ') then
-       fix_atoms=.true.
-       read(record,*) names,fix_file
-    end if
-    if (fix_atoms) then
-       inquire(file=fix_file,exist=exist)
-       if (.not. exist) then
-          if (rank .eq. 0) then
-             write(*,*) "ERROR! The file ",fix_file," with the fixed atoms is not present!"
-          end if
-          call fatal
-       end if
-       allocate(fix_list(1000))
+if (.not. fix_atoms) then
+   do i = 1, nkey_lines
+      next = 1
+      record = keyline(i)
+      call gettext (record,keyword,next)
+      call upcase (keyword)
+      string = record(next:120)
+      if (keyword(1:20) .eq. 'FIX_ATOMS ') then
+         fix_atoms=.true.
+         read(record,*) names,fix_file
+      end if
+      if (fix_atoms) then
+         inquire(file=fix_file,exist=exist)
+         if (.not. exist) then
+            if (rank .eq. 0) then
+               write(*,*) "ERROR! The file ",fix_file," with the fixed atoms is not present!"
+            end if
+            call fatal
+         end if
+         allocate(fix_list(1000))
 !
 !     Read in list with fixed atoms 
 ! 
-       open(unit=213,file=fix_file,status="old")
-       k=1
-       do
-          read(213,*,iostat=readstat) fix_list(k)
-          if (readstat .ne. 0) exit
-          k=k+1
-       end do
-       fix_num=k-1
-       write(*,'(a,i5,a)') " The FIXED_ATOMS option was activated! In total, ",fix_num,&
-            & " atoms"
-       write(*,*) " will be hold fixed."
-       exit 
-    end if
-end do
+         open(unit=213,file=fix_file,status="old")
+         k=1
+         do
+            read(213,*,iostat=readstat) fix_list(k)
+            if (readstat .ne. 0) exit
+            k=k+1
+         end do
+         fix_num=k-1
+         write(*,'(a,i5,a)') " The FIXED_ATOMS option was activated! In total, ",fix_num,&
+              & " atoms"
+         write(*,*) " will be hold fixed."
+         exit 
+      end if
+   end do
+end if
 !-----------------------Initialize-MD-Run--------------------------
 !
 !
@@ -1008,6 +1016,21 @@ do k=1,nbeads
       q_i(3,i,k)=z(i)/bohr    
    end do
 end do
+!
+!     Determine all fixed atoms for the dynamics
+!
+if (allocated(at_move)) deallocate(at_move)
+allocate(at_move(natoms))
+at_move=.true.
+if (fix_atoms) then
+   do i=1,natoms
+      do j=1,fix_num
+         if (fix_list(j) .eq. i) then
+            at_move(i) = .false.
+         end if
+      end do
+   end do
+end if
 !
 !     For NPT ensemble: convert the pressure unit
 !

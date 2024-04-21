@@ -36,6 +36,7 @@
 subroutine calc_freq(hess,freqs,eigvecs,printfreq)
 use evb_mod
 use general
+use pbc_mod
 
 implicit none
 integer::i,j,k,l,inc,block,first
@@ -53,10 +54,19 @@ real(kind=8),dimension(:),allocatable::WORK,W
 real(kind=8),dimension(:,:),allocatable::A_mat,coord
 real(kind=8),dimension(:,:,:),allocatable::n_vib
 real(kind=8),dimension(:,:),allocatable::U
+real(kind=8)::com_coord(3)
 integer::NRHS,LDB
+integer::ind
 logical::printfreq ! if normal mode frequencies shall be printed to log
 real(kind=8)::pi
 real(kind=8)::factor
+!   for normal mode intensities
+real(kind=8),allocatable::n_vib1(:,:,:),n_vib2(:,:,:)
+real(kind=8)::deltaxyz
+real(kind=8),allocatable::dipgrad(:,:,:),dxyz(:,:),ddip(:,:,:)
+real(kind=8),allocatable::intens(:,:),totintens(:)
+real(kind=8),allocatable::coord_mass(:)
+real(kind=8)::cnvint
 !
 !     unit conversion factors
 !
@@ -94,7 +104,7 @@ enddo
 !
 JOBZ='V' !eigenvalues and eigenvectors(U)
 UPLO='U' !upper triangle of a
-Nn=3*nats
+Nn=3*(nats-fix_num)
 LDA=Nn
 INFO=0
 LWORK=Nn*Nn-1
@@ -103,7 +113,7 @@ allocate(A_mat(Nn,Nn))
 allocate(W(Nn))
 allocate(WORK(LWORK))
 allocate(n_vib(Nn,nats,3))
-allocate(coord(nats,3))
+allocate(coord(3,natoms))
 A_mat=hess
 call DSYEV(JOBZ,UPLO,Nn,A_mat,LDA,W,WORK,LWORK,INFO)
 if (info .ne. 0) then
@@ -111,7 +121,6 @@ if (info .ne. 0) then
    write(*,*) " an error code!"
    call fatal
 end if
-
 !
 !   The freqequencies can be expressed as: 1/(2*pi)*sqrt(f)
 !   where f is the eigenvalue
@@ -121,87 +130,190 @@ end if
 !   good frequencies! 
 !   ---> corrected 07.11.2017!! (square root was applied too early)
 !
-do i = 1, 3*nats
-   W(i)=au2cm*sign(sqrt(abs(W(i))),W(i))/sqrt(amu2au)
-end do
-if (printfreq) then
-   write(15,*)"*The normal mode frequencies (cm-1) of the structure are:"
-   write(15,*)
-   do i=1,3*nats
-      write(15,*) i, W(i)
-   end do
-   write(15,*)
-end if
+!do i = 1, 3*nats
+!   W(i)=au2cm*sign(sqrt(abs(W(i))),W(i))/sqrt(amu2au)
+!end do
+!if (printfreq) then
+!   write(15,*)"*The normal mode frequencies (cm-1) of the structure are:"
+!   write(15,*)
+!   do i=1,3*nats
+!      write(15,*) i, W(i)
+!   end do
+!   write(15,*)
+!end if
 !
 !    for return of frequencies
 !
-freqs=W
+!freqs=W
 !
 !   Now, if desired, calculate the normal mode cartesian displacements!!
-!   maximal number: 99 normal modes
 !
-eigvecs=A_Mat
-if (print_nm) then
-   call system("rm -r normal_modes")
-   call system("mkdir normal_modes")
-   do i=1,nat3
+!eigvecs=A_Mat
 !
-!   define output file
+!     Obtain frequencies with correct unit etc.
 !
-      if (i .lt. 10) then
-         allocate(character(len=5)::filename1)
-         write(filename1,"(I1,A4)") i,".xyz"
-      else 
-         allocate(character(len=6)::filename1)
-         write(filename1,"(I2,A4)") i,".xyz"
-      end if
-      open(unit=87,file=filename1,status="unknown")
+do i = 1, 3*(natoms-fix_num)
+   W(i)=sign(sqrt(abs(W(i))),W(i))
+end do
 !
-!   load input structure
+!     Do conversion according to Mopac manual: 
+!     http://openmopac.net/manual/Hessian_Matrix.html
 !
-      do j=1,nats
-         coord(j,1)=x(indi(j))
-         coord(j,2)=y(indi(j))
-         coord(j,3)=z(indi(j))
+!     1: from Hartree/Ang^2 to kcal/(mol*Ang^2)
+!
+W=W*sqrt(627.503)
+!
+!     2: from kcal/(mol*Ang^2) to millidynes/Ang (and to Newton/m/kg)
+!
+W=W*sqrt(1E8*4184d0/(1E-10*6.023E23))
+!
+!     3: from millidynes/Ang to cm^-1
+!
+W=W*1302.79d0
+!
+!     Calculate normal mode vibration vectors (for all atoms and 
+!      only for active atoms)
+!
+allocate(coord_mass(3*(natoms-fix_num)))
+allocate(n_vib1(3,natoms-fix_num,Nn))
+allocate(n_vib2(3,natoms,Nn))
+k=0
+do i=1,natoms
+   if (at_move(i)) then
+      k=k+1
+      coord_mass((k-1)*3+1)=mass(i)
+      coord_mass((k-1)*3+2)=mass(i)
+      coord_mass((k-1)*3+3)=mass(i)
+   end if
+end do
+do i=1,3*(natoms-fix_num)
+   do j=1,natoms-fix_num
+      do k=1,3
+         n_vib1(k,j,i)=A_mat((j-1)*3+k,3*(natoms-fix_num)-i+1)/sqrt(coord_mass((j-1)*3+k))
       end do
-!
-!   define normal mode displacement vector (factor 1/2 for better view)
-!
-      do j=1,nats
-         do k=1,3
-            n_vib(i,j,k)=A_mat((j-1)*3+k,i)/2
-         end do
-      end do
-      coord=coord-n_vib(i,:,:)
-!
-!   write normal modes (20 frames) to output file
-!
-      do j=1,20
-         write(87,*) nats
-         write(87,*) 
-         do k=1,nats
-           write(87,*) name(indi(k)),coord(k,:)
-         end do
-         coord=coord+n_vib(i,:,:)/10
-      end do
-      do j=1,20
-         write(87,*) nats
-         write(87,*)
-         do k=1,nats
-           write(87,*) name(indi(k)),coord(k,:)
-         end do
-         coord=coord-n_vib(i,:,:)/10
-      end do
-
-      close(87)
-      write(syscall,"(A3,A6,A13)") "mv ",filename1," normal_modes"
-      call system(syscall)
-      deallocate(filename1)
    end do
-   write(*,*)"Normal mode vibrations are written to folder normal_modes"
-   write(15,*)"*Normal mode vibrations are written to folder normal_modes"
-   write(15,*)
+end do
+!
+!     Fill full (all n atoms) normal mode vectors
+!
+do i=1,3*(natoms-fix_num)
+   ind=1
+   do j=1,natoms
+      if (at_move(j)) then
+         n_vib2(:,j,i)=n_vib1(:,ind,i)
+         ind=ind+1
+      else
+         n_vib2(:,j,i)=0.d0
+      end if
+   end do
+end do
+
+!
+!    Calculate the normal mode intensities, if available   
+!    adapted from split_freq from VASP4CLINT, 21.04.2024
+!
+if (calc_freq_int) then
+   allocate(dxyz(3,natoms))
+   allocate(ddip(3,3,natoms))
+   allocate(dipgrad(3,3,natoms))
+!
+!    Calculate the dipol derivatives
+!
+   do i=1,(natoms-fix_num)*3
+      do j=1,natoms
+         do k=1,3
+            deltaxyz=int_pos_vecs(k,j,(i-1)*2+1)-int_pos_vecs(k,j,(i-1)*2+2)
+            if (deltaxyz .gt. 1E-6) then
+               dxyz(k,j) = deltaxyz
+               do l=1,3
+                  ddip(l,k,j)=dip_list(l,(i-1)*2+1)-dip_list(l,(i-1)*2+2)
+                  dipgrad(l,k,j)=ddip(l,k,j) / dxyz(k,j)
+               end do
+            end if
+         end do
+      end do
+   end do
+!
+!    Calculate normal mode intensities
+!
+   cnvint = 974.88d0
+   allocate(intens(3,3*(natoms-fix_num)))
+   allocate(totintens(3*(natoms-fix_num))) 
+   intens=0.d0
+   totintens=0.d0  
+   do i=1,3*(natoms-fix_num)
+      do j=1,3
+         do k=1,natoms
+            do l=1,3
+               intens(j,i)=intens(j,i)+dipgrad(j,l,k)*n_vib2(l,k,i)
+            end do
+         end do
+         intens(j,i)=intens(j,i)*intens(j,i)*cnvint
+         totintens(i)=totintens(i)+intens(j,i)
+      end do
+   end do
 end if
+!
+!     Shift structure to origin for better visualization with molden
+!
+do i=1,natoms
+   coord(1,i)=x(i)
+   coord(2,i)=y(i)
+   coord(3,i)=z(i)
+end do
+com_coord=0.d0
+do i=1,natoms
+   do j=1,3
+      com_coord(j)=com_coord(j)+mass(i)*coord(j,i)
+   end do
+end do
+com_coord=com_coord/sum(mass(1:natoms))
+do i=1,natoms
+   coord(:,i)=coord(:,i)-com_coord(:)
+end do
+
+
+!
+!     Write molden format output file for full system 
+!
+open(unit=49,file="explore.molden",status="replace")
+write(49,*) "[Molden Format]"
+write(49,*) "[Atoms] Angs"
+do i=1,natoms
+!   write(*,*) " ",name(i),i,elem_index(i),coord(:,i)
+   write(49,'(a,a,i7,i4,3f12.6)') " ",name(i),i,elem_index(i), &
+                & coord(:,i)
+end do
+write(49,*) "[FREQ]"
+do i=1,3*(natoms-fix_num)
+   write(49,'(f10.4)') W(3*(natoms-fix_num)-i+1)
+end do
+write(49,*) "[INT]"
+if (sum(totintens) .lt. 1d0) then
+   do i=1,3*(natoms-fix_num)
+      write(49,'(f10.4)') 1.d0
+   end do   
+else
+   do i=1,3*(natoms-fix_num)
+      write(49,'(f10.4)') totintens(i)
+   end do
+end if
+write(49,*) "[FR-COORD]"
+do i=1,natoms
+   write(49,'(a,a,3f11.6)') " ",name(i),coord(:,i)/bohr
+end do
+write(49,*) "[FR-NORM-COORD]"
+do i=1,3*(natoms-fix_num)
+   write(49,'(a,i7)') "vibration",i
+   ind=1
+   do j=1,natoms
+      write(49,'(3f11.6)') n_vib2(:,j,i)
+   end do
+end do
+close(49)
+write(*,*)
+write(*,*) "File 'explore.molden' for mode visualization (all atoms) written!"
+
 !
 !    return unchanged hessian
 !

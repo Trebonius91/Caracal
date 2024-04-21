@@ -76,17 +76,39 @@ nline=10
 !
 alp0=0.1
 !
+!     Set the old geometry to the current one in the first step
+!
+coord_old=coord
+!
 !     If VASP is used, print geometry progess to XDATCAR file
 !
 if (coord_vasp) then
    open(unit=51,file="XDATCAR",status="replace")
 end if
-if (geoopt_algo .eq. "bfgs") then
 
+!
+!     Write out chosen convergence criteria:
+!
+write(*,*)
+write(*,*) "Convergence criteria:"
+write(*,'(a,es10.3)') " - Change in total energy (eV) (DeltaE): ",ethr
+write(*,'(a,es10.3)') " - Gradient norm (per atom) (eV/A) (grad.norm): ",gthr
+write(*,'(a,es10.3)') " - Geometry step norm (per atom) (A) (step norm): ",gthr
+write(*,'(a,es10.3)') " - Largest gradient component (eV/A) (grad. max): ",gthr
+write(*,'(a,es10.3)') " - Largest geometry step component (A) (step max): ",gthr
+ 
+if (geoopt_algo .eq. "bfgs") then
+   write(*,*)
+   write(*,*) "Start the Broyden-Fletcher-Goldfarb-Shanno (BFGS) algorithm ..."
+   write(*,*)
    restart=.false.
    alpha=0
    ang  =0
-   np=3*natoms
+!
+!     Reduce the optimization problem to the subspace of active/movable
+!     atoms, if atoms shall be fixed!
+!
+   np=3*natoms-3*fix_num 
    nvar=np
 
    allocate(d4(np),g4(np),g_old(np),xparam(np),hesinv(np*(np+1)/2), &
@@ -172,18 +194,9 @@ if (geoopt_algo .eq. "bfgs") then
 !     B: gradient norm (per atom)
 !
       gnorm=0.d0
-      do i=1,n
-         act_fix=.false.
-         do j=1,fix_num
-            if (fix_list(j) .eq. i) then
-               act_fix=.true.
-            end if
-         end do
-         if (.not. act_fix) then
-            do j=1,3
-               k=k+1
-               gnorm=gnorm+grd(j,i)*grd(j,i)
-            end do
+      do i=1,natoms
+         if (at_move(i)) then
+            gnorm=gnorm+dot_product(grd(:,i),grd(:,i))
          end if
       end do
       gnorm=sqrt(gnorm)/natoms
@@ -193,34 +206,22 @@ if (geoopt_algo .eq. "bfgs") then
 !     C: geometry step norm (per atom)
 !      
       step_norm=0.d0
-      do i=1,n
-         act_fix=.false.
-         do j=1,fix_num
-            if (fix_list(j) .eq. i) then
-               act_fix=.true.
-            end if
-         end do
-         if (.not. act_fix) then
-            do j=1,3
-               k=k+1
-               step_norm=step_norm+(coord(j,i)-coord_old(j,i))**2
-            end do
+      do i=1,natoms
+         if (at_move(i)) then
+            step_norm=step_norm+dot_product(coord(:,i)-coord_old(:,i), &
+                           & coord(:,i)-coord_old(:,i))
          end if
       end do
+      step_norm=sqrt(step_norm)/natoms   
+   
       conv_dthr = .false.
       if (step_norm .lt. dthr) conv_dthr = .true.
 !
 !     D: gradient maximum component
 !
       gmax_act=0.d0
-      do i=1,n
-         act_fix=.false.
-         do j=1,fix_num
-            if (fix_list(j) .eq. i) then
-               act_fix=.true.
-            end if
-         end do
-         if (.not. act_fix) then
+      do i=1,natoms
+         if (at_move(i)) then
             do j=1,3
                if (abs(grd(j,i)) .gt. gmax_act) then
                   gmax_act = abs(grd(j,i))
@@ -234,17 +235,11 @@ if (geoopt_algo .eq. "bfgs") then
 !     E: geometry step largest component
 !
       dmax_act=0.d0
-      do i=1,n
-         act_fix=.false.
-         do j=1,fix_num
-            if (fix_list(j) .eq. i) then
-               act_fix=.true.
-            end if
-         end do
-         if (.not. act_fix) then
+      do i=1,natoms
+         if (at_move(i)) then
             do j=1,3
-               if (abs(coord(j,i)-coord_old(j,i)) .gt. gmax_act) then
-                  gmax_act = abs(coord(j,i)-coord_old(j,i))
+               if (abs(coord(j,i)-coord_old(j,i)) .gt. dmax_act) then
+                  dmax_act = abs(coord(j,i)-coord_old(j,i))
                end if
             end do
          end if
@@ -283,14 +278,16 @@ if (geoopt_algo .eq. "bfgs") then
       endif
 
       k=0
-      do i=1,n
-         do j=1,3
-            k=k+1
-            g_old(k)=g4(k)
-            g4(k)=grd(j,i)
-            xvar(k)=xparam(k)-xlast(k)
-            gvar(k)=g4(k)-g_old(k)
-         end do
+      do i=1,natoms
+         if (at_move(i)) then
+            do j=1,3
+               k=k+1
+               g_old(k)=g4(k)
+               g4(k)=grd(j,i)
+               xvar(k)=xparam(k)-xlast(k)
+               gvar(k)=g4(k)-g_old(k)
+            end do
+         end if
       end do
 !
 !     Print info for this cycle
@@ -333,14 +330,8 @@ if (geoopt_algo .eq. "bfgs") then
       emin=1.d+42
       do m=1,nline
          k=0
-         do i=1,n
-            act_fix=.false.
-            do j=1,fix_num
-               if (fix_list(j) .eq. i) then
-                  act_fix=.true.
-               end if
-            end do
-            if (.not. act_fix) then
+         do i=1,natoms
+            if (at_move(i)) then
                do j=1,3
                   k=k+1
                   xyz2(j,i)=coord(j,i)-d4(k)*alp
@@ -378,14 +369,8 @@ if (geoopt_algo .eq. "bfgs") then
       end if
       coord_old=coord
       k=0
-      do i=1,n
-         act_fix=.false.
-         do j=1,fix_num
-            if (fix_list(j) .eq. i) then
-               act_fix=.true.
-            end if
-         end do
-         if (.not. act_fix) then
+      do i=1,natoms
+         if (at_move(i)) then
             do j=1,3
                k=k+1
                xlast(k)=coord(j,i)
@@ -394,10 +379,7 @@ if (geoopt_algo .eq. "bfgs") then
             end do
          else
             do j=1,3
-               k=k+1
-               xlast(k)=coord(j,i)
                coord(j,i)=coord(j,i)
-               xparam(k)=coord(j,i)
             end do
          end if
       end do
@@ -407,7 +389,7 @@ if (geoopt_algo .eq. "bfgs") then
 !     If the VASP formate is used for input, write new CONTCAR and new frame 
 !       in XDATCAR files!
 !
-      if (coord_vasp  .and. nbeads .eq. 1) then
+      if (coord_vasp) then
          coord_mat(:,1)=vasp_a_vec(:)
          coord_mat(:,2)=vasp_b_vec(:)
          coord_mat(:,3)=vasp_c_vec(:)
@@ -494,6 +476,9 @@ if (geoopt_algo .eq. "bfgs") then
 !     The conjugate gradient algorithm
 !
 else if (geoopt_algo .eq. "cg") then
+   write(*,*)
+   write(*,*) "Start the Conjugate Gradient (Polak-Ribiere) Algorithm (CG) ..."
+   write(*,*)
 
    write(*,*) "------------------------------------------------------&
                 &-------------------------------------------"
@@ -503,7 +488,7 @@ else if (geoopt_algo .eq. "cg") then
                 &-------------------------------------------"
 
    converged=.false.
-   np=3*natoms
+   np=3*natoms-3*fix_num
    allocate(g_old(np),search_dir(np))
    allocate(grd_1d(np))
 !
@@ -512,11 +497,13 @@ else if (geoopt_algo .eq. "cg") then
    call gradient(coord,epot,grd,1,1)
     
    k=0
-   do i=1,n
-      do j=1,3
-         k=k+1
-         search_dir(k)=-grd(j,i)
-      end do
+   do i=1,natoms
+      if (at_move(i)) then
+         do j=1,3
+            k=k+1
+            search_dir(k)=-grd(j,i)
+         end do
+      end if
    end do
 
 !
@@ -528,11 +515,13 @@ else if (geoopt_algo .eq. "cg") then
 !
       e_old=epot
       k=0
-      do i=1,n 
-         do j=1,3 
-            k=k+1 
-            g_old(k)=grd(j,i)
-         end do
+      do i=1,natoms
+         if (at_move(i)) then
+            do j=1,3 
+               k=k+1 
+               g_old(k)=grd(j,i)
+            end do
+         end if
       end do
       coord_old=coord
 
@@ -545,11 +534,15 @@ else if (geoopt_algo .eq. "cg") then
 !     Update the coordinates
 !
          k=0
-         do i=1,n
-            do j=1,3
-               k=k+1
-               xyz2(j,i)=coord(j,i)+search_dir(k)*alpha
-            end do
+         do i=1,natoms
+            if (at_move(i)) then
+               do j=1,3
+                  k=k+1
+                  xyz2(j,i)=coord(j,i)+search_dir(k)*alpha
+               end do
+            else 
+               xyz2(:,i)=coord(:,i)
+            end if
          end do
 !
 !     Calculate new energy 
@@ -577,24 +570,27 @@ else if (geoopt_algo .eq. "cg") then
 !     Calculate beta factor with Polack-Ribiere formula
 !
       k=0
-      do i=1,n
-         do j=1,3
-            k=k+1
-            grd_1d(k)=grd(j,i)
-         end do
+      do i=1,natoms
+         if (at_move(i)) then
+            do j=1,3
+               k=k+1
+               grd_1d(k)=grd(j,i)
+            end do
+         end if
       end do
       beta=dot_product(grd_1d,grd_1d-g_old) / dot_product(g_old,g_old)
 !
 !     Update the srach direction
 !
       k=0
-      do i=1,n
-         do j=1,3
-            k=k+1
-            search_dir(k)=-grd(j,i)+search_dir(k)*beta
-         end do
+      do i=1,natoms
+         if (at_move(i)) then
+            do j=1,3
+               k=k+1
+               search_dir(k)=-grd(j,i)+search_dir(k)*beta
+            end do
+         end if
       end do
-
 !
 !     Check for convergence, all five criteria
 !
@@ -602,43 +598,63 @@ else if (geoopt_algo .eq. "cg") then
 !
       conv_ethr = .false.
       de_act=abs(epot-e_old)
-      if (de_act .lt. ethr) conv_ethr = .true.  
+      if (de_act .lt. ethr) conv_ethr = .true.
 !
 !     B: gradient norm (per atom)
 !
       gnorm=0.d0
-      do i=1,n
-         do j=1,3
-            k=k+1
-            gnorm=gnorm+grd(j,i)*grd(j,i)
-         end do
+      do i=1,natoms
+         if (at_move(i)) then
+            gnorm=gnorm+dot_product(grd(:,i),grd(:,i))
+         end if
       end do
       gnorm=sqrt(gnorm)/natoms
       conv_gthr = .false.
       if (gnorm .lt. gthr) conv_gthr = .true.
 !
 !     C: geometry step norm (per atom)
-!      
+!
       step_norm=0.d0
-      do i=1,n
-         do j=1,3
-            k=k+1
-            step_norm=step_norm+(coord(j,i)-coord_old(j,i))**2
-         end do
+      do i=1,natoms
+         if (at_move(i)) then
+            step_norm=step_norm+dot_product(coord(:,i)-coord_old(:,i), &
+                           & coord(:,i)-coord_old(:,i))
+         end if
       end do
+      step_norm=sqrt(step_norm)/natoms
+
       conv_dthr = .false.
-      if (step_norm .lt. dthr) conv_dthr = .true. 
+      if (step_norm .lt. dthr) conv_dthr = .true.
 !
 !     D: gradient maximum component
 !
+      gmax_act=0.d0
+      do i=1,natoms
+         if (at_move(i)) then
+            do j=1,3
+               if (abs(grd(j,i)) .gt. gmax_act) then
+                  gmax_act = abs(grd(j,i))
+               end if
+            end do
+         end if
+      end do
       conv_gmaxthr = .false.
-      gmax_act=maxval(abs(grd))
       if (gmax_act .lt. gmaxthr) conv_gmaxthr = .true.
 !
 !     E: geometry step largest component
 !
+      dmax_act=0.d0
+      do i=1,natoms
+         if (at_move(i)) then
+            do j=1,3
+               if (abs(coord(j,i)-coord_old(j,i)) .gt. dmax_act) then
+                  dmax_act = abs(coord(j,i)-coord_old(j,i))
+               end if
+            end do
+         end if
+      end do
+
       conv_dmaxthr = .false.
-      dmax_act=maxval(abs(coord-coord_old))
       if (dmax_act .lt. dmaxthr) conv_dmaxthr = .true.
 
       write(*,'(i6,f17.9,a,es10.3,a,L1,a,es10.3,a,L1,a,es10.3,a,L1,a, &
@@ -649,7 +665,7 @@ else if (geoopt_algo .eq. "cg") then
 !     If the VASP formate is used for input, write new CONTCAR and new frame 
 !       in XDATCAR files!
 !
-      if (coord_vasp  .and. nbeads .eq. 1) then
+      if (coord_vasp) then
          coord_mat(:,1)=vasp_a_vec(:)
          coord_mat(:,2)=vasp_b_vec(:)
          coord_mat(:,3)=vasp_c_vec(:)

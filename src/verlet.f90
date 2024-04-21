@@ -211,17 +211,12 @@ if (constrain .lt. 0) then
          do i=1,natoms
             q_act_frac=matmul(coord_inv,q_i(:,i,1)*bohr)
             if (vasp_selective) then
-               act_fix=.false.
-               do j=1,fix_num
-                  if (fix_list(j) .eq. i) then
-                     act_fix=.true.
-                  end if
-               end do
-               if (act_fix) then
-                  write(50,*) q_act_frac(:),"   F   F   F "
+
+               if (at_move(i)) then
+                  write(50,*) q_act_frac(:),"   T   T   T "
                   write(51,*) q_act_frac(:)!,"   F   F   F "
                else
-                  write(50,*) q_act_frac(:),"   T   T   T "
+                  write(50,*) q_act_frac(:),"   F   F   F "
                   write(51,*) q_act_frac(:)!,"   T   T   T "
                end if
             else
@@ -286,11 +281,11 @@ p_i=p_i-0.5d0*dt*derivs
 !
 !     set momentum to zero for fixed atoms 
 !
-if (fix_atoms) then
-   do i=1,fix_num
-      p_i(:,fix_list(i),:)=0.d0
-   end do
-end if
+do i=1,natoms
+   if (.not. at_move(i)) then
+      p_i(:,i,:)=0.d0
+   end if
+end do
 
 !
 !     calculate averaged kinetic energy for subset of the system
