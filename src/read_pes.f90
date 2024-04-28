@@ -1042,7 +1042,6 @@ if (pgfn_ff) then
                            call fatal
                         end if
                      end if
-                     write(*,*) "Natoms",natoms
                      do k=1,natoms
                         read(38,*,iostat=readstat) xr,yr,zr
                         if (readstat .ne. 0) then

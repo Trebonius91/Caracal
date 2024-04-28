@@ -87,7 +87,6 @@ parameter (evolt=27.21138503d0)
 !
 xyz_local=xyz_act*bohr
 lgradients=.true.
-
 !
 !     Set the periodicity
 !     Currently, only rectangular boxes are supported by Caracal
@@ -140,7 +139,7 @@ if (sum(charges) .gt. 0.1d0) then
    charge_com=0.d0
    do i=1,natoms
       do j=1,3
-         charge_com(j)=charge_com(j)+charges(i)*xyz_local(j,i)      
+         charge_com(j)=charge_com(j)+charges(i)*xyz_local(j,i)/bohr  
       end do
    end do
    charge_com=charge_com/sum(charges)
@@ -151,8 +150,9 @@ end if
 !    Calculate the dipole moment relative to the center of charge
 !
 dipolemom=0.d0
+!dipolemom=sum(charges*(xyz_local-charge_com),dim=2)
 do i=1,natoms
-   dipolemom=dipolemom-charges(i)*(xyz_local(:,i)-charge_com(:))
+   dipolemom=dipolemom-charges(i)*(xyz_local(:,i)/bohr-charge_com(:))
 end do
 !
 !     For intensities of numerical frequencies: store dipole vector in global array

@@ -18,13 +18,13 @@ CURRENT = $(shell pwd)
 
 #   Location of the GULP package, if compiled with Caracal
 #   Choose either Linux (for Linux) or Darwin (for Mac) 
-OSTYPE = Linux
+#OSTYPE = Linux
 #   The absolute or relative path to the GULP main directory
-GULPDIR =  ../../gulp-6.2
+#GULPDIR =  ../../gulp-6.2
 #   Comment in for the compiler flags 
-GULPFF = -DGULP=def -I${GULPDIR}/Src/${OSTYPE}
+#GULPFF = -DGULP=def -I${GULPDIR}/Src/${OSTYPE}
 #   Comment in for the linking flags
-GULPLINK = ${GULPDIR}/Src/${OSTYPE}/libgulp.a  ${GULPDIR}/Utils/pGFNFF/Src/libpGFNFF.a 
+#GULPLINK = ${GULPDIR}/Src/${OSTYPE}/libgulp.a  ${GULPDIR}/Utils/pGFNFF/Src/libpGFNFF.a 
 
 #   The source files directory
 SRCDIR = src

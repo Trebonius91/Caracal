@@ -64,7 +64,7 @@ allocate(gr(3,n),gl(3,n),isqm(n3),xsave(3,n))
 xsave = xyz2
 
 !   step length
-step=0.00001d0
+step=0.00015d0/bohr
 !
 !   compute the EVB-QMDFF-Hessian by moving the coordinates 
 !

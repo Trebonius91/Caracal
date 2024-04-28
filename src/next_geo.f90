@@ -65,6 +65,7 @@ if (coord_vasp) then
          call fatal
       end if
    end do
+   write(*,*) "sell",vasp_selective
    if (vasp_selective) then
       read(input_unit,*,iostat=status)
       if (status .ne. 0) then

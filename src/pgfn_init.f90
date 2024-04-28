@@ -105,7 +105,6 @@ end if
 !  Set atomic coordinates
 !
 xyz(:,:)=xyz_init(:,:)
-
 atomicsymbols(:)=names_init(:)
 
 charges(:) = 0.0d0

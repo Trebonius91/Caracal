@@ -64,6 +64,8 @@ integer::nbox,xbox,ybox,zbox  ! for brute force Ewald
 integer::nbox_sq,rbox,rbox_sq
 real(kind=8),allocatable::pot_shell(:)  ! energy for shells
 real(kind=8)::rbox_vec(3)
+!   Dipole moment calculation
+real(kind=8)::dipolemom(3),charge_com(3)
 !   The newly added gradient components
 real(kind=8)::g_local_a(3),g_local_b(3)
 real(kind=8)::vab(3)  ! for periodic image calculation
@@ -665,7 +667,39 @@ else if (ewald) then
    end if      
 !   stop "in Ewald!"
 
-end if 
+end if
+!
+!     Calculate the charge center of mass for dipole moment calculation
+!
+if (sum(q(1:n)) .gt. 0.1d0) then
+   charge_com=0.d0
+   do i=1,n
+      do j=1,3
+         charge_com(j)=charge_com(j)+q(i)*xyz(j,i)
+      end do
+   end do
+   charge_com=charge_com/sum(q(1:n))
+else
+   charge_com=0.d0
+end if
+ 
+!
+!    Calculate the dipole moment relative to the center of charge
+!
+dipolemom=0.d0
+!dipolemom=sum(charges*(xyz_local-charge_com),dim=2)
+do i=1,n
+   dipolemom=dipolemom-q(i)*(xyz(:,i)-charge_com(:))
+end do
+!
+!     For intensities of numerical frequencies: store dipole vector in global array
+!
+if (calc_freq_int) then
+   dip_list(:,int_incr) = dipolemom
+end if
+
+
+
 !
 !    Benchmark for Smooth particle mesh Ewald method: calculate the 
 !    brute force direct Ewald sum!

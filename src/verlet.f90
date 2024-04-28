@@ -1046,9 +1046,9 @@ end if
 !      (especially needed for Nose-Hoover thermostat!)
 !
 if (constrain .lt. 0) then
-   if (.not. coord_vasp) then
+!   if (.not. coord_vasp) then
       call transrot(centroid)
-   end if
+!   end if
 end if
 return
 end subroutine verlet

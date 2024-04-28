@@ -233,7 +233,10 @@ call get_singlepoint_api(calc_context,calc_structure,calc_xtb,calc_results)
 call get_result_energy_api(verror,calc_results,e_act)
 
 call get_result_gradient_api(verror,calc_results,g_act)
-
+!
+!     Divide gradient vector by bohr conversion, else, the frequencies are wrong!
+!
+!g_act=g_act!/bohr/bohr
 !
 !     Obtain further properties of the system
 !
@@ -245,8 +248,9 @@ call get_result_virial_api(verror,calc_results,virial_act)
 !
 !     For intensities of numerical frequencies: store dipole vector in global array
 !
+
 if (calc_freq_int) then
-   dip_list(:,int_incr) = dipole_act
+   dip_list(:,int_incr) = -dipole_act
 end if
 write(84,*) "   FURTHER RESULTS: "
 write(84,*)

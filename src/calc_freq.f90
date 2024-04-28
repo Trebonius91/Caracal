@@ -67,6 +67,7 @@ real(kind=8),allocatable::dipgrad(:,:,:),dxyz(:,:),ddip(:,:,:)
 real(kind=8),allocatable::intens(:,:),totintens(:)
 real(kind=8),allocatable::coord_mass(:)
 real(kind=8)::cnvint
+real(kind=8),allocatable::dip_list2(:,:)
 !
 !     unit conversion factors
 !
@@ -90,6 +91,12 @@ enddo
 !    Store hessian in backup to return it unchanged
 !
 hess_backup=hess
+!
+!    For pGFN-FF and QMDFF: multiply hessian twice by bohr factor
+!
+if (.not. gfn_xtb) then
+   hess=hess/bohr**2
+end if
 !
 !   Include mass weighted coordinates!
 !
@@ -216,9 +223,11 @@ if (calc_freq_int) then
    allocate(dxyz(3,natoms))
    allocate(ddip(3,3,natoms))
    allocate(dipgrad(3,3,natoms))
+   allocate(dip_list2(3,3*natoms))
 !
 !    Calculate the dipol derivatives
 !
+
    do i=1,(natoms-fix_num)*3
       do j=1,natoms
          do k=1,3
