@@ -61,7 +61,7 @@ OBJS = general.o evb_mod.o qmdff.o lm_module.o debug.o h2co_mod.o \
        moment.o ff_e.o eabh0.o thermo.o axis.o thermocal.o heat.o \
        bonde.o gethirsh.o docm5.o cm5mod.o copyc6.o limit.o rsp.o \
        basis0.o basis.o setsto3.o setsto4.o dex2.o ehtfull.o eht.o \
-       stints.o fermismear.o gab.o compmodel.o ff_anal.o pqn.o   \
+       stints.o fermismear_eht.o gab.o compmodel.o ff_anal.o pqn.o   \
        ff_bond.o pairs.o lina.o ff_clean.o ff_mod.o rdfix.o getf.o \
        hbpara.o checktrip.o doeht.o abdamp.o eabhag.o eabxag.o   \
        eabx.o egrestrain.o ff_nonb.o ff_hb.o ff_eg.o ff_nonbe.o \
@@ -89,7 +89,7 @@ OBJS = general.o evb_mod.o qmdff.o lm_module.o debug.o h2co_mod.o \
        version.o lowcase.o optimize_de.o optimize_dq.o lm_de_func.o \
        lm_dq_func.o deltaq.o dg_evb_init_ser.o solving_lgs.o \
        lm_function.o mdstat.o mdrest.o invert.o verlet.o maxwell.o \
-       ranvec.o erfinv.o erf.o erfcore.o temper.o  \
+       ranvec.o erfinv.o erf.o erfcore.o temper.o matinv3.o \
        normal.o calendar.o egqmdff.o eqmdff3.o eqmdff.o \
        fatal.o getxyz.o gmres.o gradient.o gradnum.o hessevb.o \
        hessqmdff.o prog_initial.o init_int.o xyz_2int.o grad2int.o \
