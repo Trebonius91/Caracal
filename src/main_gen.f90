@@ -97,6 +97,8 @@ else if (software .eq. "C") then
    fname=fname_pre//'.out'
 else if (software .eq. "G") then
    fname=fname_pre//'.log'
+else if (software .eq. "V") then
+   fname=fname_pre//".OUTCAR"
 end if 
 !
 !     set calculation settings default values
@@ -209,6 +211,7 @@ if (software .eq. "O") call rdo0  (fname,outname,n,check_coord)
 if (software .eq. "T") call rd0   (fname,n)
 if (software .eq. "G") call gaurd0(fname,n)
 if (software .eq. "C") call rdc0 (fname,n)
+if (software .eq. "V") call rdv0 (fname,n)
 !
 !     allocate all needed arrays (if n > 0)
 !
@@ -226,6 +229,7 @@ if (software .eq. "O") call rdo(.true.,fname,outname,n,xyz,at,check_coord)
 if (software .eq. "T") call rd (.true.,fname,n,xyz,at)
 if (software .eq. "G") call gaurd(fname,n,at,h,xyz,chir,wbo,check_coord)
 if (software .eq. "C") call rdc(.true.,fname,n,xyz,at)
+if (software .eq. "V") call rdv(.true.,fname,n,xyz,at)
 !write(*,*) "summmm",sum(wbo)
 !
 !     if the system contains more than 100000 (!) atoms abort
@@ -294,9 +298,11 @@ else if (index(fname,'.out').ne.0) then
 else if (software.eq."G") then
    hname=fname
    hex=.true.
+else if (software .eq. "V") then
+   hname=fname
+   hex=.true.
 end if
 if (.not.codetest) call system('rm -f solvent')
-
 !
 !     Get the Hirshfeld charges from input and calculate 
 !     the needed CM5 charges with them
@@ -339,7 +345,7 @@ else
 !
       call docm5(n,at,.true.,xyz,chir,q)
    else
-      stop 'no charges!'
+     ! stop 'no charges!'
    endif
    write(method,'(''CM5*'',F4.2)')qscal
    write(10,*)
@@ -493,7 +499,15 @@ else
     else if (software .eq. "G") then
        finished=0
        call rdghess(n*3,h,hname,fname_pre,finished)
-    end if
+!
+!
+!     Read in the Hessian from a VASP calculation: combine the Hessian from
+!     the gradient vectors stated in the OUTCAR file numerically!
+!
+    else if (software .eq. "V") then
+       call rdvhess(n*3,h,hname)
+    end if    
+
 end if
 
 !

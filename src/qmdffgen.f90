@@ -157,7 +157,7 @@ do i = 1, nkey_lines
    if (keyword(1:11) .eq. 'SOFTWARE ') then
       qmdffnumber=1
       read(record,*) prefix,software
-!     possible options: O (orca), G (gaussian), T (turbomole), C (CP2K)
+!     possible options: O (orca), G (gaussian), T (turbomole), C (CP2K), V(VASP)
       read_software=.true.
    end if
 end do
@@ -231,10 +231,11 @@ if (.not. read_software) then
    software="X"
    do while (.not. exist)
       write(iout,'(/," Used Software for reference calculations:",/, &
-        &  " (O = orca, G = gaussian, C = CP2K): ",$)')
+        &  " (O = orca, G = gaussian, C = CP2K, V = VASP): ",$)')
       read (*,'(A1)')  software
       if ((software .eq. "O") .or. (software .eq. "G") .or. &
-         &  (software .eq. "T") .or. (software .eq. "C")) then
+         &  (software .eq. "T") .or. (software .eq. "C") .or. &
+         &  (software .eq. "V")) then
          exist = .true.
          select case (software)
             case("O")
@@ -247,6 +248,8 @@ if (.not. read_software) then
                call fatal
             case("C")
                write(*,*) "Reference is read in from CP2K output"
+            case("V")
+               write(*,*) "Reference is read in from VASP output"
             case default
                write(*,*) "None of the supported software was used! Try again!"
                exist=.false.
@@ -307,24 +310,30 @@ if (.not. prefix_key) then
       if (.not. check_coord) then
          if (software .eq. "O") then
             write(iout,'(/, " Prefix of the first reference (name.hess &
-                 and name.out must be in this folder!: ",$)')
+                 and name.out must be in this folder!): ",$)')
          else if (software .eq. "G") then
             write(iout,'(/, " Prefix of the first reference (name.out &
-                 and name.chk must be in this folder!: ",$)')
+                 and name.chk must be in this folder!): ",$)')
          else if (software .eq. "C") then
             write(iout,'(/, " Prefix of the first reference (name.out &
-                 must be in this folder!: ",$)')
+                 must be in this folder!): ",$)')
+         else if (software .eq. "V") then
+            write(iout,'(/, " Prefix of the first reference (name.OUTCAR &
+                 must be in this folder!): ",$)')
          end if
       else 
          if (software .eq. "O") then
             write(iout,'(/, " Prefix of the first reference (name.out &
-                 must be in this folder!: ",$)')
+                 must be in this folder!): ",$)')
          else if (software .eq. "G") then
             write(iout,'(/, " Prefix of the first reference (name.out &
-                 and name.chk must be in this folder!: ",$)')
+                 and name.chk must be in this folder!): ",$)')
          else if (software .eq. "C") then
             write(iout,'(/, " Prefix of the first reference (name.out &
-                 must be in this folder!: ",$)')
+                 must be in this folder!): ",$)')
+         else if (software .eq. "V") then
+            write(iout,'(/, " Prefix of the first reference (name.OUTCAR &
+                 must be in this folder!): ",$)')
          end if
       end if
       read (*,'(A80)')  line
@@ -333,6 +342,8 @@ if (.not. prefix_key) then
       l1=LEN(TRIM(prefix1))
       if (software .eq. "G") then
          textout = prefix1 // ".log"
+      else if (software .eq. "V") then
+         textout = prefix1 // ".OUTCAR"
       else 
          textout = prefix1 // ".out"
       end if
@@ -351,6 +362,8 @@ if (.not. prefix_key) then
          l2=LEN(TRIM(prefix2))
          if (software .eq. "G") then
             textout = prefix2 // ".log"
+         else if (software .eq. "V") then
+            textout = prefix1 // ".OUTCAR"
          else
             textout = prefix2 // ".out"
          end if
@@ -530,6 +543,24 @@ else if (software .eq. "G") then
    e1_shifted=e1_ref-e1
    close(10)
 else 
+!
+!     For VASP output: Read in the energy of the first calculated geometry 
+!     (the undistorted geometry) and convert it from eV to Hartrees!
+!
+   open(unit=42,file=prefix1 // ".OUTCAR")
+133   read(42,'(a)',end=96)a80
+      if(index(a80,'FREE ENERGIE OF THE ION-ELECTRON SYSTEM (eV)').ne.0) then
+         read(a80,*)
+         read(a80,*)
+         read(a80,*)
+         read(a80,*) buffer(1),buffer(2),buffer(3),buffer(1),buffer(2),buffer(3),e1_ref
+         goto 96
+      end if
+      goto 133
+96    close(42)
+   e1_shifted=e1_ref-e1
+   close(10)
+   write(*,*) "energy",e1_ref
    stop "No read in for energies implemented for that method so far!"
 end if
 !

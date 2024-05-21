@@ -76,7 +76,8 @@ OBJS = general.o evb_mod.o qmdff.o lm_module.o debug.o h2co_mod.o \
        preig2.o preig4.o rdhess.o rdohess.o rdchess.o hfit.o \
        getpar0.o getparini.o putpar.o pderiv.o getpar.o ffhess.o \
        lmnpre.o pola.o rhftce.o prod.o main_gen.o procload.o \
-       pfit.o getxy.o rd0.o rdo0.o rdc0.o rd.o rdo.o rdc.o \
+       pfit.o getxy.o rd0.o rdo0.o rdc0.o rd.o rdo.o rdc.o rdv.o \
+       rdv0.o rdvhess.o \
        elem.o asym.o upper.o readl.o readaa.o cutline.o checktype.o \
        rdsolvff0.o rdsolvff.o rdsolvff_two.o rdsolvff_three.o \
        rdwbo.o getring.o samering.o chk.o setvalel.o setzetaandip.o \
