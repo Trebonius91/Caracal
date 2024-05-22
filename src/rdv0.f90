@@ -47,7 +47,6 @@ do
    if (index(line,' number of ions     NIONS =  ').ne.0) then      
       read(line,*) dum,dum,dum,dum,dum,dum,dum,dum,dum,dum,dum,n
       close(ich)
-      write(*,*) "nnnn",n
       return
    end if
 end do

@@ -70,7 +70,7 @@ character(len=80)::prefix,line
 character(len=:),allocatable::prefix1,prefix2,prefix3
 character(len=80)::pre1,pre2,pre3
 character(len=80)::fffilen1,fffilen2,fffilen3,a80,header
-character(len=85)::textout,buffer(4)
+character(len=85)::textout,textout2,buffer(4)
 character(len=100)::sys_line ! for system call in case of gaussian reference
 character(len=40)::commarg ! string for command line argument
 real(kind=8)::en_new1
@@ -139,6 +139,10 @@ end if
 
 prefix_key = .false.
 read_software = .false.
+!
+!     if VASP has been used with selective dynamics
+!
+vasp_hessian_sel = .false.
 !
 !     Read keywords from input key-file 
 !
@@ -344,10 +348,14 @@ if (.not. prefix_key) then
          textout = prefix1 // ".log"
       else if (software .eq. "V") then
          textout = prefix1 // ".OUTCAR"
+         textout2 = prefix1 // ".charges"
       else 
          textout = prefix1 // ".out"
       end if
       inquire(file=textout,exist=exist)
+      if (exist) then
+         inquire(file=textout2,exist=exist)
+      end if
       if (.not. exist) then 
          deallocate(prefix1)
       end if
@@ -542,7 +550,7 @@ else if (software .eq. "G") then
 97    close(42)
    e1_shifted=e1_ref-e1
    close(10)
-else 
+else if (software .eq. "V") then
 !
 !     For VASP output: Read in the energy of the first calculated geometry 
 !     (the undistorted geometry) and convert it from eV to Hartrees!
@@ -550,17 +558,17 @@ else
    open(unit=42,file=prefix1 // ".OUTCAR")
 133   read(42,'(a)',end=96)a80
       if(index(a80,'FREE ENERGIE OF THE ION-ELECTRON SYSTEM (eV)').ne.0) then
-         read(a80,*)
-         read(a80,*)
-         read(a80,*)
-         read(a80,*) buffer(1),buffer(2),buffer(3),buffer(1),buffer(2),buffer(3),e1_ref
+         read(42,*)
+         read(42,*)
+         read(42,*)
+         read(42,*) buffer(1),buffer(2),buffer(3),buffer(1),buffer(2),buffer(3),e1_ref
          goto 96
       end if
       goto 133
 96    close(42)
    e1_shifted=e1_ref-e1
    close(10)
-   write(*,*) "energy",e1_ref
+else 
    stop "No read in for energies implemented for that method so far!"
 end if
 !

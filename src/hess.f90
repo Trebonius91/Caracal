@@ -115,8 +115,10 @@ if (.not.calc) then
       call rdohess(n*3,h,hname)
    else if (software .eq. "C") then
       call rdchess(n,n*3,h,hname)
+   else if (software .eq. "V") then
+      call rdvhess(n*3,h,hname)
    end if
-
+       
    return
 end if
 
@@ -131,6 +133,7 @@ if (echo) then
    write(10,*)'============='
    write(10,*) 
 endif
+
 !
 !     define the mass weighted matrix
 !
@@ -320,6 +323,11 @@ if(.not.ffonly) then
       call hpack2(n3,hs,h2)
    else if (software .eq. "G") then
       call rdghess(n3,h2,hname,fname_pre,finished)
+      call hpack1(n3,h2,hs)
+      call trproj(n,n3,xyz,hs,.false.)
+      call hpack2(n3,hs,h2) 
+   else if (software .eq. "V") then
+      call rdvhess(n3,h2,hname)
       call hpack1(n3,h2,hs)
       call trproj(n,n3,xyz,hs,.false.)
       call hpack2(n3,hs,h2)

@@ -508,7 +508,13 @@ else
 !     the gradient vectors stated in the OUTCAR file numerically!
 !
     else if (software .eq. "V") then
-       call rdvhess(n*3,h,hname,at)
+       call rdvhess(n*3,h,hname)
+       if (vasp_hessian_sel) then
+          write(*,*)
+          write(*,*) "WARNING: you have used selective dynamics for the VASP reference!"
+          write(*,*) " qmdffgen will nevertheless optimize all force constants."
+          write(*,*) " This might lead to some additional errors!"
+       end if
     end if    
 
 end if
@@ -657,6 +663,13 @@ write(10,*) 'G(Re,bonded only)=',sum(abs(g))
 !     Compute Force Field hessian 
 !     and compare it with reference hessian!
 !
+if (vasp_hessian_sel) then
+  write(10,*) 
+  write(10,*) "WARNING: you have used selective dynamics for the VASP reference!"
+  write(10,*) " qmdffgen will nevertheless optimize all force constants."
+  write(10,*) " This might lead to some additional errors!"
+end if
+
 call hess(n,at,xyz,q,r0ab,zab,r094,sr42,c6xy, &
   &   val,.true.,hname,h,.false.,freq,dist, &
   &   hesscalc,numhess,software,length,fname_pre)

@@ -202,7 +202,9 @@ real(kind=8),allocatable::corr_factor(:)
 
 !    for detailed printout of QMDFF and EVB parameters etc.
 logical::details
-
+!    If in the case of VASP reference selective dynamics has been used and parts 
+!    of the hessian are zero, print a warning
+logical::vasp_hessian_sel
 !    If qmdffgen shall not generate a QMDFF but only determine coordinates based 
 !    on Wiberg-Mayer bond orders and print out Wilson matrix/derivatives
 logical::check_coord
