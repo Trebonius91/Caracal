@@ -322,6 +322,9 @@ if (n.eq.2.and.at(1).eq.9.and.at(2).eq.1) qscal=1.6
 !
 fname2=fname_pre//'.out'
 fname3=fname_pre//'.log'
+if (software .eq. "V") then
+   fname3=fname_pre//'.charges'
+end if
 if (check_coord .and. software .ne. "G") then
    q=0.0
 else 
@@ -505,7 +508,7 @@ else
 !     the gradient vectors stated in the OUTCAR file numerically!
 !
     else if (software .eq. "V") then
-       call rdvhess(n*3,h,hname)
+       call rdvhess(n*3,h,hname,at)
     end if    
 
 end if

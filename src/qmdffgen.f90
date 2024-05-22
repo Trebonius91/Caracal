@@ -319,7 +319,7 @@ if (.not. prefix_key) then
                  must be in this folder!): ",$)')
          else if (software .eq. "V") then
             write(iout,'(/, " Prefix of the first reference (name.OUTCAR &
-                 must be in this folder!): ",$)')
+                 and name.charges must be in this folder!): ",$)')
          end if
       else 
          if (software .eq. "O") then
@@ -333,7 +333,7 @@ if (.not. prefix_key) then
                  must be in this folder!): ",$)')
          else if (software .eq. "V") then
             write(iout,'(/, " Prefix of the first reference (name.OUTCAR &
-                 must be in this folder!): ",$)')
+                 and name.charges must be in this folder!): ",$)')
          end if
       end if
       read (*,'(A80)')  line

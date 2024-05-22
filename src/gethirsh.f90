@@ -118,8 +118,19 @@ else if (software .eq. "G") then
          end do
       end if
    end do
- 
-
+!
+!    for VASP output, read from separate file for Bader charges!
+! 
+else if (software .eq. "V") then
+   open(unit=142,file=fname3)
+   chir=0
+   read(142,*)
+   read(142,*)
+   do i=1,n
+      read(142,*) numi,chir(i)
+      csum=csum+chir(i)
+   end do
+   goto 99
 end if
 !     (never executed...)
 intsum=NINT(csum)
