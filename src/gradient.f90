@@ -109,7 +109,7 @@ real(kind=8)::pi
 character(len=100)::adum  ! for bug prevention
 character(len=4)::rank_char  ! for separate folders of MPI ranks (call external)
 !    complex numbers for analytical DG-EVB gradient (V12*dV12)
-complex(kind=16)::rootV,V_lower,V_upper,V12_comp,dV12_comp
+complex(kind=8)::rootV,V_lower,V_upper,V12_comp,dV12_comp
 real(kind=8),allocatable::alph1(:)
 real(kind=8),allocatable::VdV_i(:),VdV_k(:) ! internal and cartesian coordinate vectors
 !
