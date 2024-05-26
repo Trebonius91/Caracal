@@ -35,7 +35,7 @@ real(kind=8)::bohr
 
 write(*,*) "This program generates the grad_hess.dat input file for an DG-EVB-QMDFF or TREQ"
 write(*,*) "calculation from orca/Gaussian/CP2K-output. The outputfiles for each point must"
-write(*,*) "in Folders named 1,2,3,...,n, where n(<=9) is the number of reference points."
+write(*,*) "in Folders named 1,2,3,...,n, where n(<=99) is the number of reference points."
 write(*,*) "In each folder in outputfiles run.hess and run.engrad (for orca)" 
 write(*,*) "or gauss.chk (for gaussian) or run.out (for CP2K) must be present."
 write(*,*) "The absolute value of the energies is noted; the reference-point"
