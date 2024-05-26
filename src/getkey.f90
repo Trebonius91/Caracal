@@ -69,10 +69,10 @@ end do
 !
 !     get the number of arguments and store each in a string
 !
-narg = iargc ()
+narg = command_argument_count ()
 if (narg .gt. maxarg)  narg = maxarg
 do i = 0, narg
-   call getarg (i,arg(i))
+   call get_command_argument(i, arg(i))
 end do
 
 !if (details) then
