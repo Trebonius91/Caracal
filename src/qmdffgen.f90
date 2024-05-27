@@ -768,6 +768,23 @@ if (qmdffnumber.eq.2 .or. qmdffnumber.eq.3) then
       end if
       goto 103
 199    close(42)
+   else if (software .eq. "V") then
+!
+!     For VASP output: Read in the energy of the first calculated geometry 
+!     (the undistorted geometry) and convert it from eV to Hartrees!
+!
+      open(unit=42,file=prefix2 // ".OUTCAR")
+104   read(42,'(a)',end=96)a80
+      if(index(a80,'FREE ENERGIE OF THE ION-ELECTRON SYSTEM (eV)').ne.0) then
+         read(42,*)
+         read(42,*)
+         read(42,*)
+         read(42,*) buffer(1),buffer(2),buffer(3),buffer(1),buffer(2),buffer(3),e2_ref
+         goto 204
+      end if
+      goto 104
+204   close(42)
+      e2_shifted=e2_ref-e2
    end if
    close(10)
 !

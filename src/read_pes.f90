@@ -1574,8 +1574,10 @@ if (qmdffnumber.eq.2) then
          record = keyline(i)
          call gettext (record,keyword,next)
          call upcase (keyword)
+         call upcase (record)
          string = record(next:120)
-         if (keyword(1:11) .eq. 'DG_EVB { ' .or. keyword(1:11) .eq. 'DG_EVB{ ') then
+         if (trim(adjustl(record(1:15))) .eq. 'DG_EVB { ' .or. &
+                       &  trim(adjustl(record(1:15))) .eq. 'DG_EVB{ ') then
             do j=1,nkey_lines-i+1
                next=1
                record = keyline(i+j)
@@ -1617,7 +1619,7 @@ if (qmdffnumber.eq.2) then
                   end if
 
                end if
-               if (record .eq. '}') exit
+               if (keyword(1:13) .eq. '}') exit
                if (j .eq. nkey_lines-i) then
                   write(*,*) "The DG-EVB section has no second delimiter! (})"
                   call fatal

@@ -627,7 +627,7 @@ if (dg_evb) then
             else if (keyword(1:18) .eq. 'GAUSS_THRESHOLD ') then
                read(record,*) names,g_thres 
             end if
-            if (record .eq. '}') exit
+            if (keyword .eq. '}') exit
             if (j .eq. nkey_lines-i) then
                write(*,*) "The DG-EVB section has no second delimiter! (})"
                call fatal
