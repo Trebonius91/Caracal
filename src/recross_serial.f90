@@ -211,17 +211,19 @@ do i=1,child_times
 !     now do the actual evaluation of the child trajectory
 !     no bias potential and no temperature shall be applied!
 !
- 
          do l=1,child_evol
             call verlet(l,dt,derivs,energy_act,0d0,0d0,xi_ideal,xi_real,dxi_act,m,2,.false.,1)
-!            write(*,*) "xi",xi_real
             if (xi_real .gt.0) then
                kappa_num(l)=kappa_num(l)+vs/fs
             end if
          end do
-!         write(*,*)  "num",kappa_num(1)
-         num_total=num_total+kappa_num
-     !    write(*,*) num_total(1),num_total(child_evol),denom_total
+!
+!     Avoid negative transmission coefficients.
+!     Has no visible effect on benchmark reactions
+!
+         if (kappa_num(child_evol) .ge. 0.d0) then
+            num_total=num_total+kappa_num
+         end if
          denom_total=denom_total+kappa_denom
 !         stop "gofozfoz"
       end do

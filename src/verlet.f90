@@ -155,6 +155,9 @@ end if
 !
 !     Write out the current trajectory frame, if iwrite 
 !
+!if (istep .gt. 997) then
+!   write(*,*) q_i(:,101,1)*bohr,xi_real
+!end if
 if (constrain .lt. 0) then
    if (mod(istep,iwrite) .eq. 0) then
       write(28,*) natoms*nbeads
@@ -827,7 +830,6 @@ else if (constrain .eq. 2) then
 !   write(*,*) "potential!",derivs
 !   write(*,*) "centrooid!",centroid
    call umbrella(centroid,xi_ideal,int_ideal,xi_real,dxi_act,derivs,1)
-!   write(*,*) "xiiiiss",xi_real
 !   write(*,*) "dxii",dxi_act
 !   stop "Bogougvo"
 !   write(*,*) "derivs_after",derivs,xi_real

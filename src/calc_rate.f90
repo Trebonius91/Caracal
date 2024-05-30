@@ -1980,7 +1980,20 @@ if (rank .eq. 0) then
       do i=minlocate,maxlocate
          pmf_int=pmf_int+exp(-beta*pmf(i))
       end do
-      pmf_int=pmf_int*bin_size
+!
+!     Determine the length of the total reaction path between reactants and TS
+!     if the atom_shift coordinate is used     
+
+      if (umbr_type .eq. "ATOM_SHIFT") then
+         if (shift_coord .lt. 4) then
+            pmf_int=pmf_int*bin_size*abs(abs(shift_hi)-abs(shift_lo))
+         else if (shift_coord .ge. 4) then
+            pmf_int=pmf_int*bin_size*sqrt(abs(abs(shift_hi)-abs(shift_lo))**2+ &
+                   & abs(abs(shift2_hi)-abs(shift2_lo))**2)
+         end if
+      else 
+         pmf_int=pmf_int*bin_size
+      end if
    end if
 end if
 !
