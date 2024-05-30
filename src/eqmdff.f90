@@ -75,6 +75,7 @@ e2_shifted=e_two+E_zero2  !E(qmdff2)
 e_qmdff1=e1_shifted
 e_qmdff2=e2_shifted
 
+
 return
 end subroutine eqmdff 
 

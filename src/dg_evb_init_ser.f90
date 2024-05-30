@@ -119,6 +119,7 @@ infinity=HUGE(db1_prev_var)
 coord_mode=2
 if (read_coord) coord_mode=1
 call init_int(filegeo,points,rank,coord_mode)
+
 !
 !    Arrays for all needed input informations: energies (all_ens),
 !    gradients (all_grads) and hessians (all_hess)

@@ -261,7 +261,7 @@ do m=1,nangl
 end do
 !
 !     torsion ter,s  
-!       
+!      
 do m=1,ntors
 !
 !     the four involved atoms
@@ -306,7 +306,6 @@ do m=1,ntors
 !
       phi=valijkl(n,xyz,i,j,k,l)
       call dphidr(n,xyz,i,j,k,l,phi,dda,ddb,ddc,ddd)
-    
       et=0
       dij=0
       mm=3!
@@ -528,7 +527,6 @@ do m=1,ntors
 
    end if
 end do
-
 !
 !     here restraints can be added! 
 !     maybe some metal surface could be simulated using restraints??? 

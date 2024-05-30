@@ -988,7 +988,7 @@ if (calc_egrad) then
 !     Calculate and write the energies of the single qmdffs!
 !
       if ((.not. treq) .and. (.not. pot_ana) .and. (nqmdff .gt. 1) ) then
-         call eqmdff(coord,e_qmdff1,e_qmdff2)
+         call eqmdff(coord*bohr,e_qmdff1,e_qmdff2)
          write(99,*) e_qmdff1,e_qmdff2
       end if
       if (.not. pes_topol) then

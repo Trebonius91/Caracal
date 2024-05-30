@@ -40,7 +40,8 @@ integer::ati,atj
 real(kind=8)::r2,damp,ddamp,rr,rcut
 !
 ! cut-off at about double of R_cov     
-!  
+! 
+ 
 rcut =3.0 * 3.5710642*(rad(ati)+rad(atj))**2
 rr   =(r2/rcut)**2
 damp = 1.0d0/(1.0d0+rr)

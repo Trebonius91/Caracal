@@ -794,7 +794,7 @@ if (qmdffnumber.eq.2) then
       if (rank .eq. 0) then
          write(99,*) energies_qmdff(i,1), energies_qmdff(i,2)
       end if
-   end do   
+   end do
    if (rank .eq. 0) then
       close(99)
    end if

@@ -1284,7 +1284,7 @@ if (qmdffnumber .eq. 1 .or. evb_de .or. evb_dq .or. dg_evb .or. treq) then
    read_name=.false.
    exist=.false.
    ewald=.false.
-   zahn=.true.
+   zahn=.false.
    coul_method="ZAHN"
    coul_cut=10.d0
    vdw_cut=10.d0

@@ -165,7 +165,6 @@ do k=1,nnci
 
 end do
 
-
 !
 !    Add a second component for the inter-molecule interaction for solvent QMDFFs
 !
@@ -350,9 +349,7 @@ if (.not. ewald) then
          vir_ten(2,3)=vir_ten(2,3)+vab(2)*g_local_a(3)
          vir_ten(3,3)=vir_ten(3,3)+vab(3)*g_local_a(3)
       end if
-
    end do
-
 !
 !    Add a second component for the inter-molecule interaction for solvent QMDFFs
 !
@@ -810,13 +807,10 @@ if (ewald_brute) then
    write(*,*) "The calculation will be stopped here."
    stop
 end if
-
-
 !do i=1,n
 !   write(*,*) "grad",g(:,i)
 !end do
 
 enb = enb + e
-
 return
 end subroutine ff_nonb
