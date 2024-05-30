@@ -711,6 +711,7 @@ do i = 1, nkey_lines
                end if
             end if
 !     Which cartesian coordinate (X,Y,Z) of the atom shift
+!     New: also diagonal shifts (XY, XZ, YZ) are possible!
          else if (keyword(1:20) .eq. 'SHIFT_COORD') then
             if (umbr_type .eq. "ATOM_SHIFT") then
                read(record,*) names,names2 
@@ -721,20 +722,46 @@ do i = 1, nkey_lines
                   shift_coord=2
                else if (trim(names2) .eq. "Z") then
                   shift_coord=3
-               else
-                  write(*,*) "No valid coordinate (x, y or z) is given for SHIFT_COORD!"
+               else if (trim(names2) .eq. "XY") then
+                  shift_coord=4
+               else if (trim(names2) .eq. "XZ") then 
+                  shift_coord=5
+               else if (trim(names2) .eq. "YZ") then
+                  shift_coord=6
+               else 
+                  write(*,*) "No valid coordinate (x, y, z, xy, xz, yz) is given &
+                              &  for SHIFT_COORD!"
                   call fatal
                end if
             end if
 !     The interval of the atom shift
+!     If diagonal shifts are ordered, give lower and higher bounds for 
+!      both coordinates!
          else if (keyword(1:20) .eq. 'SHIFT_INTERV') then
             if (umbr_type .eq. "ATOM_SHIFT") then
-               read(record,*) names,shift_lo,shift_hi
+               if (shift_coord .lt. 4) then
+                  read(record,*,iostat=readstat) names,shift_lo,shift_hi
+                  if (readstat .ne. 0) then
+                     write(*,*) "Correct format: SHIFT_INTERV [low val.]  [high val.]"
+                     call fatal
+                  end if
+               else if (shift_coord .ge. 4) then
+                  read(record,*,iostat=readstat) names,shift_lo,shift2_lo,shift_hi,shift2_hi
+                  if (readstat .ne. 0) then
+                     write(*,*) "Correct format: SHIFT_INTERV [low val1] [low val2] &
+                                 &  [high val1] [high val2]"
+                     call fatal
+                  end if
+               end if           
 !
 !     convert coordinate borders to bohr
 !
                shift_lo=shift_lo/bohr
                shift_hi=shift_hi/bohr
+               if (shift_coord .ge. 4) then
+                  shift2_lo=shift2_lo/bohr
+                  shift2_hi=shift2_hi/bohr
+               end if
             end if
          end if
          if (keyword(1:13) .eq. '}') exit

@@ -524,11 +524,44 @@ else if (umbr_type .eq. "ATOM_SHIFT") then
 !
 !    value of the TS dividing surface function: reference to shift_hi  
 !
-   s1=coords(shift_coord,shift_atom)-shift_hi
+   if (shift_coord .lt. 4) then
+      s1=coords(shift_coord,shift_atom)-shift_hi
+   else
+!
+!    For diagonal shifts: average of both coordinates!
+! 
+      if (shift_coord .eq. 4) then
+         s1=((coords(1,shift_atom)-shift_hi)+(coords(2,shift_atom)-shift2_hi))/2d0
+      end if
+      if (shift_coord .eq. 5) then
+         s1=((coords(1,shift_atom)-shift_hi)+(coords(3,shift_atom)-shift2_hi))/2d0
+      end if
+      if (shift_coord .eq. 6) then
+         s1=((coords(2,shift_atom)-shift_hi)+(coords(3,shift_atom)-shift2_hi))/2d0
+      end if
+
+   end if
+   
+
 !
 !    value of the reactants dividing surface function: reference to shift_lo
 !
-   s0=coords(shift_coord,shift_atom)-shift_lo
+   if (shift_coord .lt. 4) then
+      s0=coords(shift_coord,shift_atom)-shift_lo
+   else 
+!
+!    For diagonal shifts: average of both coordinates!
+!
+      if (shift_coord .eq. 4) then
+         s0=((coords(1,shift_atom)-shift_lo)+(coords(2,shift_atom)-shift2_lo))/2d0
+      end if
+      if (shift_coord .eq. 5) then
+         s0=((coords(1,shift_atom)-shift_lo)+(coords(3,shift_atom)-shift2_lo))/2d0
+      end if
+      if (shift_coord .eq. 6) then
+         s0=((coords(2,shift_atom)-shift_lo)+(coords(3,shift_atom)-shift2_lo))/2d0
+      end if
+   end if
 !
 !    Calculate the actual Xi value:
 !    for usual umbrella sampling
@@ -546,12 +579,43 @@ else if (umbr_type .eq. "ATOM_SHIFT") then
 !    gradient of the TS dividing surface function:
 !
    ds1=0d0
-   ds1(shift_coord,shift_atom)=1d0
+   if (shift_coord .lt. 4) then
+      ds1(shift_coord,shift_atom)=1d0
+   else 
+      if (shift_coord .eq. 4) then
+         ds1(1,shift_atom)=1d0
+         ds1(2,shift_atom)=1d0
+      end if
+      if (shift_coord .eq. 5) then
+         ds1(1,shift_atom)=1d0
+         ds1(3,shift_atom)=1d0
+      end if      
+      if (shift_coord .eq. 6) then
+         ds1(2,shift_atom)=1d0
+         ds1(3,shift_atom)=1d0
+      end if
+   end if
 !
 !    gradient of the reactants dividing surface function:
 !   
    ds0=0d0
-   ds0(shift_coord,shift_atom)=1d0
+   if (shift_coord .lt. 4) then
+      ds0(shift_coord,shift_atom)=1d0
+   else
+      if (shift_coord .eq. 4) then
+         ds0(1,shift_atom)=1d0
+         ds0(2,shift_atom)=1d0
+      end if
+      if (shift_coord .eq. 5) then
+         ds0(1,shift_atom)=1d0
+         ds0(3,shift_atom)=1d0
+      end if      
+      if (shift_coord .eq. 6) then
+         ds0(2,shift_atom)=1d0
+         ds0(3,shift_atom)=1d0
+      end if
+   end if
+
 !
 !    calculate the actual Xi derivative:
 !

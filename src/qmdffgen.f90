@@ -489,9 +489,7 @@ do i1=1,n_one
 end do
 
 call ff_eg(n_one,at,xyz,e1,g_one)
-e1=0
 call ff_nonb(n_one,at,xyz,q,r0ab,zab,r094_mod,sr42,c6xy,e1,g_one)
-e1=0
 call ff_hb(n_one,at,xyz,e1,g_one)
 
 
@@ -570,6 +568,7 @@ else if (software .eq. "V") then
       goto 133
 96    close(42)
    e1_shifted=e1_ref-e1
+   write(*,*) "energy1",e1_ref,e1
    close(10)
 else 
    stop "No read in for energies implemented for that method so far!"
@@ -789,6 +788,7 @@ if (qmdffnumber.eq.2 .or. qmdffnumber.eq.3) then
       goto 104
 204   close(42)
       e2_shifted=e2_ref-e2
+      write(*,*) "energy2",e2_ref,e2
    end if
    close(10)
 !

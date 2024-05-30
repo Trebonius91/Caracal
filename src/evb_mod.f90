@@ -242,6 +242,7 @@ integer,dimension(:,:),allocatable::bond_form,bond_break  ! forming and breaking
 real(kind=8),allocatable::r_refs(:,:)  ! the needed reactant-reactant distances for the pre-equilibration
 integer::shift_atom,shift_coord  ! for the ATOM_SHIFT coordinate 
 real(kind=8)::shift_lo,shift_hi  ! for the ATOM_SHIFT coordinate 
+real(kind=8)::shift2_lo,shift2_hi  ! for the ATOM_SHIFT coordinate (diagonal shift)
 logical::fix_atoms  ! if some atoms shall be fixed in dynamics calculations
 integer,allocatable::fix_list(:) ! file with list of fixed atoms
 logical,allocatable::at_move(:)  ! boolean mask for all atoms, if moved or fixed
