@@ -583,16 +583,16 @@ else if (umbr_type .eq. "ATOM_SHIFT") then
       ds1(shift_coord,shift_atom)=1d0
    else 
       if (shift_coord .eq. 4) then
-         ds1(1,shift_atom)=1d0
-         ds1(2,shift_atom)=1d0
+         ds1(1,shift_atom)=0.5d0
+         ds1(2,shift_atom)=0.5d0
       end if
       if (shift_coord .eq. 5) then
-         ds1(1,shift_atom)=1d0
-         ds1(3,shift_atom)=1d0
+         ds1(1,shift_atom)=0.5d0
+         ds1(3,shift_atom)=0.5d0
       end if      
       if (shift_coord .eq. 6) then
-         ds1(2,shift_atom)=1d0
-         ds1(3,shift_atom)=1d0
+         ds1(2,shift_atom)=0.5d0
+         ds1(3,shift_atom)=0.5d0
       end if
    end if
 !
@@ -603,16 +603,16 @@ else if (umbr_type .eq. "ATOM_SHIFT") then
       ds0(shift_coord,shift_atom)=1d0
    else
       if (shift_coord .eq. 4) then
-         ds0(1,shift_atom)=1d0
-         ds0(2,shift_atom)=1d0
+         ds0(1,shift_atom)=0.5d0
+         ds0(2,shift_atom)=0.5d0
       end if
       if (shift_coord .eq. 5) then
-         ds0(1,shift_atom)=1d0
-         ds0(3,shift_atom)=1d0
+         ds0(1,shift_atom)=0.5d0
+         ds0(3,shift_atom)=0.5d0
       end if      
       if (shift_coord .eq. 6) then
-         ds0(2,shift_atom)=1d0
-         ds0(3,shift_atom)=1d0
+         ds0(2,shift_atom)=0.5d0
+         ds0(3,shift_atom)=0.5d0
       end if
    end if
 
