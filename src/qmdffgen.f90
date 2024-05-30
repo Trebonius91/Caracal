@@ -564,6 +564,7 @@ else if (software .eq. "V") then
          read(42,*)
          read(42,*)
          read(42,*) buffer(1),buffer(2),buffer(3),buffer(1),buffer(2),buffer(3),e1_ref
+         e1_ref=e1_ref/evolt
          goto 96
       end if
       goto 133
@@ -782,6 +783,7 @@ if (qmdffnumber.eq.2 .or. qmdffnumber.eq.3) then
          read(42,*)
          read(42,*)
          read(42,*) buffer(1),buffer(2),buffer(3),buffer(1),buffer(2),buffer(3),e2_ref
+         e2_ref=e2_ref/evolt
          goto 204
       end if
       goto 104
