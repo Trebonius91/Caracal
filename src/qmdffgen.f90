@@ -462,6 +462,8 @@ write(*,*) "Calculating......."
 
 length=len(trim(prefix1))
 open(unit=10,file=prefix1//"_qmdff.log",status="unknown")
+
+second_qmdff = .false.
 call main_gen(prefix1,length)
 fffilen1= prefix1 // ".qmdff"
 call rdsolvff0(n_one,fffilen1)
@@ -695,7 +697,7 @@ if (qmdffnumber.eq.2 .or. qmdffnumber.eq.3) then
 
    length=len(trim(prefix2))
    open(unit=10,file=prefix2//"_qmdff.log",status="unknown")
-
+   second_qmdff=.true.
    call main_gen(prefix2,length)
    fffilen2=prefix2 // ".qmdff"
    call rdsolvff0(n_two,fffilen2)

@@ -217,6 +217,15 @@ if (software .eq. "V") call rdv0 (fname,n)
 !
 if(n.lt.1) stop 'no atoms!'
 
+!
+!     For VASP calculations: compare geometry of second minimum to first one!
+!
+if (software .eq. "V") then
+   if (.not. second_qmdff) then
+      allocate(xyz_previous(3,n))
+   end if
+end if
+
 allocate(at(n),xyz(3,n),g(3,n),nb(20,n),q(n),c6xy(n,n),h(3*n,3*n), &
    &      grep(3,n),cn(n),chir(n),xyz2(3,n),epair(n*(n+1)/2),  &
    &      cring(8,n),ringsize(n),mlist(n),covpair(n*(n+1)/2), &
@@ -229,7 +238,7 @@ if (software .eq. "O") call rdo(.true.,fname,outname,n,xyz,at,check_coord)
 if (software .eq. "T") call rd (.true.,fname,n,xyz,at)
 if (software .eq. "G") call gaurd(fname,n,at,h,xyz,chir,wbo,check_coord)
 if (software .eq. "C") call rdc(.true.,fname,n,xyz,at)
-if (software .eq. "V") call rdv(.true.,fname,n,xyz,at)
+if (software .eq. "V") call rdv(.true.,fname,n,xyz,at,second_qmdff,xyz_previous)
 !write(*,*) "summmm",sum(wbo)
 !
 !     if the system contains more than 100000 (!) atoms abort

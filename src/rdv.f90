@@ -31,10 +31,13 @@
 !
 !     part of QMDFF
 !
-subroutine rdv(echo,fname,n,xyz,iat)
+subroutine rdv(echo,fname,n,xyz,iat,second_qmdff,xyz_previous)
 implicit real(kind=8) (a-h,o-z)
 dimension::xyz(3,n),iat(n),xx(10)
 real(kind=8)::bohr
+real(kind=8)::unit_cell(3,3)
+real(kind=8)::cell_inv(3,3)
+real(kind=8)::xyz_previous(3,n)
 character(len=128)::line
 character(len=2)::a2
 character(len=*)::fname
@@ -43,6 +46,7 @@ character(len=2)::potcar_syms(10)
 integer::potcar_num
 integer::ion_nums(10)
 logical::echo
+logical::second_qmdff
 parameter (bohr=0.52917721092d0)
 
 if (echo) then
@@ -73,6 +77,15 @@ do
       read(line,*) dum,dum,dum,dum,ion_nums(1:potcar_num)
    end if
 !
+!    Then read the current unit cell size for conversion into direct coordinates
+!
+   if (index(line,' direct lattice vectors ') .ne.0) then
+      read(ich,*) unit_cell(1,:)
+      read(ich,*) unit_cell(2,:)
+      read(ich,*) unit_cell(3,:)
+   end if
+   call matinv3(unit_cell,cell_inv)
+!
 !    Then read the positions of the atoms (cartesian coordinates in Angstrom)
 !
    if(index(line,' position of ions in cartesian coordinates ') .ne.0) then
@@ -82,6 +95,38 @@ do
       exit
    end if
 end do
+!
+!     If the second QMDFF shall be generated, assure that all image flags 
+!     are the same as in the first QMDFF, else, a reaction path cannot be
+!     described!
+!     For first QMDFF: convert the actual geometry into direct coordinates  
+!     and store it into the xyz_previous array 
+!     For second QMDFF: convert the actual geometry into direct coordinates 
+!     and compare/correct it with the xyz_previous array
+!
+if (second_qmdff) then
+   do i=1,n
+      xyz(:,i)=matmul(cell_inv,xyz(:,i))
+   end do 
+   do i=1,n
+      do j=1,3
+         if ((xyz(j,i)-xyz_previous(j,i)) .gt. 0.5d0) then
+            xyz(j,i)=xyz(j,i)-1.0d0
+         end if
+         if ((xyz(j,i)-xyz_previous(j,i)) .lt. -0.5d0) then
+            xyz(j,i)=xyz(j,i)+1.0d0
+         end if
+      end do
+   end do
+   do i=1,n
+      xyz(:,i)=matmul(unit_cell,xyz(:,i))
+   end do
+else
+   do i=1,n
+      xyz_previous(:,i)=matmul(cell_inv,xyz(:,i)) 
+   end do 
+end if
+
 !
 !     Fill the element names array from the POTCAR information
 !

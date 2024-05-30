@@ -157,6 +157,8 @@ pmf_minloc = "ZERO"
 print_poly = -5.d0
 !     The energy tolerance in kJ/mol with respect to the TS energy for errors 
 energy_tol = 250d0
+!     The reaction coordinate elongation tolerance in absolute numbers 
+xi_tol = 0.1d0
 !     If only the structure generation shall be done for test reasons
 gen_test = .false.
 !     If the debugging mode shall be set on (write out every single structure)
@@ -247,6 +249,12 @@ do i = 1, nkey_lines
          write(*,*) "Correct format: RPMD_EN_TOL [energy tolerance (kJ/mol)]"
          call fatal
       end if
+   else if (keyword(1:16) .eq. 'RPMD_XI_TOL ') then
+      read(record,*,iostat=readstat) names,xi_tol
+      if (readstat .ne. 0) then 
+         write(*,*) "Correct format: RPMD_XI_TOL [coordinate tolerance (a.u.)]"
+         call fatal
+      end if      
    else if (keyword(1:20) .eq. 'GEN_TEST ') then
       gen_test = .true.
    else if (keyword(1:20) .eq. 'MAX_ERROR ') then

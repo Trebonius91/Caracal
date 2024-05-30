@@ -109,7 +109,7 @@ end if
 !     PART C: The position of the structure with respect to the reactive coordinate Xi
 !     os too much elongated!
 !
-if (abs(xi_real-xi_ideal) .gt. 0.1d0) then
+if (abs(xi_real-xi_ideal) .gt. xi_tol) then
    traj_error=1 
    write(*,*) "ERROR! The actual xi value (",xi_real,") of the structure is too much away"
    write(*,*) "from the ideal value (",xi_ideal,")!"

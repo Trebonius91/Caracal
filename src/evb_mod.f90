@@ -358,6 +358,7 @@ logical::recross_check  ! if checking is activated for recrossing
 logical::loose_check   ! samplings are not canceled after single error
 integer::err_max,err_act_max
 real(kind=8)::energy_tol  ! tolerance for energy in relation to TS energy per bead
+real(kind=8)::xi_tol  ! tolerance for deviation from current to desired Xi value
 !    TEST TEST TEST
 real(kind=8),allocatable::error_vec_ens(:)  ! vector with energy parts 
 real(kind=8),allocatable::error_vec_v12(:)  ! vector with coupling parts

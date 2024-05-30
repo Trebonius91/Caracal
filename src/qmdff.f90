@@ -208,6 +208,12 @@ logical::vasp_hessian_sel
 !    If qmdffgen shall not generate a QMDFF but only determine coordinates based 
 !    on Wiberg-Mayer bond orders and print out Wilson matrix/derivatives
 logical::check_coord
+!
+!    For VASP QMDFF generation of two QMDFFs: correct for image flags along a 
+!    path if required!
+!
+logical::second_qmdff
+real(kind=8),allocatable::xyz_previous(:,:)
 
 logical::ff_mod_noncov   ! If the noncovalent QMDFF parameter were optimized separately
 real(kind=8),allocatable::mn_par(:)  ! the parameters for the noncovalent optimization
