@@ -94,6 +94,7 @@ defqmdff=.false.
 params=.false.
 filegeo="dummy" ! is not used in this context
 orca=.false.
+aenet_ann=.false.
 water_spc=.false.
 pes_topol=.false.
 !
@@ -272,6 +273,15 @@ else if (method .eq. "PGFN-FF") then
 else if (method .eq. "ORCA") then
    orca=.true.
    if (rank .eq. 0) then
+   end if
+!
+!     If an artificial neural network (ANN) shall be used, as implemented 
+!      by Atomic Energy NETwork (ænet) (http://ann.atomistic.net)
+!
+else if (method .eq. "AENET_ANN") then
+   aenet_ann=.true.
+   if (rank .eq. 0) then
+!      write(*,*) "An artificial neural network (ANN) (aenet program) will be used!"
    end if
 !
 !     If the energy/gradient shall be calculated on the fly with an arbitrary 
@@ -1086,7 +1096,7 @@ if (pgfn_ff) then
             end if
             if (keyword(1:11) .eq. '}') exit
             if (j .eq. nkey_lines-i) then
-               write(*,*) "The EXTERNAL section has no second delimiter! (})"
+               write(*,*) "The PGFN-FF section has no second delimiter! (})"
                call fatal
             end if
          end do
@@ -1173,6 +1183,72 @@ if (orca) then
 
    goto 678
 end if
+!
+!    For calculation with an artificial neural network (ANN), read in the 
+!     trained neural networks in binary format and initialize the actual
+!     ANN potential
+!
+if (aenet_ann) then
+   if (rank .eq. 0) then
+      write(*,*) 
+      write(*,*) "Used PES: artificial neural network (ANN)"
+      write(*,*) "The pretrained ann files for all elements will"
+      write(*,*) " be read in and the potential energy function be defined."
+      write(*,*)
+   end if
+
+!
+!      Set default values 
+!
+   do i = 1, nkey_lines
+      next = 1
+      record = keyline(i)
+      call gettext (record,keyword,next)
+      call upcase (keyword)
+      call upcase (record)
+      string = record(next:120)
+      if (trim(adjustl(record(1:11))) .eq. 'AENET_ANN {' .or. trim(adjustl(record(1:11))) &
+              &  .eq. 'AENET_ANN{') then
+
+         ann_elnum=0
+         do j=1,nkey_lines-i+1
+            next=1
+            record = keyline(i+j)
+            call gettext (record,keyword,next)
+            call upcase (keyword)
+            record=adjustl(record)
+            if (keyword(1:4) .eq. 'NET_') then
+               ann_elnum=ann_elnum+1
+               read(record(5:),*,iostat=readstat) ann_elements(ann_elnum),ann_files(ann_elnum)
+               if (readstat .ne. 0) then
+                  write(*,*) "Please check the NET_[element] keyword(s)!"
+                  call fatal
+               end if
+            end if
+            if (keyword(1:11) .eq. '}') exit
+            if (j .eq. nkey_lines-i) then
+               write(*,*) "The AENET_ANN section has no second delimiter! (})"
+               call fatal
+            end if
+         end do
+      end if
+   end do
+   do j=1,ann_elnum
+      call upcase(ann_elements(j))
+   end do
+   if (ann_elnum .lt. 1) then
+      write(*,*) "Please give keywords NET_[element] [filename] to specify "
+      write(*,*) " paths to ANN potentials for all elements in the system!"
+      call fatal
+   end if
+!
+!    Call the initialization routine
+!   
+   call aenet_initialize(ann_elnum,ann_files,ann_elements)
+   goto 678
+end if
+
+
 !
 !    For calculations with external arbitrary programs: read in the 
 !     link/symlink of that program

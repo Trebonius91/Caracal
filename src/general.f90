@@ -345,6 +345,14 @@ character(len=80)::pot_type
 !
 integer::xtb_calc_num
 !
+!     For artificial neural network (ANN) with aenet
+!
+logical::aenet_ann
+integer::ann_elnum  ! number of elements
+character(len=50)::ann_files(50)  ! ANN file names
+character(len=2)::ann_elements(50)  ! associated elements
+integer,allocatable::at_type_ann(:)
+!
 !     For certain structure analysis tools: if the program explore is used
 !
 logical::use_explore

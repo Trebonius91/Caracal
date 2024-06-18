@@ -266,6 +266,16 @@ if (orca) then
    return
 end if
 !
+!     Invoke the aenet routines to calculate artificial neural network
+!     energy and gradient!
+!
+if (aenet_ann) then
+   call egrad_aenet(xyz2,pot_grad,e_evb)
+   g_evb=pot_grad(:,:,1)
+   return
+end if
+
+!
 !     Invoke the call to the chosen external program, if desired
 !     Is several MPI ranks are used, go to the folder for each rank!
 !

@@ -229,6 +229,14 @@ OBJS = general.o evb_mod.o qmdff.o lm_module.o debug.o h2co_mod.o \
        tblite/solvation/input.o  tblite/solvation.o tblite/data/spin.o \
        tblite/spin.o tblite/api/calculator.o tblite/api/container.o \
        wibsort.o egrad_tblite.o \
+       aenet/ext/arglib.o aenet/ext/chebyshev.o aenet/ext/feedforward.o \
+       aenet/ext/io.o aenet/ext/sortlib.o aenet/ext/sfbasis.o \
+       aenet/ext/lclist.o aenet/ext/symmfunc.o aenet/ext/timing.o \
+       aenet/ext/unittest.o aenet/ext/xsflib.o aenet/constants.o \
+       aenet/aeio.o aenet/geometry.o aenet/input.o aenet/sfsetup.o \
+       aenet/trainset.o aenet/potential.o aenet/random.o \
+       aenet/parallel.o aenet/optimize.o aenet/aenet.o \
+       aenet/initialize.o aenet/energy.o egrad_aenet.o \
        \
        egrad_ch4oh.o util_ch4oh.o egrad_h3.o \
        numeral.o getnumb.o getstring.o torphase.o egrad_ch4h.o \

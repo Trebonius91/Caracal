@@ -749,28 +749,24 @@ if (qmdffnumber.eq.2) then
 !     if the first QMDFF describes the first minimum
 !
       if (diff1 .lt. diff2) then
-         e_one=energies_tmp(1,1)-E_zero1
-         E_zero1=refens(1)-e_one
+         e_one=energies_tmp(2,1)-E_zero1
+         E_zero1=refens(2)-e_one
 
-         e_two=energies_tmp(reference_counter,2)-E_zero2
-         E_zero2=refens(reference_counter)-e_two
+         e_two=energies_tmp(reference_counter-1,2)-E_zero2
+         E_zero2=refens(reference_counter-1)-e_two
 !
 !    if the first QMDFF describes the second minimum
 !   
       else
-         e_two=energies_tmp(1,2)-E_zero2
-         E_zero2=refens(1)-e_two
+         e_two=energies_tmp(2,2)-E_zero2
+         E_zero2=refens(2)-e_two
 
-         e_one=energies_tmp(reference_counter,1)-E_zero1
-         E_zero1=refens(reference_counter)-e_one
+         e_one=energies_tmp(reference_counter-1,1)-E_zero1
+         E_zero1=refens(reference_counter-1)-e_one
       end if
       close(56)
-      if (rank .eq. 0) then
-         write(*,*) "New QMDFF shifts were calculated to exacly reproduce asymptotics of path."
-         write(*,*) "Command 2EVB in keyfile was updated.."
-      end if
-      write(syscall,'(a,f24.14,f24.14,a,a)') 'sed -i "s/ 2EVB  .*/ 2EVB  ',E_zero1,&
-                  & E_zero2,'/g"  ',trim(keyfile) 
+!      write(syscall,'(a,f24.14,f24.14,a,a)') 'sed -i "s/ eshift  .*/ eshift  ',E_zero1,&
+!                 & E_zero2,'/g"  ',trim(keyfile) 
       call system(syscall)
       deallocate(refens)
    else 
@@ -1054,6 +1050,14 @@ end if
 !
 !    calculate the needed time for optimization
 !
+if (rank .eq. 0) then
+   write(*,*)
+   write(*,*) "New QMDFF shifts were calculated to exacly reproduce asymptotics of path."
+   write(*,*) "The new shifts are:",E_zero1,E_zero2
+   write(*,*) "Replace the shifts of the 'eshift' keywords by the new ones!"
+   write(*,*)
+end if
+
 
 if (rank .eq. 0) then
    call system_clock(time_int(2))
