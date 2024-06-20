@@ -76,7 +76,8 @@ OBJS = general.o evb_mod.o qmdff.o lm_module.o debug.o h2co_mod.o \
        preig2.o preig4.o rdhess.o rdohess.o rdchess.o hfit.o \
        getpar0.o getparini.o putpar.o pderiv.o getpar.o ffhess.o \
        lmnpre.o pola.o rhftce.o prod.o main_gen.o procload.o \
-       pfit.o getxy.o rd0.o rdo0.o rdc0.o rd.o rdo.o rdc.o \
+       pfit.o getxy.o rd0.o rdo0.o rdc0.o rd.o rdo.o rdc.o rdv.o \
+       rdv0.o rdvhess.o atommass_loc.o \
        elem.o asym.o upper.o readl.o readaa.o cutline.o checktype.o \
        rdsolvff0.o rdsolvff.o rdsolvff_two.o rdsolvff_three.o \
        rdwbo.o getring.o samering.o chk.o setvalel.o setzetaandip.o \
@@ -228,6 +229,14 @@ OBJS = general.o evb_mod.o qmdff.o lm_module.o debug.o h2co_mod.o \
        tblite/solvation/input.o  tblite/solvation.o tblite/data/spin.o \
        tblite/spin.o tblite/api/calculator.o tblite/api/container.o \
        wibsort.o egrad_tblite.o \
+       aenet/ext/arglib.o aenet/ext/chebyshev.o aenet/ext/feedforward.o \
+       aenet/ext/io.o aenet/ext/sortlib.o aenet/ext/sfbasis.o \
+       aenet/ext/lclist.o aenet/ext/symmfunc.o aenet/ext/timing.o \
+       aenet/ext/unittest.o aenet/ext/xsflib.o aenet/constants.o \
+       aenet/aeio.o aenet/geometry.o aenet/input.o aenet/sfsetup.o \
+       aenet/trainset.o aenet/potential.o aenet/random.o \
+       aenet/parallel.o aenet/optimize.o aenet/aenet.o \
+       aenet/initialize.o aenet/energy.o egrad_aenet.o \
        \
        egrad_ch4oh.o util_ch4oh.o egrad_h3.o \
        numeral.o getnumb.o getstring.o torphase.o egrad_ch4h.o \

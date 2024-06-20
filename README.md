@@ -154,3 +154,4 @@ Here, literature referring to the different methods included into Caracal are gi
 - 01/15/2024: Internal coordinate analyses and Wilson matrix calculations can be done with explore.x, using the 'pes topol' option
 - 02/26/2024: The position along the reaction path where the recrossing is calculated in calc_rate.x can now be chosen manually.
 - 04/29/2024: The explore program has been improved. The conjugate gradient algirithm for geometry optimization added, better output for geometry optimization. IR intensities for pGFN-FF, GFN-xTB and QMDFF in frequency calculation.
+- 06/21/2024: Neural network potentials as implemented in the aenet program are now available as an integrated PES function. Further, periodic structures can be given efficiently by the VASP POSCAR geometry format.
