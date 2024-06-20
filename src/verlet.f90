@@ -549,7 +549,6 @@ end if
 !     in fractional coordinates! (might be extended to all calculations in the
 !     future)
 !
-    
 if (periodic) then
    if (coord_vasp) then
       coord_mat(:,1)=vasp_a_vec(:)
@@ -726,8 +725,6 @@ if (constrain .lt. 0) then
       end if
    end if
 end if
-
-
 !
 !     constrain the system to the xi value if desired
 !
@@ -817,7 +814,6 @@ if (afm_run) then
    end do
    afm_force=afm_force/newton2au
 end if 
-
 !
 !     Add the bias potential for umbrella samplings!
 !

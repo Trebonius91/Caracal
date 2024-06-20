@@ -79,7 +79,6 @@ end if
 do i=1,nbeads
    q_1b=q_i(:,:,i)
    call gradient (q_1b,epot,derivs_1d,i,rank)
-    
    derivs(:,:,i)=derivs_1d
 end do
 !if (calc_modus .eq. 1) stop "Jgdi2"
@@ -97,7 +96,6 @@ if (bias_mode .eq. 1) then
 else if (bias_mode .eq. 2) then
    call umbrella(centroid,xi_ideal,int_ideal,xi_real,dxi_act,derivs,0)
 end if
-
 !if (calc_modus .eq. 1) stop "Jgdi3"
 !
 !     Reset the momentum to a pseudo random distribution
@@ -162,7 +160,5 @@ if (fix_atoms) then
       p_i(:,fix_list(i),:)=0.d0
    end do
 end if
-
-
 return
 end subroutine mdinit

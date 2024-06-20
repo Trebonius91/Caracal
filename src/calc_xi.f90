@@ -661,7 +661,6 @@ else if (umbr_type .eq. "ATOM_SHIFT") then
    else if (mode .eq. 2) then
       d2xi_act=xi_ideal*d2s1+(1-xi_ideal)*d2s0
    end if
- 
 !    #############################################################################
 !    3 UNIMOLECULAR REACTIONS (GENERAL)
 !

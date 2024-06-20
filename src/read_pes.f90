@@ -48,7 +48,7 @@ integer::state_open  ! if a file was opened successfully
 integer::nlines  ! number of structures in the IRC
 integer::qmdff_index   ! number of QMDFF for corrections
 integer::keylines_backup  ! for pGFN-FF bug
-character(len=120)::string
+character(len=120)::string,a120
 character(len=20)::keyword
 character(len=120)::record
 character(len=70)::fileinfo,filegeo,ts_file
@@ -65,6 +65,7 @@ real(kind=8),dimension(:),allocatable::int_coord,geo_int,geo_xyz1
 real(kind=8),dimension(:,:),allocatable::ts_coordinates_a,ts_coordinates2_a
 integer::mode,next,j,k,readstatus,dg_evb_mode,mat_size,num_struc
 integer::int_mode ! method of defining internal coordinates
+integer::natoms_list(10) ! list of atom numbers in POSCAR headers
 real(kind=8)::s_q1_r  ! temporary variable for QMDFF damping range (RP-EVB)
 real(kind=8),allocatable::xyz_init(:,:)  ! geometry for pGFN-FF init
 real(kind=8)::xr,yr,zr
@@ -315,10 +316,23 @@ else if (method .eq. "EXTERNAL") then
       end do
 !
 !     If the TS file has been found, read in the number of atoms from its first line
+!     If a POSCAR file is the TS file, read in the sum of the species number
 !
-      open(unit=37,file=ts_file,status="old")
-      read(37,*) natoms
-      close(37)
+      if (trim(ts_file) .eq. "POSCAR") then
+         open(unit=37,file=ts_file,status="old")
+         do i=1,6
+            read(37,*)
+         end do
+         read(37,*) a120
+         natoms_list=0
+         read(120,*,iostat=readstat) natoms_list
+         natoms=sum(natoms_list)
+         close(37)
+      else
+         open(unit=37,file=ts_file,status="old")
+         read(37,*) natoms
+         close(37)
+      end if
    end if
 
    if (rank .eq. 0) then
@@ -1207,9 +1221,8 @@ if (aenet_ann) then
       call upcase (keyword)
       call upcase (record)
       string = record(next:120)
-      if (trim(adjustl(record(1:11))) .eq. 'AENET_ANN {' .or. trim(adjustl(record(1:11))) &
+      if (trim(adjustl(record(1:16))) .eq. 'AENET_ANN {' .or. trim(adjustl(record(1:16))) &
               &  .eq. 'AENET_ANN{') then
-
          ann_elnum=0
          do j=1,nkey_lines-i+1
             next=1

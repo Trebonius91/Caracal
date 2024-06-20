@@ -84,6 +84,9 @@ logical::active,exist,section
 integer::next
 !     status of actual read in
 integer::readstat,istat
+!     For read in of number of atoms
+character(len=120)::a120
+integer::natoms_list(20)
 
 !     Initialize several parameters 
 !
@@ -270,6 +273,25 @@ do i = 1, nkey_lines
       debug_unit=112
    end if
 end do
+!
+!    Determine the number of atoms from the TS file
+!    If a VASP POSCAR file is there, sum up the element atom numbers
+!
+if (trim(ts_file) .eq. "POSCAR") then
+   open(unit=67,file=ts_file,status="old")
+   do i=1,6
+      read(67,*) 
+   end do
+   read(67,'(a)') a120
+   natoms_list=0
+   read(a120,*,iostat=readstat) natoms_list 
+   natoms=sum(natoms_list)
+   close(67)
+else
+   open(unit=67,file=ts_file,status="old")
+   read(67,*) natoms
+   close(67)
+end if
 write(15,*) "...done!"
 
 ! -------------------------------------------------------------------
