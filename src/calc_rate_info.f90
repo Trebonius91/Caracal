@@ -227,7 +227,11 @@ if (rank .eq. 0) then
    write(15,'(a)') " * The umbrella samplings are carried out along the reaction path"
    write(15,'(a,f12.6,a,f12.6)') "      along a range between Xi=",umbr_hi," and Xi=",umbr_lo
    write(15,'(a,i4,a)') " * There are",nint((umbr_hi-umbr_lo)/umbr_dist)," umbrella windows."
-   write(15,'(a,f12.6,a)') " * The strength of the umbrella force constant is: ",k_force," a.u."
+   if (k_force_indi) then
+      write(15,'(a,a)') " * The umbrella force constants of the windows are read in from file ",trim(k_force_file)
+   else
+      write(15,'(a,f12.6,a)') " * The strength of the global umbrella force constant is: ",k_force_all," a.u."
+   end if
    write(15,'(a)') "     It was multiplied by temperature as usual for umbrella samplings (k=k*T)"
    write(15,'(a,i9,a)') " * A number of ",gen_step," MD steps is used for start structure generation."
    write(15,'(a,i5,a)') " * Per umbrella window",umbr_traj," umbrella trajectories will be sampled."

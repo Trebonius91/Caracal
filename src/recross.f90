@@ -88,7 +88,7 @@ real(kind=8)::kappa_num(child_evol)  ! the time dependent recrossing factor
 real(kind=8)::Vpot ! the potential energy of the used PES
 real(kind=8)::en_act  ! the actual energy
 real(kind=8)::fs,vs  ! recrossing factor fractions
-real(kind=8)::k_save  ! the stored force constant
+real(kind=8),allocatable::k_save(:)  ! the stored force constant
 real(kind=8)::kappa_denom  ! denominator for the recrossing factor calculation
 real(kind=8)::num_total(child_evol),denom_total  ! the final kappa calculation
 real(kind=8)::kappa  ! the final result!
@@ -118,6 +118,10 @@ t_actual=0.d0  ! the already vanished parent trajectory time
 !     store the start structure 
 !
 q_start=q_i
+!
+!     Allocate array for saved force constants
+!
+allocate(k_save(size(k_force)))
 !
 !     first, equilibrate the parent trajectory: umbrella trajectory with
 !     infinite strong potential

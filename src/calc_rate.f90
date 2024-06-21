@@ -110,6 +110,7 @@ integer::num_lines,lastline
 integer::num_struc
 character(len=70)::filegeo
 real(kind=8),dimension(:),allocatable::int_curr
+real(kind=8)::xi_val_test  ! for reading in of individual umbrella force constants
 real(kind=8)::xi_val   ! the (ideal) xi value for this umbrella window
 real(kind=8)::xi_real  ! the actual sampled xi value in the verlet algorithm
 integer::n_all ! total number of sampling windows
@@ -319,8 +320,6 @@ call calc_rate_info(rank,dt,dtdump,dt_info,gen_step,equi_step,umbr_step,xi_min,&
 !
 beta=1.d0/(kelvin*k_B)
 !
-!     shift the umbrella force constant with temperature 
-k_force=k_force*kelvin
 !
 !     derivatives if the internal coordinates!
 !
@@ -372,7 +371,9 @@ end if
 !
 if (trim(ts_file) .eq. "POSCAR") then
    write(*,*)
-   write(*,*) "The geometry is given in file POSCAR. VASP format will be assumed!"
+   if (rank .eq. 0) then
+      write(*,*) "The geometry is given in file POSCAR. VASP format will be assumed!"
+   end if
    coord_vasp = .true.
    open (unit=31,file=ts_file,status='old')
    read(31,*)
@@ -638,6 +639,43 @@ if (((n_over+n_samplings)-(n_all-1)) .ne. 0) then
       call fatal
    end if
 end if
+!
+!     Calculate the values of the umbrella bias for each window, either a 
+!     constant value or read in from file
+!
+allocate(k_force(n_all))
+if (k_force_indi) then
+   open(unit=67,file=k_force_file,status="old",iostat=readstat)
+   if (readstat .ne. 0) then
+      if (rank .eq. 0) then
+         write(*,*) "You have ordered individual umbrella force constants for all"
+         write(*,*) " umbrella windows but the file ",trim(k_force_file)," with"
+         write(*,*) " the force values for the windows is not there!"
+         call fatal
+      end if
+   end if
+   do i=1,n_all
+      read(67,*,iostat=readstat) xi_val_test,k_force(i)
+      if (readstat .ne. 0) then
+         write(*,*) "The file ",trim(k_force_file)," has a wrong format on line ",i,"!"
+         call fatal
+      end if
+      if ((xi_val_test-(umbr_lo+umbr_dist*(i-1))) .gt. 0.001) then 
+         write(*,*) "The xi value for umbrella window ",i," is ", umbr_lo+umbr_dist*(i-1), " ."
+         write(*,*) " You gave the xi value ",xi_val_test," for this window in the"
+         write(*,*) trim(k_force_file)," file. Please check this file!"
+         call fatal
+      end if 
+   end do
+   close(67)
+else
+   k_force=k_force_all
+end if
+!     shift the umbrella force constant with temperature 
+k_force=k_force*kelvin
+
+
+
 traj_error=0    ! if trajectories give errors, abort them..
 !
 !     Create a folder named with simulation temperature, else, 
@@ -826,6 +864,11 @@ if ((.not. dont_equi) .and. (rank .eq. 0)) then
          goto 111
       end if
 !
+!     Set the index of the current umbrella window for determination of the local
+!     force constant (if needed)
+!
+      um_window_act=n_all+i-(n_over+1) 
+!
 !     Reinitialize the dynamics (momenta etc.)
 !     (first: dynamic allocation for Andersen thermostat or initialization of GLE)
 !    
@@ -837,6 +880,7 @@ if ((.not. dont_equi) .and. (rank .eq. 0)) then
 !         stop "no GLE implemented!"
 !      end if
   !    call mdinit_bias(xi_val,dxi_act,derivs,1,2)
+
       call mdinit(derivs,xi_val,dxi_act,2,rank)
       do istep = 1, gen_step
          call verlet(istep,dt,derivs,energy_act,0d0,0d0,xi_val,xi_real,dxi_act,i,0,.false.,rank)
@@ -928,6 +972,11 @@ if ((.not. dont_equi) .and. (rank .eq. 0)) then
          gen_reset=gen_reset+1
          goto 111
       end if
+!
+!     Set the index of the current umbrella window for determination of the local
+!     force constant (if needed)
+!
+      um_window_act=n_samplings-i+1
 
 !
 !     Reinitialize the dynamics (momenta etc.)
@@ -1242,6 +1291,12 @@ if (.not. dont_umbr) then
          if (umbr_type .eq. "SINGLE") then
             call umbr_coord(xi_val,int_curr)
          end if
+!
+!     Set the index of the current umbrella window for determination of the local
+!     force constant (if needed)
+!
+         um_window_act=k
+
 !
 !     set averages and variances to zero
 !
@@ -1749,7 +1804,7 @@ if (rank .eq. 0) then
             p_ib(i)=1.d0/(sqrt(2.d0*pi*variance(i)))*exp(-0.5d0*((xi_act- &
                   & average(i)))**2/variance(i))
             dA_iu(i)=(1.d0/beta)*(xi_act-average(i))/(variance(i))- &
-                  & k_force*(xi_act-xi_wins(i))
+                  & k_force(i)*(xi_act-xi_wins(i))
 !            stop
          end do 
 !     Sum up the distributions for the actual bin

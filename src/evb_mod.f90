@@ -232,7 +232,11 @@ real(kind=8),dimension(:,:),allocatable::ts_ref,reac_ref
 real(kind=8),dimension(:),allocatable::int_reac,int_ts,xi_scale ! scale int. coordinates to 0..1
 real(kind=8),dimension(:),allocatable::form_ref,break_ref  ! reference values for the TS bonds
 real(kind=8),dimension(:),allocatable::form_reac,break_reac ! reference values of reactants bonds (unimol.)
-real(kind=8)::k_force ! umbrella force constant
+real(kind=8),allocatable::k_force(:) ! umbrella force constant (individual values)
+real(kind=8)::k_force_all  ! global values for force constant
+character(len=100)::k_force_file   ! file name for list of individual force constants
+logical::k_force_indi  ! if individual force constants shall be read in
+integer::um_window_act  ! the current umbrella sampling window
 real(kind=8),allocatable::struc_equi(:,:,:)
 real(kind=8)::umbr_lo,umbr_hi ! bonds for umbrella samplings
 real(kind=8)::umbr_dist ! distance between single umbrella samplings

@@ -83,9 +83,9 @@ end do
 !     check for keyfile specified on command line
 !     loop over all command line arguments
 !
+keyfile="xxxx"
 narg=1
 exist = .false.
-
 do i = 1, narg
    string = arg(i)
    keyfile = string 
@@ -97,9 +97,9 @@ do i = 1, narg
          write(*,*)
          write (iout,*) "The keyfile that was specified on command", &
               &  " line was not found!"
-         call mpi_barrier(mpi_comm_world,ierr)
-         call fatal
       end if
+      call mpi_barrier(mpi_comm_world,ierr)
+      call fatal
    end if
 end do
 if (.not. exist) then

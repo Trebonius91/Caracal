@@ -134,9 +134,9 @@ end if
 !      apply umbrella potential to gradient
 !
 delta=(xi_real-xi_ideal)
-v_add=0.5*k_force*delta*delta 
+v_add=0.5*k_force(um_window_act)*delta*delta 
 do i=1,nbeads 
-   grad_xyz(:,:,i)=grad_xyz(:,:,i)+k_force*delta*dxi_act
+   grad_xyz(:,:,i)=grad_xyz(:,:,i)+k_force(um_window_act)*delta*dxi_act
 end do
 !
 !      apply bias potential (with hessian) to gradient (why???)

@@ -119,7 +119,11 @@ recross_check = .true.
 !     If the loose check option shall be activated (only development!)
 loose_check = .false.
 !     The umbrella force constant
-k_force = -1.d0
+k_force_all = -1.d0
+!     If individual umbrella force constants shall be read in
+k_force_indi=.false.
+!     File for individual umbrella  force constants
+k_force_file="xxxx"
 !     The lowest umbrella window (with respect to path progress Xi)
 umbr_lo = -5.d0
 !     The highest umbrella window (with respect to path progress Xi)
@@ -820,13 +824,22 @@ do i = 1, nkey_lines
 !
 !     Now read in all other informaton of the MECHA section
 !
-!     The strength of the umbrella force constant
+!     The strength of the umbrella force constant (globally defined)
          if (keyword(1:20) .eq. 'BIAS ') then
-            read(record,*,iostat=readstat) names,k_force
+            read(record,*,iostat=readstat) names,k_force_all
             if (readstat .ne. 0) then
                write(*,*) "Correct format: BIAS [force constant (a.u.)]"
                call fatal
             end if
+!     The file with umbrella force constants (locally defined)
+         else if (keyword(1:20) .eq. 'BIAS_LIST ') then
+            read(record,*,iostat=readstat) names,k_force_file
+            if (readstat .ne. 0) then
+               write(*,*) "Correct format: BIAS_LIST [file name]"
+               call fatal
+            end if
+            k_force_indi=.true.
+
 !     The interval of the reaction coordinate Xi where sampling shall happen
          else if (keyword(1:20) .eq. 'BONDS ') then
             read(record,*,iostat=readstat) names,umbr_lo,umbr_hi
@@ -1140,7 +1153,7 @@ if (rank .eq. 0) then
 !
 !     specific umbrella sampling settings 
 !
-   if (k_force .eq. -1.0) then
+   if (k_force_all .eq. -1.0 .and. .not. k_force_indi) then
       write(*,*) "No umbrella force constant defined! Add the keyword BIAS (UMBRELLA{)!"
       call fatal
    else if ((umbr_lo .eq. -5.0) .or. (umbr_hi .eq. -5.0)) then

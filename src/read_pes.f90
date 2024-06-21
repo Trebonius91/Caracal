@@ -407,7 +407,7 @@ else if (method .eq. "ANA_H3") then
    natoms=3  ! store number of atoms..
    pot_ana = .true.
    pot_type = "h3"
-
+   goto 678
 else if (method .eq. "ANA_BRH2") then
    if (rank .eq. 0) then
       open(unit=16,file="pot_info.out",status="unknown")
