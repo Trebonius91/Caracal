@@ -294,16 +294,148 @@ end if
 
 
 !
-!     Read in the information about the PES in use
-!
-use_rpmd=.true.  ! for init_int etc.
-call read_pes(rank)
-!
 !     Read in settings for the rate calculation
 !
-
+use_rpmd=.true.  ! for init_int etc
 call calc_rate_read(rank,dt,dtdump,dt_info,gen_step,equi_step,umbr_step,xi_min,&
           & xi_max,pmf_min,pmf_max,nbins,pmf_minloc,print_poly,ts_file,recross_mpi)
+
+!
+!     Read in the TS structure which is always the starting point for the
+!       whole calculation!
+!     If the filename is POSCAR, assume a VASP POSCAR file as input
+!
+if (trim(ts_file) .eq. "POSCAR") then
+!   write(*,*)
+!   if (rank .eq. 0) then
+!      write(*,*) "The geometry is given in file POSCAR. VASP format will be assumed!"
+!   end if
+   coord_vasp = .true.
+   open (unit=31,file=ts_file,status='old')
+   read(31,*)
+   read(31,*) vasp_scale
+   read(31,*) vasp_a_vec
+   read(31,*) vasp_b_vec
+   read(31,*) vasp_c_vec
+   vasp_names="XX"
+!
+!     Read the elements for all atoms
+!
+   read(31,'(a)') string
+   read(string,*,iostat=readstat) vasp_names
+   vasp_numbers = 0
+   read(31,'(a)') string
+   read(string,*,iostat=readstat) vasp_numbers
+   ind=0
+   nelems_vasp=0
+   do i=1,20
+      if (vasp_names(i) .eq. "XX") exit
+      nelems_vasp=nelems_vasp+1
+      do j=1,vasp_numbers(i)
+         ind=ind+1
+         name(ind)=vasp_names(i)
+         call atommass(ind)
+         call upcase(name(ind))
+      end do
+   end do
+   n=sum(vasp_numbers)
+   natoms=n
+   allocate(ts_ref(3,natoms))
+   allocate(elem_index(natoms))
+!
+!    Store element indices
+!
+   do i=1,natoms
+      call elem(name(i),elem_index(i))
+   end do
+!
+!    Check if selective dynamics or not
+!
+!    Check if POSCAR has direct or cartesian coordinates
+!
+   vasp_selective = .false.
+   vasp_direct = .false.
+   fix_atoms = .false.
+
+   read(31,'(a)') string
+   if (adjustl(trim(string)) .eq. "Selective dynamics" .or. &
+          & adjustl(trim(string)) .eq. "selective dynamics" .or. &
+          & adjustl(trim(string)) .eq. "Selective" .or. &
+          & adjustl(trim(string)) .eq. "selective" .or. &
+          & adjustl(trim(string)) .eq. "Selective Dynamics" .or. &
+          & adjustl(trim(string)) .eq. "Selective Dynamics") then
+      vasp_selective = .true.
+      fix_atoms = .true.
+      if (allocated(fix_list)) deallocate(fix_list)
+      allocate(fix_list(natoms))
+      fix_list=0
+   else
+      if (adjustl(trim(string)) .eq. "direct" .or.  &
+                  & adjustl(trim(string)) .eq. "Direct") then
+         vasp_direct = .true.
+      end if
+   end if
+   if (vasp_selective) then
+      read(31,'(a)') string
+      if (adjustl(trim(string)) .eq. "direct" .or. &
+                  & adjustl(trim(string)) .eq. "Direct") then
+         vasp_direct = .true.
+      end if
+   end if
+!
+!     Now read in the coordinates
+!     If selective is activated, read in the first flag as well and
+!     decide if the atom is active or not (no coordinate distinction!)
+!     Add the indices of the fixed atoms to the fix_list array
+!
+   ind=0
+   do i=1,natoms
+      if (vasp_selective) then
+         read(31,*) ts_ref(:,i),check_sel
+         if (check_sel .eq. "F") then
+            ind=ind+1
+            fix_list(ind)=i
+         end if
+      else
+         read(31,*) ts_ref(:,i)
+      end if
+!
+!     If direct coordinates are given, transform the coordinates to Angstrom!
+!
+      if (vasp_direct) then
+         x_tmp=ts_ref(1,i)
+         y_tmp=ts_ref(2,i)
+         z_tmp=ts_ref(3,i)
+         ts_ref(1,i)=(x_tmp*vasp_a_vec(1)+y_tmp*vasp_b_vec(1)+z_tmp*vasp_c_vec(1))*vasp_scale
+         ts_ref(2,i)=(x_tmp*vasp_a_vec(2)+y_tmp*vasp_b_vec(2)+z_tmp*vasp_c_vec(2))*vasp_scale
+         ts_ref(3,i)=(x_tmp*vasp_a_vec(3)+y_tmp*vasp_b_vec(3)+z_tmp*vasp_c_vec(3))*vasp_scale
+      end if
+   end do
+   if (vasp_selective) then
+      fix_num=ind
+   end if
+
+   close(31)
+else
+   open(unit=31,file=ts_file,status="old",iostat=readstat)
+   if (readstat .ne. 0) then
+      if (rank .eq. 0) then
+         write(*,*) "The file ",ts_file," with the start structure could not been found!"
+         call fatal
+      end if
+   end if
+   allocate(ts_ref(3,natoms))
+   read(31,*) ; read(31,*)
+   do i=1,natoms
+      read(31,*) name(i),ts_ref(:,i)
+      call atommass(i)
+   end do
+   close(31)
+end if
+!
+!     Read in the information about the PES in use
+!
+call read_pes(rank)
 !
 !     convert timestep to atomic units!
 !
@@ -364,138 +496,7 @@ if (do_debug) then
    end if
    open(unit=debug_unit,file="debug_traj.xyz",status="unknown")
 end if
-!
-!     Read in the TS structure which is always the starting point for the 
-!       whole calculation!
-!     If the filename is POSCAR, assume a VASP POSCAR file as input
-!
-if (trim(ts_file) .eq. "POSCAR") then
-   write(*,*)
-   if (rank .eq. 0) then
-      write(*,*) "The geometry is given in file POSCAR. VASP format will be assumed!"
-   end if
-   coord_vasp = .true.
-   open (unit=31,file=ts_file,status='old')
-   read(31,*)
-   read(31,*) vasp_scale
-   read(31,*) vasp_a_vec
-   read(31,*) vasp_b_vec
-   read(31,*) vasp_c_vec
-   vasp_names="XX"
-!
-!     Read the elements for all atoms
-!
-   read(31,'(a)') string
-   read(string,*,iostat=readstat) vasp_names
-   vasp_numbers = 0
-   read(31,'(a)') string
-   read(string,*,iostat=readstat) vasp_numbers
-   ind=0
-   nelems_vasp=0
-   do i=1,20
-      if (vasp_names(i) .eq. "XX") exit
-      nelems_vasp=nelems_vasp+1
-      do j=1,vasp_numbers(i)
-         ind=ind+1
-         name(ind)=vasp_names(i)
-         call atommass(ind)
-         call upcase(name(ind))
-      end do
-   end do
-   n=sum(vasp_numbers)
-   natoms=n
-   allocate(ts_ref(3,natoms))
-   allocate(elem_index(natoms))
-!
-!    Store element indices 
-!
-   do i=1,natoms
-      call elem(name(i),elem_index(i))
-   end do
-!
-!    Check if selective dynamics or not
-!
-!    Check if POSCAR has direct or cartesian coordinates
-!
-   vasp_selective = .false.
-   vasp_direct = .false.
-   fix_atoms = .false.
 
-   read(31,'(a)') string
-   if (adjustl(trim(string)) .eq. "Selective dynamics" .or. &
-          & adjustl(trim(string)) .eq. "selective dynamics" .or. &
-          & adjustl(trim(string)) .eq. "Selective" .or. &
-          & adjustl(trim(string)) .eq. "selective" .or. &
-          & adjustl(trim(string)) .eq. "Selective Dynamics" .or. &
-          & adjustl(trim(string)) .eq. "Selective Dynamics") then
-      vasp_selective = .true.
-      fix_atoms = .true.
-      if (allocated(fix_list)) deallocate(fix_list)
-      allocate(fix_list(natoms))
-      fix_list=0
-   else
-      if (adjustl(trim(string)) .eq. "direct" .or.  &
-                  & adjustl(trim(string)) .eq. "Direct") then
-         vasp_direct = .true.
-      end if
-   end if
-   if (vasp_selective) then
-      read(31,'(a)') string
-      if (adjustl(trim(string)) .eq. "direct" .or. &
-                  & adjustl(trim(string)) .eq. "Direct") then
-         vasp_direct = .true.
-      end if
-   end if
-!
-!     Now read in the coordinates
-!     If selective is activated, read in the first flag as well and 
-!     decide if the atom is active or not (no coordinate distinction!)
-!     Add the indices of the fixed atoms to the fix_list array
-!
-   ind=0
-   do i=1,natoms
-      if (vasp_selective) then
-         read(31,*) ts_ref(:,i),check_sel
-         if (check_sel .eq. "F") then
-            ind=ind+1
-            fix_list(ind)=i
-         end if
-      else
-         read(31,*) ts_ref(:,i)
-      end if
-!
-!     If direct coordinates are given, transform the coordinates to Angstrom!
-!     
-      if (vasp_direct) then
-         x_tmp=ts_ref(1,i)
-         y_tmp=ts_ref(2,i)
-         z_tmp=ts_ref(3,i)
-         ts_ref(1,i)=(x_tmp*vasp_a_vec(1)+y_tmp*vasp_b_vec(1)+z_tmp*vasp_c_vec(1))*vasp_scale
-         ts_ref(2,i)=(x_tmp*vasp_a_vec(2)+y_tmp*vasp_b_vec(2)+z_tmp*vasp_c_vec(2))*vasp_scale
-         ts_ref(3,i)=(x_tmp*vasp_a_vec(3)+y_tmp*vasp_b_vec(3)+z_tmp*vasp_c_vec(3))*vasp_scale
-      end if
-   end do
-   if (vasp_selective) then
-      fix_num=ind
-   end if
-
-   close(31)
-else
-   open(unit=31,file=ts_file,status="old",iostat=readstat)
-   if (readstat .ne. 0) then
-      if (rank .eq. 0) then
-         write(*,*) "The file ",ts_file," with the start structure could not been found!"
-         call fatal
-      end if
-   end if
-   allocate(ts_ref(3,natoms))
-   read(31,*) ; read(31,*)
-   do i=1,natoms
-      read(31,*) name(i),ts_ref(:,i)
-      call atommass(i)
-   end do
-   close(31)
-end if
 !
 !     Everything is converted to atomic units!
 !

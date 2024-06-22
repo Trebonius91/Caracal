@@ -221,6 +221,12 @@ real(kind=8)::afm_move_v(3)
 real(kind=8)::afm_move_first(3)
 real(kind=8)::afm_k
 integer::afm_steps
+!   for addition of mirror planes to the system
+logical::mirrors
+integer::mirror_num
+integer,allocatable::mirror_ats(:)
+integer,allocatable::mirror_dims(:)
+real(kind=8),allocatable::mirror_pos(:)
 ! for the new RPMD program
 integer::nbeads   ! the number of ring polymer beads to be sampled
 integer::npaths  ! number of equivalent reaction paths

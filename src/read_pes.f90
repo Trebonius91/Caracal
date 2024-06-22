@@ -1203,13 +1203,13 @@ end if
 !     ANN potential
 !
 if (aenet_ann) then
-   if (rank .eq. 0) then
-      write(*,*) 
-      write(*,*) "Used PES: artificial neural network (ANN)"
-      write(*,*) "The pretrained ann files for all elements will"
-      write(*,*) " be read in and the potential energy function be defined."
-      write(*,*)
-   end if
+ !  if (rank .eq. 0) then
+ !     write(*,*) 
+ !     write(*,*) "Used PES: artificial neural network (ANN)"
+ !     write(*,*) "The pretrained ann files for all elements will"
+ !     write(*,*) " be read in and the potential energy function be defined."
+ !     write(*,*)
+ !  end if
 
 !
 !      Set default values 
@@ -2349,34 +2349,34 @@ end if
 
 
 if (rank .eq. 0) then
-   write(*,*) "----------------------------------------------------------"
+   write(*,*) "---------------------PES SETTINGS---------------------"
 !
 !     A single QMDFF
 !
    if (qmdffnumber .eq. 1) then
-      write(*,*) "PES description: A single QMDFF"
-      write(*,*) " - QMDFF file: ",trim(fffile1)
-      write(*,'(a,i8)') "  - Number of atoms: ",natoms
+      write(*,*) "* PES description: A single QMDFF"
+      write(*,*) "* QMDFF file: ",trim(fffile1)
+      write(*,'(a,i8)') " * Number of atoms: ",natoms
       if (periodic) then
          if (coord_vasp) then
-            write(*,'(a)') "  - The system is simulated in a periodic box given by POSCAR: "
+            write(*,'(a)') " * The system is simulated in a periodic box given by POSCAR: "
             write(*,'(a,3f13.7)') "     a = ",vasp_a_vec(:)
             write(*,'(a,3f13.7)') "     b = ",vasp_b_vec(:)
             write(*,'(a,3f13.7)') "     c = ",vasp_c_vec(:)
          else 
-            write(*,'(a)') "  - The system is simulated in a cubix periodic box: "
+            write(*,'(a)') " * The system is simulated in a cubix periodic box: "
             write(*,'(a,f13.7,a,f13.7,a,f13.7,a)') "       x=", boxlen_x*bohr," Ang.  ,y=",boxlen_y*bohr, &
                         & " Ang., z=",boxlen_z*bohr,"Ang."
-            write(*,*) " - Long range Coulomb interactions treated with: ",trim(coul_method)
-            write(*,'(a,f11.3,a)') "  - (Short) Coulomb interactions have a cutoff of ",coul_cut, " A"
-            write(*,'(a,f11.3,a)') "  - VDW interactions have a cutoff of ",vdw_cut, " A"
+            write(*,*) "* Long range Coulomb interactions treated with: ",trim(coul_method)
+            write(*,'(a,f11.3,a)') " * (Short) Coulomb interactions have a cutoff of ",coul_cut, " A"
+            write(*,'(a,f11.3,a)') " * VDW interactions have a cutoff of ",vdw_cut, " A"
          end if
       else if (box_walls) then
-         write(*,'(a)') "  - The system is simulated in a hard-walls nonperiodic box: "
+         write(*,'(a)') " * The system is simulated in a hard-walls nonperiodic box: "
          write(*,'(a,f13.7,a,f13.7,a,f13.7,a)') "       x=", boxlen_x," Ang.  ,y=",boxlen_y, &
                      & " Ang., z=",boxlen_z,"Ang."
       else 
-         write(*,*) " - The simulated system has no periodicity."
+         write(*,*) "* The simulated system has no periodicity."
       end if
       
 
@@ -2385,41 +2385,41 @@ if (rank .eq. 0) then
 !     One of the GFN-xTB methods 
 !
    if (gfn_xtb) then
-      write(*,*) "PES description: GFN-xTB semiempirics" 
-      write(*,'(a,i8)') "  - Number of atoms: ",natoms
+      write(*,*) "* PES description: GFN-xTB semiempirics" 
+      write(*,'(a,i8)') " * Number of atoms: ",natoms
       if (periodic) then
          if (coord_vasp) then
-            write(*,'(a)') "  - The system is simulated in a periodic box given by POSCAR: "
+            write(*,'(a)') " * The system is simulated in a periodic box given by POSCAR: "
             write(*,'(a,3f13.7)') "     a = ",vasp_a_vec(:)
             write(*,'(a,3f13.7)') "     b = ",vasp_b_vec(:)
             write(*,'(a,3f13.7)') "     c = ",vasp_c_vec(:)
          else 
-            write(*,'(a)') "  - The system is simulated in a cubix periodic box: "
+            write(*,'(a)') " * The system is simulated in a cubix periodic box: "
             write(*,'(a,f13.7,a,f13.7,a,f13.7,a)') "       x=", boxlen_x*bohr," Ang.  ,y=",boxlen_y*bohr, &
                         & " Ang., z=",boxlen_z*bohr,"Ang."
          end if
       else if (box_walls) then
-         write(*,'(a)') "  - The system is simulated in a hard-walls nonperiodic box: "
+         write(*,'(a)') " * The system is simulated in a hard-walls nonperiodic box: "
          write(*,'(a,f13.7,a,f13.7,a,f13.7,a)') "       x=", boxlen_x," Ang.  ,y=",boxlen_y, &
                      & " Ang., z=",boxlen_z,"Ang."
       else
-         write(*,*) " - The simulated system has no periodicity."
+         write(*,*) "* The simulated system has no periodicity."
       end if
-      write(*,'(a,f12.6)') "  - Total charge of the system: ",xtb_charge
-      write(*,*) " - Used Hamiltonian: ",trim(hamil_string)
+      write(*,'(a,f12.6)') " * Total charge of the system: ",xtb_charge
+      write(*,*) "* Used Hamiltonian: ",trim(hamil_string)
 
-      write(*,'(a,e10.4)') "  - SCF energy convergence criterion (Hartrees): ", & 
+      write(*,'(a,e10.4)') " * SCF energy convergence criterion (Hartrees): ", & 
             & xtb_accuracy*1D-6
-      write(*,'(a,i6)') "  - Maximum number of SCF iterations: ",xtb_maxiter
-      write(*,'(a,f16.6)') "  - Electronic temperature (Kelvin): ",xtb_el_temp/8.61732476104d-5
+      write(*,'(a,i6)') " * Maximum number of SCF iterations: ",xtb_maxiter
+      write(*,'(a,f16.6)') " * Electronic temperature (Kelvin): ",xtb_el_temp/8.61732476104d-5
       if (solv_string .eq. "none") then  
-         write(*,*) " - No implicit solvation will be used."
+         write(*,*) "* No implicit solvation will be used."
       else 
-         write(*,*) " - Used solvation model: ",trim(solv_string)
+         write(*,*) "* Used solvation model: ",trim(solv_string)
          if (exist_spec) then
-            write(*,*) " - Used solvent species: ",trim(solv_spec) 
+            write(*,*) "* Used solvent species: ",trim(solv_spec) 
          else 
-            write(*,*) " - Dielectric constant used for solvation:",trim(solv_epsilon)
+            write(*,*) "* Dielectric constant used for solvation:",trim(solv_epsilon)
          end if
       end if
    end if
@@ -2427,45 +2427,80 @@ if (rank .eq. 0) then
 !     The pGFN-FF method by external  GULP call
 !
    if (pgfn_ff) then
-      write(*,*) "PES description: pGFN-FF force field (from GULP call)"
-      write(*,'(a,i8)') "  - Number of atoms: ",natoms
-      write(*,'(a,a)') "  - Initial setup from structure in: ",init_struc_file
+      write(*,*) "* PES description: pGFN-FF force field (from GULP call)"
+      if (natoms .gt. 0) then
+         write(*,'(a,i8)') " * Number of atoms: ",natoms
+      end if
+      write(*,'(a,a)') " * Initial setup from structure in: ",init_struc_file
       if (periodic) then
          if (coord_vasp) then
-            write(*,'(a)') "  - The system is simulated in a periodic box given by POSCAR: "
+            write(*,'(a)') " * The system is simulated in a periodic box given by POSCAR: "
             write(*,'(a,3f13.7)') "     a = ",vasp_a_vec(:)
             write(*,'(a,3f13.7)') "     b = ",vasp_b_vec(:)
             write(*,'(a,3f13.7)') "     c = ",vasp_c_vec(:)
          else 
-            write(*,'(a)') "  - The system is simulated in a cubix periodic box: "
+            write(*,'(a)') " * The system is simulated in a cubix periodic box: "
             write(*,'(a,f13.7,a,f13.7,a,f13.7,a)') "        x=", boxlen_x*bohr," Ang.  ,y=",boxlen_y*bohr, &
                         & " Ang., z=",boxlen_z*bohr,"Ang."
          end if
       else if (box_walls) then
-         write(*,'(a)') "  - The system is simulated in a hard-walls nonperiodic box: "
+         write(*,'(a)') " * The system is simulated in a hard-walls nonperiodic box: "
          write(*,'(a,f13.7,a,f13.7,a,f13.7,a)') "       x=", boxlen_x," Ang.  ,y=",boxlen_y, &
                      & " Ang., z=",boxlen_z,"Ang."
       else
-         write(*,*) " - The simulated system has no periodicity."
+         write(*,*) "* The simulated system has no periodicity."
       end if
 
    end if
+!
+!     The artificial neural network method provided by the included aenet routines
+!
+   if (aenet_ann) then
+      write(*,*) "* PES description: Artificial neural network with aenet routines"
+      if (natoms .gt. 0) then
+         write(*,'(a,i8)') " *  Number of atoms: ",natoms
+      end if
+      write(*,'(a)') " *  Neural networks for the elements provided by files: "
+      do i=1,ann_elnum
+         write(*,'(a,a,a,a)') "      ",trim(ann_elements(i)),":  ",trim(ann_files(ann_elnum))
+      end do
+      if (periodic) then
+         if (coord_vasp) then
+            write(*,'(a)') " *  The system is simulated in a periodic box given by POSCAR: "
+            write(*,'(a,3f13.7)') "     a = ",vasp_a_vec(:)
+            write(*,'(a,3f13.7)') "     b = ",vasp_b_vec(:)
+            write(*,'(a,3f13.7)') "     c = ",vasp_c_vec(:)
+         else 
+            write(*,'(a)') " *  The system is simulated in a cubix periodic box: "
+            write(*,'(a,f13.7,a,f13.7,a,f13.7,a)') "        x=", boxlen_x*bohr," Ang.  ,y=",boxlen_y*bohr, &
+                        & " Ang., z=",boxlen_z*bohr,"Ang."
+         end if
+      else if (box_walls) then
+         write(*,'(a)') " *  The system is simulated in a hard-walls nonperiodic box: "
+         write(*,'(a,f13.7,a,f13.7,a,f13.7,a)') "       x=", boxlen_x," Ang.  ,y=",boxlen_y, &
+                     & " Ang., z=",boxlen_z,"Ang."
+      else
+         write(*,*) "* The simulated system has no periodicity."
+      end if
 
-  
+
+
+   end if  
+
 !
 !     The SPC water model
 !
    if (water_spc) then
-      write(*,*) "PES desciption: Simple point charge (SPC) water model"
-      write(*,'(a,i8)') "  - Number of atoms: ",natoms
-      write(*,'(a,i8)') "  - Number of water molecules: ",natoms/3
+      write(*,*) "* PES desciption: Simple point charge (SPC) water model"
+      write(*,'(a,i8)') " * Number of atoms: ",natoms
+      write(*,'(a,i8)') " * Number of water molecules: ",natoms/3
    end if   
 
 !
 !     Inform the user if the numerical gradient is calculated 
 !
    if (num_grad) then
-      write(*,*) " - The gradient will be calculated numerically."
+      write(*,*) "* The gradient will be calculated numerically."
    end if
 end if
 if (rank .eq. 0) then

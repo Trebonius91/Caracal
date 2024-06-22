@@ -98,6 +98,8 @@ real(kind=8),allocatable::dxi_act(:,:)
 real(kind=8)::xi_ideal,xi_real
 integer::bias_mode,keylines_backup
 integer::round,constrain
+!   for addition of mirror planes to the system
+character(len=60)::mirror_file
 !   The OMP time measurement
 real(kind=8)::time1_omp,time2_omp
 !     the evb-qmdff input
@@ -523,6 +525,7 @@ dt = dt/2.41888428E-2
 !!     Read parameters for force/mechanochem.      !!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 add_force=.false.
+mirrors=.false.
 do i = 1, nkey_lines
    next = 1
    record = keyline(i)
@@ -561,6 +564,12 @@ do i = 1, nkey_lines
          else if (keyword(1:15) .eq. 'AFM_SECOND ') then
             read(record,*) names,afm_segment
             afm_second=.true.
+!     If mirror planes shall be introduced into the system on which certain atoms can 
+!     be reflected, to restrict them to certain parts of the system
+         else if (keyword(1:15) .eq. 'MIRRORS ') then
+            read(record,*) names,mirror_file
+            mirrors=.true.
+            add_force = .false. ! no usual force addition for mirror runs
          end if
          if (keyword(1:13) .eq. '}') exit
          if (j .eq. nkey_lines-i) then
@@ -695,7 +704,50 @@ if (afm_run) then
    afm_segment_avg=afm_segment/(afm_avg*iwrite)
 end if
 
-
+!
+!     If mirror planes shall be defined, read them from file!
+!
+if (mirrors) then
+   mirror_num=0
+!   write(*,*) "Mirror plane definitions will be read in from file ",trim(mirror_file)
+   open(unit=46,file=mirror_file,status="old",iostat=readstat)
+   if (readstat .ne. 0) then
+      write(*,*) "The file ",trim(mirror_file)," was not found!"
+      call fatal
+   end if
+   do 
+      read(46,*,iostat=readstat)
+      if (readstat .ne. 0) exit
+      mirror_num=mirror_num+1
+   end do
+   close(46)
+   allocate(mirror_ats(mirror_num))
+   allocate(mirror_dims(mirror_num))
+   allocate(mirror_pos(mirror_num))  
+   open(unit=46,file=mirror_file,status="old")
+   do i=1,mirror_num
+      read(46,*,iostat=readstat) mirror_ats(i),a80,mirror_pos(i)
+      if (readstat .ne. 0) then
+         write(*,*) "The format of the file ",trim(mirror_file)," seems to be corrupted!"
+         call fatal
+      end if
+!
+!     Define the coordinate plane from the given character and convert the position to bohr
+!
+      if (trim(a80) .eq. "x") then
+         mirror_dims(i)=1
+      else if (trim(a80) .eq. "y") then
+         mirror_dims(i)=2
+      else if (trim(a80) .eq. "z") then
+         mirror_dims(i)=3
+      else
+         write(*,*) "Please give either x, y or z as dimension for the mirror!"
+         call fatal
+      end if
+      mirror_pos(i)=mirror_pos(i)/bohr
+   end do
+   close(46)
+end if
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!     Read more detailed/special MD parameters    !!
@@ -1108,7 +1160,18 @@ if (npt) then
       write(*,'(a,f12.5,a)') "  - The Nose-Hoover thermostat damping Q is: ",nose_q," time steps"
    end if
 end if
-
+if (mirrors) then
+   write(*,*) " - The following mirror planes will be present in the system:"
+   do i=1,mirror_num
+      if (mirror_dims(i) .eq. 1) then
+         write(*,'(a,i6,a,f12.6,a)') "     atom ",mirror_ats(i),", : x at",mirror_pos(i)*bohr," Ang."
+      else if (mirror_dims(i) .eq. 2) then
+         write(*,'(a,i6,a,f12.6,a)') "     atom ",mirror_ats(i),", : y at",mirror_pos(i)*bohr," Ang."
+      else if (mirror_dims(i) .eq. 3) then
+         write(*,'(a,i6,a,f12.6,a)') "     atom ",mirror_ats(i),", : z at",mirror_pos(i)*bohr," Ang."
+      end if
+   end do
+end if
 
 !
 !     call the initialization routine

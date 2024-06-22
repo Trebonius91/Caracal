@@ -107,6 +107,8 @@ integer::num,modul
 real(kind=8)::move_act(3),move_shall(3)
 real(kind=8)::ekin1,ekin2
 real(kind=8)::afm_bias(3),afm_force,dist
+!   for mirror plane simulations
+real(kind=8)::pos_first,pos_second
 !   for umbrella samplings 
 real(kind=8)::xi_ideal,xi_real
 real(kind=8)::dxi_act(3,natoms)
@@ -121,6 +123,7 @@ integer::j_lower,j_upper
 !   for VASP coordinate input
 real(kind=8)::coord_mat(3,3),coord_inv(3,3)
 real(kind=8)::q_act_frac(3)
+real(kind=8)::q_full_frac(3,natoms,nbeads)
 logical::act_fix
 !   for Nose-Hoover barostat
 real(kind=8)::e2,e4,e6,e8
@@ -375,6 +378,25 @@ if (nbeads .eq. 1) then
       end do
    end if
 !
+!     If mirror planes were introduced into the system, reflect the respective 
+!     atoms on them if they would fly through the plane in the next time step
+!
+   if (mirrors) then
+      do i=1,mirror_num
+         pos_first=q_i(mirror_dims(i),mirror_ats(i),1)
+         pos_second=pos_first+p_i(mirror_dims(i),mirror_ats(i),1)*dt/massvec(mirror_dims(i), &
+                        & mirror_ats(i),1)
+         if (pos_first .gt. mirror_pos(i) .and. pos_second .lt. mirror_pos(i)) then
+            p_i(mirror_dims(i),mirror_ats(i),1)=-p_i(mirror_dims(i),mirror_ats(i),1)
+         end if      
+         if (pos_first .lt. mirror_pos(i) .and. pos_second .gt. mirror_pos(i)) then
+            p_i(mirror_dims(i),mirror_ats(i),1)=-p_i(mirror_dims(i),mirror_ats(i),1)
+         end if
+  
+      end do
+   end if
+
+!
 !    For NPT (Nose-Hoover) or NVT/NVE ensembles
 !
  
@@ -403,8 +425,9 @@ else
 !     Transform to normal mode space
 !     --> What is done there, exactly??
 !
-!     For hard boxes: store the actual coordinates, if momenta shall be reversed
-   if (box_walls) then
+!     For hard boxes and mirror planes: store the actual coordinates, 
+!       if momenta shall be reversed
+   if (box_walls .or. mirrors) then
       allocate(q_old(3,natoms,nbeads))
       q_old=q_i
    end if
@@ -523,6 +546,33 @@ else
       end do
       deallocate(q_old)
    end if
+!
+!     If mirror planes exist, revert the momentum of the respective atoms at 
+!     the respective axis
+!
+!
+!     If mirror planes were introduced into the system, reflect the respective 
+!     atoms on them if they would fly through the plane in the next time step
+!
+   if (mirrors) then
+      do i=1,mirror_num
+         do k=1,nbeads
+            pos_first=q_old(mirror_dims(i),mirror_ats(i),k)
+            pos_second=q_i(mirror_dims(i),mirror_ats(i),k)
+            if (pos_first .gt. mirror_pos(i) .and. pos_second .lt. mirror_pos(i)) then
+               q_i(mirror_dims(i),mirror_ats(i),k)=2.d0*q_old(mirror_dims(i),&
+                         & mirror_ats(i),k)-q_i(mirror_dims(i),mirror_ats(i),k)
+               p_i(mirror_dims(i),mirror_ats(i),k)=-p_i(mirror_dims(i),mirror_ats(i),k)
+            end if
+            if (pos_first .lt. mirror_pos(i) .and. pos_second .gt. mirror_pos(i)) then
+               q_i(mirror_dims(i),mirror_ats(i),k)=2.d0*q_old(mirror_dims(i), &
+                         & mirror_ats(i),k)-q_i(mirror_dims(i),mirror_ats(i),k)
+               p_i(mirror_dims(i),mirror_ats(i),k)=-p_i(mirror_dims(i),mirror_ats(i),k)
+            end if
+         end do
+      end do
+   end if
+
 
 end if
 !
@@ -557,15 +607,17 @@ if (periodic) then
 
       call matinv3(coord_mat,coord_inv)
 
-      
-
       do i=1,nbeads
          do j=1,natoms
-            q_act_frac=matmul(coord_inv,q_i(:,j,i)*bohr)
+            q_full_frac(:,j,i)=matmul(coord_inv,q_i(:,j,i)*bohr)
+         end do
+      end do
+      do i=1,nbeads
+         do j=1,natoms
             do k=1,3
                tries=0
-               do while (q_act_frac(k) .lt. 0.d0) 
-                  q_act_frac(k)=q_act_frac(k) + 1.d0
+               do while (q_full_frac(k,j,i) .lt. 0.d0) 
+                  q_full_frac(k,j,:)=q_full_frac(k,j,:) + 1.d0
                   tries = tries+1
                   if (tries .gt. 20) then
                      write(*,*) "Too many correction steps needed for periodic dynamics! (lower)"
@@ -574,7 +626,7 @@ if (periodic) then
                   end if                
                end do
                do while (q_act_frac(k) .gt. 1.d0)
-                  q_act_frac(k)=q_act_frac(k) - 1.d0
+                  q_full_frac(k,j,:)=q_full_frac(k,j,:) - 1.d0
                   tries = tries +1
                   if (tries .gt. 20) then
                      write(*,*) "Too many correction steps needed for periodic dynamics! (upper)"
@@ -583,7 +635,11 @@ if (periodic) then
                   end if
                end do 
             end do    
-            q_i(:,j,i)=matmul(coord_mat,q_act_frac)/bohr
+         end do
+      end do
+      do i=1,nbeads
+         do j=1,natoms
+            q_i(:,j,i)=matmul(coord_mat,q_full_frac(:,j,i)/bohr)
          end do
       end do
 

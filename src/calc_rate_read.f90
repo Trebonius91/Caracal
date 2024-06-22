@@ -65,6 +65,8 @@ character(len=80)::reactants_file
 character(len=50)::fix_file ! file with numbers of fixed atoms
 !     if recrossing shall be parallelized
 logical, intent (out)::recross_mpi
+!     if mirror planes are added, the file name for the definitions
+character(len=80)::mirror_file,a80
 !     Loop indices 
 integer::i,j,k,l,p,m
 !     Needed characters for read in
@@ -1085,6 +1087,12 @@ do i = 1, nkey_lines
 !     Second atom on which force is applied: index and force vector
          else if (keyword(1:11) .eq. 'VEC2 ') then
             read(record,*) names,force2_at,force2_k,force2_v(1),force2_v(2),force2_v(3)
+!     If mirror planes shall be introduced into the system on which certain atoms can 
+!     be reflected, to restrict them to certain parts of the system
+         else if (keyword(1:15) .eq. 'MIRRORS ') then
+            read(record,*) names,mirror_file
+            mirrors=.true.
+            add_force = .false. ! no usual force addition for mirror runs
          end if
          if (keyword(1:13) .eq. '}') exit
          if (j .eq. nkey_lines-i) then
@@ -1095,6 +1103,51 @@ do i = 1, nkey_lines
    end if
 end do
 
+
+!
+!     If mirror planes shall be defined, read them from file!
+!
+if (mirrors) then
+   mirror_num=0
+!   write(*,*) "Mirror plane definitions will be read in from file ",trim(mirror_file)
+   open(unit=46,file=mirror_file,status="old",iostat=readstat)
+   if (readstat .ne. 0) then
+      write(*,*) "The file ",trim(mirror_file)," was not found!"
+      call fatal
+   end if
+   do
+      read(46,*,iostat=readstat)
+      if (readstat .ne. 0) exit
+      mirror_num=mirror_num+1
+   end do
+   close(46)
+   allocate(mirror_ats(mirror_num))
+   allocate(mirror_dims(mirror_num))
+   allocate(mirror_pos(mirror_num))
+   open(unit=46,file=mirror_file,status="old")
+   do i=1,mirror_num
+      read(46,*,iostat=readstat) mirror_ats(i),a80,mirror_pos(i)
+      if (readstat .ne. 0) then
+         write(*,*) "The format of the file ",trim(mirror_file)," seems to be corrupted!"
+         call fatal
+      end if
+!
+!     Define the coordinate plane from the given character and convert the position to bohr
+!
+      if (trim(a80) .eq. "x") then
+         mirror_dims(i)=1
+      else if (trim(a80) .eq. "y") then
+         mirror_dims(i)=2
+      else if (trim(a80) .eq. "z") then
+         mirror_dims(i)=3
+      else
+         write(*,*) "Please give either x, y or z as dimension for the mirror!"
+         call fatal
+      end if
+      mirror_pos(i)=mirror_pos(i)/bohr
+   end do
+   close(46)
+end if
 
 !
 !      Check if all read in parameters are valid.
