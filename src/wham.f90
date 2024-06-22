@@ -76,7 +76,6 @@ L=11.4D0                      ! SIMULATION BOX LENGTH IN ANGSTROM (only for PBC.
 DT=30.D0                      ! TIME INTERVAL FOR SAVING CONFIGURATIONS IN A.U.
 DT=DT/(41.3413733D+3)         ! CONVERT TIME STEP FROM AU TO PICOSECONDS
 TCUT =1.D0                    ! EQUILIBRATION TIME IN PICOSECONDS
-KS=k_force                    ! SPRING CONSTANT IN A.U.
 NSAMP =2                      ! SAMPLE EVERY OTHER POINT.
                               ! TO SAMPLE AT A LOWER RATE INCREASE NSAMP.
 KB=0.316679D-5                ! BOLTZMANN’S CONSTANT IN A.U./KELVIN
@@ -109,7 +108,7 @@ DO I = 1, NW ! LOOP OVER WINDOWS
    DO J = 1, nbins ! LOOP OVER HISTORGRAM POINTS IN WINDOW I and calculate restrain for each bin!
       TMP2 = xi_min+bin_size*j    ! REACTION COORDINATE IN ANGSTROM in this bin
       HIST(j) = HIST(j)/TMP             ! NORMALIZED PROBALITY AT TMP2
-      v_res(j) = k_force*((TMP2-XI_I))**2          ! BIASING WINDOW POTENTIAL
+      v_res(j) = k_force(I)*((TMP2-XI_I))**2          ! BIASING WINDOW POTENTIAL
 !      v_res(j) = v_res(j)*FAC**2                ! CONVERT POTENTIAL TO A.U.
       P_BIASED(I,J)=HIST(J) ! BIASED DISTRIBUTION OF WINDOW I AT COORDINATE XI_J
       
