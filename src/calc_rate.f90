@@ -1524,9 +1524,9 @@ if (.not. dont_umbr) then
 !     Check if actual variance is too high, might be a sign of a destroyed trajectory!
 !     then restart the trajectory
 !
-               if (variance_act .gt. 1E-3) then
+               if (variance_act .gt. 1E-2) then
                   write(*,*) "ERROR! The variance for this trajectory is too high!"
-                  write(*,*) " (actual:",variance_act," troughput: 1.0000E-04)"
+                  write(*,*) " (actual:",variance_act," troughput: 1.0000E-02)"
                   write(*,*) "Restart the trajectory..."
                   err_count=err_count+1
                   goto 114
