@@ -43,7 +43,7 @@ integer::readstat
 real(kind=8),dimension(3,num_atoms)::coord
 real(kind=8)::xr,yr,zr
 real(kind=8)::x_tmp,y_tmp,z_tmp
-character(len=80)::line
+character(len=80)::line,a80
 character(len=3)::atom
 real(kind=8),parameter::ang2bohr=0.52917720859d0
 logical::has_next
@@ -53,7 +53,7 @@ has_next=.true.
 !     file is also a VASP file (POSCAR or XDATCAR)
 !
 if (coord_vasp) then
-   read(input_unit,*,iostat=status)
+   read(input_unit,*,iostat=status) a80
    if (status/=0) then
       has_next=.false.
       return
@@ -65,7 +65,6 @@ if (coord_vasp) then
          call fatal
       end if
    end do
-   write(*,*) "sell",vasp_selective
    if (vasp_selective) then
       read(input_unit,*,iostat=status)
       if (status .ne. 0) then

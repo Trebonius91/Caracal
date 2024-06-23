@@ -89,12 +89,12 @@ end do
 !     first open and then read the Cartesian coordinates file
 !
 !
-!     If the name of the file is POSCAR, treat it as VASP input file 
+!     If the name of the file is POSCAR or XDATCAR, treat it as VASP input file 
 !     and read it accordingly!
 !
 ixyz = freeunit ()
 coord_vasp = .false.
-if (trim(xyzfile) .eq. "POSCAR") then 
+if (trim(xyzfile) .eq. "POSCAR" .or. trim(xyzfile) .eq. "XDATCAR") then 
    write(*,*)
    write(*,*) "The geometry is given in file POSCAR. VASP format will be assumed!"
    coord_vasp = .true.

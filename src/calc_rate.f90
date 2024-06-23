@@ -105,6 +105,7 @@ logical::path_struc,path_energy,coupl,ts_xyz,params
 real(kind=8),dimension(:,:,:),allocatable::derivs  ! the derivatives of the potential 
                                              !   energy for all beads at once
 logical::run_finished  ! if the sampling was already finished before..
+logical::run_began   ! if the sampling was already started before..
 character(len=80)::a80,names
 integer::num_lines,lastline 
 integer::num_struc
@@ -118,6 +119,7 @@ character(len=50)::temp_name,bead_name
 character(len=50)::foldername,subfname,subsubfname
 logical::oldfolder,dont_del,dont_equi,dont_umbr
 real(kind=8),dimension(:),allocatable::xi_wins ! auxiliary array for all xi ref values
+integer::idum,num_remain   ! continue calculations
 !     for PMF calculation (general)
 integer::nbeads_store   ! the stored number of beads for the umbrella sampling
 real(kind=8)::xi_min,xi_max,bin_size
@@ -1308,6 +1310,7 @@ if (.not. dont_umbr) then
 !     If existent, open file and check if enough lines are in it 
 !
          run_finished=.false.
+         run_began=.false.
          if (xi_val .lt. 0.0d0) then
             inquire(file="statistics/bias_-"//subfname,exist=exist)
             if (exist) run_finished=.true.
@@ -1315,6 +1318,7 @@ if (.not. dont_umbr) then
             inquire(file="statistics/bias_"//subfname,exist=exist)
             if (exist) run_finished=.true.
          end if
+         num_remain=umbr_traj
          if (run_finished) then
             if (xi_val .lt. 0.0d0) then
                open(unit=50,file="statistics/bias_-"//subfname,status="unknown")
@@ -1327,6 +1331,7 @@ if (.not. dont_umbr) then
                if (lastline .ne. 0) exit
                num_lines=num_lines+1
             end do
+            close(50)
 !
 !     If 5 header lines and one additional line for each sampling trajectory is 
 !     present, assume, that the calculation was done
@@ -1340,9 +1345,35 @@ if (.not. dont_umbr) then
                       & trim(subfname),"! Go to next calculation..."  
                end if 
             else 
+!
+!     If not, check if some trajectories were already finished in order to
+!     calculate only the remaining ones
+!
+               num_remain=umbr_traj-num_lines+2
+               if (xi_val .lt. 0.d0) then
+                  write(*,'(a,a,a,i5,a)') "For Xi= -", trim(subfname),", ", num_remain, &
+                       & " trajectories still to be calculated. We will continue with them."
+               else
+                  write(*,'(a,a,a,i5,a)') "For Xi= ", trim(subfname),", ", num_remain, &
+                       & " trajectories still to be calculated. We will continue with them."
+               end if
+               if (xi_val .lt. 0.0d0) then
+                  open(unit=50,file="statistics/bias_-"//subfname,status="old")
+               else
+                  open(unit=50,file="statistics/bias_"//subfname,status="old")
+               end if
+
+               read(50,*)
+               read(50,*)
+               do j=1,num_lines-2
+                  read(50,*) idum,average_act,variance_act
+                  average(k)=average(k)+average_act
+                  variance(k)=variance(k)+variance_act
+               end do
+               close(50)
                run_finished=.false.
+               run_began=.true.
             end if
-            close(50)
          end if
 !
 !     If the run was not already finished, do it again...
@@ -1352,17 +1383,31 @@ if (.not. dont_umbr) then
 !     Open file with statistics (average and variances) for all trajectories
 !     if this run was not calculated before 
 !
-            if (xi_val .lt. 0.0d0) then
-               open(unit=50,file="statistics/bias_-"//subfname,status="unknown")
-            else 
-               open(unit=50,file="statistics/bias_"//subfname,status="unknown")
+            if (run_began) then
+               if (xi_val .lt. 0.0d0) then
+                  open(unit=50,file="statistics/bias_-"//subfname,position="append", &
+                      & status="old")
+               else 
+                  open(unit=50,file="statistics/bias_"//subfname,position="append", &
+                      & status="old")
+               end if
+            else
+               if (xi_val .lt. 0.0d0) then
+                  open(unit=50,file="statistics/bias_-"//subfname,status="unknown")
+               else
+                  open(unit=50,file="statistics/bias_"//subfname,status="unknown")
+               end if
             end if
-
-            write(50,*) "# The distribution characteristics for the actual umbrella window:"
-            write(50,*) "#             Traj-No.        average           variance"
-
-          
-            do j=1,umbr_traj
+ 
+            if (.not. run_began) then               
+               write(50,*) "# The distribution characteristics for the actual umbrella window:"
+               write(50,*) "#             Traj-No.        average           variance"
+            end if
+ 
+!
+!     If some trajectories were already calculated, don't calculate them again
+!          
+            do j=umbr_traj-num_remain+1,umbr_traj
 !
 !     reset the local xi distribution in the bins
 !        
