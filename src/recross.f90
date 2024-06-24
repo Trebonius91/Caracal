@@ -91,6 +91,7 @@ real(kind=8)::fs,vs  ! recrossing factor fractions
 real(kind=8),allocatable::k_save(:)  ! the stored force constant
 real(kind=8)::kappa_denom  ! denominator for the recrossing factor calculation
 real(kind=8)::num_total(child_evol),denom_total  ! the final kappa calculation
+real(kind=8)::num_local(child_evol),denom_local ! the kappa calculation of the workers
 real(kind=8)::kappa  ! the final result!
 real(kind=8)::dt_info ! time in ps for information
 real(kind=8)::t_total,t_actual ! print out of elapsed parent times
@@ -98,6 +99,9 @@ real(kind=8)::test123  ! for MPI debug
 real(kind=8)::energy_act ! the actual energy
 real(kind=8)::energy_ts  ! energy of the transition state
 integer::andersen_save ! frequency for andersen thermostat (stored)
+integer::recross_status  ! if the recrossing continues a previous calculation
+integer::readstat  ! for restart file io
+integer::steps
 !     for MPI parallelization
 integer::ierr,ID
 integer::psize,source,status(MPI_STATUS_SIZE)
@@ -115,13 +119,110 @@ t_total=child_times*child_interv*0.001*dt*2.41888428E-2  ! the total
                          ! time in ps that the parent trajectory will evolve
 t_actual=0.d0  ! the already vanished parent trajectory time
 !
-!     store the start structure 
-!
-q_start=q_i
-!
 !     Allocate array for saved force constants
 !
 allocate(k_save(size(k_force)))
+!
+!     Set the time dependent recrossing factor to 0!
+! 
+num_total=0.d0
+denom_total=0.d0
+
+!
+!     Check if there are signs for an already started calculation
+!
+recross_status=0
+open(unit=56,file="recross_status",status="old",iostat=readstat)
+if (readstat .eq. 0) then
+   read(56,*,iostat=readstat) recross_status
+   if (readstat .ne. 0) then
+      recross_status=0
+   end if
+end if
+close(56)
+
+if (recross_status .ne. 0) then
+   if (rank .eq. 0) then
+      write(*,*) "The recrossing calculation has been started already!"
+      write(*,'(a,i6,a,i6,a)') "  ",recross_status," out of ",child_times," bunches of "
+      write(*,*) "child trajectories were already calculated."
+      write(*,'(a,i6)') " We will start directly with bunch No.",recross_status+1
+   end if
+end if
+
+!
+!     If a previous calculation has been detected, read in the num_total and denom_total
+!     values from the output files!
+!
+if (recross_status .ne. 0) then
+   open(unit=78,file="recross_num_tmp.dat",status="old",iostat=readstat)
+   if (readstat .ne. 0) then
+      if (rank .eq. 0) then
+         write(*,*) "The file 'recross_num_tmp.dat' is not there! We will start the recrossing"
+         write(*,*) " calculation directly from beginning."
+      end if
+      recross_status=0
+   else
+      do i=1,child_evol
+         read(78,*,iostat=readstat) num_total(i)
+         if (readstat .ne. 0) then
+            if (rank .eq. 0) then
+               write(*,*) "The file 'recross_num_tmp.dat' is not complete! We will start the"
+               write(*,*) " recrossing calculation directly from beginning."
+            end if
+            recross_status=0
+            exit
+         end if
+      end do
+   end if
+   close(78)
+   open(unit=78,file="recross_denom_tmp.dat",status="old",iostat=readstat)
+   if (readstat .ne. 0) then
+      if (rank .eq. 0) then
+         write(*,*) "The file 'recross_denom_tmp.dat' is not there! We will start the recrossing"
+         write(*,*) " calculation directly from beginning."
+      end if
+      recross_status=0
+   else
+      read(78,*,iostat=readstat) denom_total
+      if (readstat .ne. 0) then
+         if (rank .eq. 0) then
+            write(*,*) "The file 'recross_denom_tmp.dat' is not complete! We will start the"
+            write(*,*) " recrossing calculation directly from beginning."
+         end if
+         recross_status=0
+      end if
+   end if
+   close(78)
+
+   open(unit=78,file="recross_parent_pos.dat",status="old",iostat=readstat)
+   if (readstat .ne. 0) then
+      if (rank .eq. 0) then
+         write(*,*) "The file 'recross_parent_pos.dat' is not there! We will start the recrossing"
+         write(*,*) " calculation directly from beginning."
+      end if
+      recross_status=0
+   else
+      outer: do i=1,nbeads
+         do j=1,natoms
+            read(78,*,iostat=readstat) q_i(:,j,i)
+            if (readstat .ne. 0) then
+               if (rank .eq. 0) then
+                  write(*,*) "The file 'recross_parent_pos.dat' is not complete! We will start"
+                  write(*,*) " the recrossing calculation directly from beginning."
+                  exit outer
+               end if
+               recross_status=0
+            end if
+         end do
+      end do outer
+   end if
+   close(78)
+end if
+!
+!     store the start structure 
+!
+q_start=q_i
 !
 !     first, equilibrate the parent trajectory: umbrella trajectory with
 !     infinite strong potential
@@ -134,6 +235,8 @@ if (andersen_step .eq. 0) then
    andersen_step=int(dsqrt(dble(recr_equi)))
 end if
 err_count=0
+call mdinit(derivs,xi_ideal,dxi_act,2,rank)
+!if (recross_status .eq. 0) then
 if (rank .eq. 0) then
 !
 !     first reset point
@@ -148,7 +251,12 @@ if (rank .eq. 0) then
 !
 !     do dynamics with the verlet subroutine, constrain is activated
 !
-   do i=1,recr_equi
+   if (recross_status .ne. 0) then
+      steps=100
+   else 
+      steps=recr_equi
+   end if
+   do i=1,steps
       call verlet(i,dt,derivs,en_act,0d0,0d0,xi_ideal,xi_real,dxi_act,j,1,.false.,rank)
 !
 !     check the trajectory, if failed, go to beginning of trajectory
@@ -179,11 +287,6 @@ if (rank .eq. 0) then
       end if
    end do
 end if
-!
-!     Set the time dependent recrossing factor to 0!
-! 
-num_total=0.d0
-denom_total=0.d0
 !     define default tag value
 tag_mpi=0
 !     define default count value
@@ -191,10 +294,9 @@ count=1
 !     define the number of worksteps 
 maxwork=child_times
 !
-!     After the parent trajectory is equilibrated, sample it child_interv
-!     MD steps and start child_point child trajectories after it 
-!     this will be repeated until all child trajectories are started
-!     (this are child_times big cycles
+!     Now perform the recrossing factor calculation in parallel
+!     The parent trajectory will be calculated by one process and each
+!     batch of child trajectories will be distributed between the slaves
 !     All is done via the MPI master worker setup. The recrossing 
 !     factor is transferred between the processes 
 !     Before starting, broadcast the positions and momenta of the systems 
@@ -207,64 +309,36 @@ call mpi_bcast(xi_ideal,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
 call mpi_barrier(mpi_comm_world,ierr)
 !
 !     The master process (rank=0) it sends the actual child sampling tasks
-!     to the worker that will do the samplings for a bunch of child 
+!     to the worker that will do the samplings for the child 
 !     trajectories
 !
-loop_large=int(child_times/(psize-1))
-loop_rest=mod(child_times,psize-1)
-if (rank .eq. 0) then
-!
-!     at first, give each slave a task until all full rounds are finished
-!
-   do i=1,loop_large+1
-      do j=1,psize-1
-         schedule=i
-         if (i .eq. loop_large+1) then
-            if (j .gt. loop_rest) then
-               schedule=-1  
-            else 
-               cycle
-            end if
-         end if
-         dest=j
-!
-!     print info message before each spawn wafe of child trajectories
-!  
-         write(15,'(a,i6,a,f11.4,a)') " Spawning",child_point," child trajectories."
-         write(15,'(a,f11.4,a,f11.4,a)') "Already",t_actual," ps of in total",t_total,&
-               & " ps are elapsed."
-         write(*,'(a,i6,a,f11.4,a)') " Spawning",child_point," child trajectories."
-         write(*,'(a,f11.4,a,f11.4,a)') "Already",t_actual," ps of in total",t_total,&
-               & " ps are elapsed."
 
-         call mpi_send(schedule, count, MPI_DOUBLE_PRECISION, dest,tag_mpi,MPI_COMM_WORLD,ierr)
-      end do
+loop_large=int((child_point/2)/(psize-1))
+loop_rest=mod(child_point/2,psize-1)
+if (recross_status .eq. child_times) goto 166
+
+if (rank .eq. 0) then
+
+  
 !
-!     recieve results from all slaves for the i'th round
+!     Do the parent trajectory evolution with the master process and distribute 
+!     the child trajectories to the slave processes
 !
-      do j=1,psize-1
-         if (i .lt. loop_large+1) then
-            message=0.d0
-            call mpi_recv(message, child_evol+2, MPI_DOUBLE_PRECISION, MPI_ANY_SOURCE,tag_mpi, &
-               & MPI_COMM_WORLD,status,ierr)
-            t_actual=t_actual+message(1)
-            denom_total=denom_total+message(2)
-            num_total=num_total+(message(3:child_evol+2))
-            write(15,'(a,f12.8)') "The actual recrossing coefficient is: ",&
-                         & num_total(child_evol)/denom_total
-            write(*,'(a,f12.8)') "The actual recrossing coefficient is: ",&
-                         & num_total(child_evol)/denom_total
-         end if
-      end do
-   end do
+
+   t_actual=recross_status*child_interv*0.001*dt*2.41888428E-2
+
+   do k=recross_status+1,child_times
+
+
 !
-!     Now, do the remaining jobs (modulo)
+!     reset the recross parameters for this child run
 !
-   do j=1,loop_rest
-      dest=j
-!
-!     print info message before each spawn wafe of child trajectories
-!  
+      q_save=q_i   ! store the current position to recap it in each child
+      k_save=k_force  ! store the force constant for the next parent time
+      k_force=0.d0  ! set the force to zero for all childs!
+      andersen_save=andersen_step  ! save interval for thermostat
+      andersen_step=0  ! no thermostat for the childs!
+
       write(15,'(a,i6,a,f11.4,a)') " Spawning",child_point," child trajectories."
       write(15,'(a,f11.4,a,f11.4,a)') "Already",t_actual," ps of in total",t_total,&
             & " ps are elapsed."
@@ -272,142 +346,95 @@ if (rank .eq. 0) then
       write(*,'(a,f11.4,a,f11.4,a)') "Already",t_actual," ps of in total",t_total,&
             & " ps are elapsed."
 
-      call mpi_send(i, count, MPI_DOUBLE_PRECISION, dest,tag_mpi,MPI_COMM_WORLD,ierr)
-   end do
-   do j=1,loop_rest
-      call mpi_recv(message, child_evol+2, MPI_DOUBLE_PRECISION, MPI_ANY_SOURCE,tag_mpi, &
-            & MPI_COMM_WORLD,status,ierr)
-      t_actual=t_actual+message(1)
-      denom_total=denom_total+message(2)
-      num_total=num_total+(message(3:child_evol+2))
-      write(15,'(a,f12.8)') "The actual recrossing coefficient is: ",&
-                  & num_total(child_evol)/denom_total
-      write(*,'(a,f12.8)') "The actual recrossing coefficient is: ",&
-                  & num_total(child_evol)/denom_total
-   end do
+     
 !
-!     Switch off the remaining processors
+!     at first, give each slave a task until all full rounds are finished
 !
-   do j=1,loop_rest
-      dest=j
-      call mpi_send(-1, count, MPI_DOUBLE_PRECISION, dest,tag_mpi,MPI_COMM_WORLD,ierr)
-   end do
-else 
-   source=0
-   message=rank
-   do 
-      call mpi_recv(numwork, count, MPI_DOUBLE_PRECISION, 0,tag_mpi,MPI_COMM_WORLD,status,ierr)
+      do i=1,loop_large+1
+         do j=1,psize-1
+            schedule=i
+            if (i .eq. loop_large+1) then
+               if (k .eq. child_times .and. j .gt. loop_rest) then
+                  schedule=-1
+               else
+                  cycle
+               end if
+            end if
+            dest=j
+
+            call mpi_send(schedule, count, MPI_DOUBLE_PRECISION, dest,tag_mpi,MPI_COMM_WORLD,ierr)
+         end do
 !
-!     If no more samplings are to do, exit with the current worker
+!     recieve results from all slaves for the i'th round
 !
-      if (numwork .eq. -1) then
-         exit
-      end if
+         do j=1,psize-1
+            if (i .lt. loop_large+1) then
+               message=0.d0
+               call mpi_recv(message, child_evol+2, MPI_DOUBLE_PRECISION, MPI_ANY_SOURCE,tag_mpi, &
+                  & MPI_COMM_WORLD,status,ierr)
+               denom_total=denom_total+message(2)
+               num_total=num_total+(message(3:child_evol+2))
+            end if
+         end do
+
+      end do
+
+
 !
-!     reset the recross parameters for this child run
+!     Now, do the remaining jobs (modulo)
 !
-      t_actual=0.d0
-      num_total=0.d0
-      denom_total=0.d0
-      q_save=q_i   ! store the current position to recap it in each child
-      k_save=k_force  ! store the force constant for the next parent time
-      k_force=0.d0  ! set the force to zero for all childs!
-      andersen_save=andersen_step  ! save interval for thermostat
-      andersen_step=0  ! no thermostat for the childs!
+      do j=1,loop_rest
+         dest=j
 !
 !     print info message before each spawn wafe of child trajectories
 !  
-      call andersen
- 
-      do j=1,child_point/2
-!
-!     start pairs of two childs with momenta of different signs!
-!
-!         write(*,*) "before andersen!",p_i
-         call andersen
-!         write(*,*) "after andersen!",p_i
-         p_save=p_i
-         do k=1,2
-            kappa_num=0.d0
-            kappa_denom=0.d0
-            if (k .eq. 1) then
-               p_i=p_save
-            else if (k .eq. 2) then
-               p_i=-p_save
-            end if
-            q_i=q_save
-            call get_centroid(act_coord)  !extract centroid from q_i
-            call calc_xi(act_coord,xi_ideal,xi_real,dxi_act,d2xi_act,2)
-!
-!     calculate gradient for the whole ring polymer
-!
-            do l=1,nbeads
-               q_1b=q_i(:,:,l)
-               call gradient (q_1b,vpot,derivs_1d,l,rank)
-               derivs(:,:,l)=derivs_1d
-            end do
-
-!
-!     calculate the recrossing velocity for the recrossing factor
-!        
-            vs = 0.0d0
-            do l = 1, 3
-               do m = 1, Natoms
-                  do o=1,nbeads
-                     vs = vs + dxi_act(l,m) * p_i(l,m,o) / mass(m)
-                  end do
-               end do
-            end do
-            vs = vs/nbeads
-!
-!     calculate the recrossing flux for the recrossing factor
-!
-            fs = 0.0d0
-            do l = 1, 3
-               do m = 1, Natoms
-                   fs = fs + dxi_act(l,m) * dxi_act(l,m) / mass(m)
-               end do
-            end do
-            fs = sqrt(fs / (2.0d0 * pi * beta))
-!
-!     increase the denominator of kappa if the velocity is positive
-! 
-            if (vs .gt. 0) then
-               kappa_denom=kappa_denom+vs/fs
-            end if
-!
-!     now do the actual evaluation of the child trajectory
-!     no bias potential and no temperature shall be applied!
-!
-! 
-            do l=1,child_evol
-     !          write(*,*) "centroid3!",q_i
-               call verlet(l,dt,derivs,en_act,0d0,0d0,xi_ideal,xi_real,dxi_act,m,2,.false.,rank)
-               if (xi_real .gt.0) then
-                  kappa_num(l)=kappa_num(l)+vs/fs
-               end if
-            end do
-!
-!     Avoid negative transmission coefficients.
-!     Has no visible effect on benchmark reactions
-!
-            if (kappa_num(child_evol) .ge. 0.d0) then
-               num_total=num_total+kappa_num
-            end if
-
-            denom_total=denom_total+kappa_denom
-     !       stop "HUohouhuo"
-         end do
+         call mpi_send(i, count, MPI_DOUBLE_PRECISION, dest,tag_mpi,MPI_COMM_WORLD,ierr)
+      end do
+      do j=1,loop_rest
+         call mpi_recv(message, child_evol+2, MPI_DOUBLE_PRECISION, MPI_ANY_SOURCE,tag_mpi, &
+               & MPI_COMM_WORLD,status,ierr)
+         denom_total=denom_total+message(2)
+         num_total=num_total+(message(3:child_evol+2))
       end do
 !
-!     use the configuration stored before the sampling of the child 
-!     trajectories as if they never appeared!
+!     Switch off the remaining processors
 !
+      do j=1,loop_rest
+         dest=j
+         call mpi_send(-1, count, MPI_DOUBLE_PRECISION, dest,tag_mpi,MPI_COMM_WORLD,ierr)
+      end do
+!
+!     Write the current numerator and denominator values as well as the parent structure
+!      to updated files for restarts
+!
+      open(unit=67,file="recross_num_tmp.dat",status="replace")
+      do j=1,child_evol
+         write(67,*) num_total(j)
+      end do
+      close(67)
+      open(unit=67,file="recross_denom_tmp.dat",status="replace")
+      write(67,*) denom_total
+      close(67)
+      open(unit=67,file="recross_parent_pos.dat",status="replace")
+      do j=1,nbeads
+         do l=1,natoms
+            read(67,*,iostat=readstat) q_i(:,l,j)
+         end do
+      end do
+      close(67)
+!
+!     Update the recross status file for possible restarts
+!
+      open(unit=67,file="recross_status",status="replace")
+      write(67,*) k 
+      close(67)
 
-      k_force=k_save
-      andersen_step=andersen_save
-      q_i=q_save
-      andersen_step=0
+      write(15,'(a,f12.8)') "The actual recrossing coefficient is: ",&
+                   & num_total(child_evol)/denom_total
+      write(*,'(a,f12.8)') "The actual recrossing coefficient is: ",&
+                   & num_total(child_evol)/denom_total
+
+
 !
 !     second reset point
 !
@@ -420,7 +447,7 @@ else
 !
 !     Also redo the initialization of the dynamics
 !   
-     call mdinit(derivs,xi_ideal,dxi_act,2,rank)
+      call mdinit(derivs,xi_ideal,dxi_act,2,rank)
 
 !
 !     Sample the parent trajectory to generate a new starting configuration
@@ -459,12 +486,122 @@ else
 !     increment the informational time that has elapsed so far
 !
       t_actual=t_actual+child_interv*0.001*dt*2.41888428E-2
-      message(1)=t_actual
-      message(2)=denom_total
-      message(3:child_evol+1)=num_total
+   end do
+else 
+   source=0
+   message=rank
+   do 
+      call mpi_recv(numwork, count, MPI_DOUBLE_PRECISION, 0,tag_mpi,MPI_COMM_WORLD,status,ierr)
+!
+!     If no more samplings are to do, exit with the current worker
+!
+      if (numwork .eq. -1) then
+         exit
+      end if
+!
+!     reset the recross parameters for this child run
+!
+      num_local=0.d0
+      denom_local=0.d0
+      t_actual=0.d0
+      q_save=q_i   ! store the current position to recap it in each child
+      k_save=k_force  ! store the force constant for the next parent time
+      k_force=0.d0  ! set the force to zero for all childs!
+      andersen_save=andersen_step  ! save interval for thermostat
+      andersen_step=0  ! no thermostat for the childs!
+!
+!     start pairs of two childs with momenta of different signs!
+!
+!         write(*,*) "before andersen!",p_i
+      call andersen
+!         write(*,*) "after andersen!",p_i
+      p_save=p_i
+      do k=1,2
+         kappa_num=0.d0
+         kappa_denom=0.d0
+         if (k .eq. 1) then
+            p_i=p_save
+         else if (k .eq. 2) then
+            p_i=-p_save
+         end if
+         q_i=q_save
+         call get_centroid(act_coord)  !extract centroid from q_i
+         call calc_xi(act_coord,xi_ideal,xi_real,dxi_act,d2xi_act,2)
+!
+!     calculate gradient for the whole ring polymer
+!
+         do l=1,nbeads
+            q_1b=q_i(:,:,l)
+            call gradient (q_1b,vpot,derivs_1d,l,rank)
+            derivs(:,:,l)=derivs_1d
+         end do
+
+!
+!     calculate the recrossing velocity for the recrossing factor
+!        
+         vs = 0.0d0
+         do l = 1, 3
+            do m = 1, Natoms
+               do o=1,nbeads
+                  vs = vs + dxi_act(l,m) * p_i(l,m,o) / mass(m)
+               end do
+            end do
+         end do
+         vs = vs/nbeads
+!
+!     calculate the recrossing flux for the recrossing factor
+!
+         fs = 0.0d0
+         do l = 1, 3
+            do m = 1, Natoms
+                fs = fs + dxi_act(l,m) * dxi_act(l,m) / mass(m)
+            end do
+         end do
+         fs = sqrt(fs / (2.0d0 * pi * beta))
+!
+!     increase the denominator of kappa if the velocity is positive
+! 
+         if (vs .gt. 0) then
+            kappa_denom=kappa_denom+vs/fs
+         end if
+!
+!     now do the actual evaluation of the child trajectory
+!     no bias potential and no temperature shall be applied!
+!
+! 
+         do l=1,child_evol
+     !       write(*,*) "centroid3!",q_i
+            call verlet(l,dt,derivs,en_act,0d0,0d0,xi_ideal,xi_real,dxi_act,m,2,.false.,rank)
+            if (xi_real .gt.0) then
+               kappa_num(l)=kappa_num(l)+vs/fs
+            end if
+         end do
+!
+!     Avoid negative transmission coefficients.
+!     Has no visible effect on benchmark reactions
+!
+         if (kappa_num(child_evol) .ge. 0.d0) then
+            num_local=num_local+kappa_num
+         end if
+         denom_local=denom_local+kappa_denom
+     !       stop "HUohouhuo"
+      end do
+!
+!     use the configuration stored before the sampling of the child 
+!     trajectories as if they never appeared!
+!
+
+      k_force=k_save
+      andersen_step=andersen_save
+      q_i=q_save
+      andersen_step=0
+      message(1)=0.d0
+      message(2)=denom_local
+      message(3:child_evol+1)=num_local
       call mpi_send(message, child_evol+2, MPI_DOUBLE_PRECISION, source,tag_mpi,MPI_COMM_WORLD,ierr)
    end do
 end if
+166 continue
 call mpi_barrier(mpi_comm_world,ierr)
 !
 !     Write out the success message with the final recrossing factor
