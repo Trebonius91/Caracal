@@ -1402,6 +1402,7 @@ if (.not. dont_umbr) then
             if (.not. run_began) then               
                write(50,*) "# The distribution characteristics for the actual umbrella window:"
                write(50,*) "#             Traj-No.        average           variance"
+               flush(50)
             end if
  
 !
@@ -1580,6 +1581,7 @@ if (.not. dont_umbr) then
 !     write current statistics to file 
 !
                write(50,*) j,average_act,variance_act
+               flush(50)
 !
 !     update global average and variance values for this umbrella window
 !
