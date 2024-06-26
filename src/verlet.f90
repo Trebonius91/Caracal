@@ -625,7 +625,7 @@ if (periodic) then
                      call fatal
                   end if                
                end do
-               do while (q_act_frac(k) .gt. 1.d0)
+               do while (q_full_frac(k,j,i) .gt. 1.d0)
                   q_full_frac(k,j,:)=q_full_frac(k,j,:) - 1.d0
                   tries = tries +1
                   if (tries .gt. 20) then
