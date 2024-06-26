@@ -354,6 +354,7 @@ real(kind=8)::mass_tot   ! for density calculations (mass of the system)
 real(kind=8),allocatable::inter_old(:,:),change_tol
 integer,allocatable::i_best_old(:)
 integer::irc_local  ! readin: how many structures left/right shall be investigated
+logical::xdat_first  ! if the first XDATCAR frame with full header shall be written
 ! for geometry optimization (minima, TS)
 logical::newton_raphson  ! if the simpler Newton-Raphson method shall be used instead of P-RFO
 integer::maxiter  ! maximal number of geoopt steps

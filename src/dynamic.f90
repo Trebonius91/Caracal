@@ -1205,8 +1205,10 @@ end if
 !
 !     If the VASP format is used, write steps also to XDATCAR file
 !
+xdat_first=.false.
 if (coord_vasp) then
    open(unit=51,file="XDATCAR",status="replace")
+   xdat_first=.true.
 end if
 !
 if (verbose) then

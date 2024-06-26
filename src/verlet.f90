@@ -729,28 +729,32 @@ if (constrain .lt. 0) then
       if (coord_vasp) then
          open(unit=50,file="CONTCAR",status="replace")
          write(50,*) "CONTCAR (step ",istep,"), written by Caracal (dynamic.x)"
-         write(51,*) "step ",istep,", written by Caracal (dynamic.x)"
+         if (xdat_first) then
+            write(51,*) "XDATCAR written by Caracal (dynamic.x)"
+            write(51,*) vasp_scale
+            write(51,*) vasp_a_vec
+            write(51,*) vasp_b_vec
+            write(51,*) vasp_c_vec
+            do i=1,nelems_vasp
+               write(51,'(a,a)',advance="no") " ",trim(vasp_names(i))
+            end do
+            write(51,*)
+            write(51,*) vasp_numbers(1:nelems_vasp)
+            xdat_first=.false.
+         end if
          write(50,*) vasp_scale
-         write(51,*) vasp_scale
          write(50,*) vasp_a_vec
-         write(51,*) vasp_a_vec
          write(50,*) vasp_b_vec
-         write(51,*) vasp_b_vec
          write(50,*) vasp_c_vec
-         write(51,*) vasp_c_vec
          do i=1,nelems_vasp
            write(50,'(a,a)',advance="no") " ",trim(vasp_names(i))
-           write(51,'(a,a)',advance="no") " ",trim(vasp_names(i))
          end do
          write(50,*)
-         write(51,*)
          write(50,*) vasp_numbers(1:nelems_vasp)
-         write(51,*) vasp_numbers(1:nelems_vasp)
          write(50,*) "Direct"
-         write(51,*) "Direct"
+         write(51,*) "Direct  step ",istep
          if (vasp_selective) then
             write(50,*) "Selective dynamics"
-            write(51,*) "Selective dynamics"
          end if
 !  
 !     As in usual CONTCAR files, give the positions in direct coordinates!
@@ -992,12 +996,17 @@ if (analyze) then
    ekin=0.d0
    do i=1,natoms
       do j=1,nbeads
-       !  write(677,*) i,j,p_i(:,i,j),mass(i)
-         ekin1=ekin1+dot_product(p_i(:,i,j),p_i(:,i,j))/(2d0*mass(i))
+         if (at_move(i)) then
+            ekin1=ekin1+dot_product(p_i(:,i,j),p_i(:,i,j))/(2d0*mass(i))
+         end if
       end do
    end do
    ekin=ekin1
-   act_temp=2d0*ekin1/3d0/0.316679D-5/natoms/nbeads/nbeads
+   if (vasp_selective) then
+      act_temp=2d0*ekin1/3d0/0.316679D-5/(natoms-fix_num)/nbeads/nbeads
+   else 
+      act_temp=2d0*ekin1/3d0/0.316679D-5/natoms/nbeads/nbeads
+   end if
    if (npt) then
       act_vol=volbox*bohr**3
       act_dens=(mass_tot*1.6605402E-24*emass)/(act_vol*1E-24)
