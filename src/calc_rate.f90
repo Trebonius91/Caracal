@@ -358,8 +358,8 @@ if (trim(ts_file) .eq. "POSCAR") then
    vasp_selective = .false.
    vasp_direct = .false.
    fix_atoms = .false.
-
    read(31,'(a)') string
+   write(*,*) "select",string
    if (adjustl(trim(string)) .eq. "Selective dynamics" .or. &
           & adjustl(trim(string)) .eq. "selective dynamics" .or. &
           & adjustl(trim(string)) .eq. "Selective" .or. &
@@ -416,7 +416,6 @@ if (trim(ts_file) .eq. "POSCAR") then
    if (vasp_selective) then
       fix_num=ind
    end if
-
    close(31)
 else
    open(unit=31,file=ts_file,status="old",iostat=readstat)
@@ -434,6 +433,21 @@ else
    end do
    close(31)
 end if
+!
+!     Determine all fixed atoms for the dynamics
+!
+allocate(at_move(natoms))
+at_move=.true.
+if (fix_atoms) then
+   do i=1,natoms
+      do j=1,fix_num
+         if (fix_list(j) .eq. i) then
+            at_move(i) = .false.
+         end if
+      end do
+   end do
+end if
+
 !
 !     Read in the information about the PES in use
 !
@@ -889,6 +903,19 @@ if ((.not. dont_equi) .and. (rank .eq. 0)) then
          call verlet(istep,dt,derivs,energy_act,0d0,0d0,xi_val,xi_real,dxi_act,i,0,.false.,rank)
     !     call verlet_bias (istep,dt,xi_val,xi_real,dxi_act,energy_act,derivs,i,0)
 !
+!     Write out xyz file for debug purpose
+!
+         if (do_debug) then
+            write(112,*) natoms*nbeads
+            write(112,*)
+            do k=1,nbeads
+               do l=1,natoms
+                  write(112,*) name(l),q_i(:,l,k)*bohr
+               end do
+            end do
+         end if
+
+!
 !          call verlet_bias (istep,dt,xi_val,xi_real,dxi_act,energy_act,derivs,i,0)
 !     check the trajectory, if failed, go to beginning of trajectory
 !
@@ -995,6 +1022,19 @@ if ((.not. dont_equi) .and. (rank .eq. 0)) then
          end if
          call verlet(istep,dt,derivs,energy_act,0d0,0d0,xi_val,xi_real,dxi_act,i,0,.false.,rank) 
 !         call verlet_bias (istep,dt,xi_val,xi_real,dxi_act,energy_act,derivs,i,0)
+!
+!     Write out xyz file for debug purpose
+!
+         if (do_debug) then
+            write(112,*) natoms*nbeads
+            write(112,*)
+            do k=1,nbeads
+               do l=1,natoms
+                  write(112,*) name(l),q_i(:,l,k)*bohr
+               end do
+            end do
+         end if
+
          if (istep .eq. 1) then
 !
 !     avoid definition bugs...

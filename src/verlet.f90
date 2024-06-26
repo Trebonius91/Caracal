@@ -236,7 +236,6 @@ if (constrain .lt. 0) then
 
    end if
 end if
-
 !
 !     For the first timestep: set the pressure to the desired value
 !
