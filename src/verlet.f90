@@ -188,28 +188,33 @@ if (constrain .lt. 0) then
 
          open(unit=50,file="CONTCAR",status="replace")
          write(50,'(a,i9,a)') "CONTCAR (step ",istep,"), written by Caracal (dynamic.x)"
-         write(51,'(a,i9,a)') "step ",istep,", written by Caracal (dynamic.x)"
          write(50,*) vasp_scale
-         write(51,*) vasp_scale
          write(50,*) vasp_a_vec
-         write(51,*) vasp_a_vec
          write(50,*) vasp_b_vec
-         write(51,*) vasp_b_vec
          write(50,*) vasp_c_vec
-         write(51,*) vasp_c_vec
          do i=1,nelems_vasp
-           write(50,'(a,a)',advance="no") " ",trim(vasp_names(i))
-           write(51,'(a,a)',advance="no") " ",trim(vasp_names(i))
+            write(50,'(a,a)',advance="no") " ",trim(vasp_names(i))
          end do
          write(50,*)
-         write(51,*)
          write(50,*) vasp_numbers(1:nelems_vasp)
-         write(51,*) vasp_numbers(1:nelems_vasp)
          if (vasp_selective) then
             write(50,*) "Selective dynamics"
          end if
          write(50,*) "Direct"
-         write(51,*) "Direct"
+         if (xdat_first) then
+            write(51,'(a,i9,a)') "step ",istep,", written by Caracal (dynamic.x)"
+            write(51,*) vasp_scale
+            write(51,*) vasp_a_vec
+            write(51,*) vasp_b_vec
+            write(51,*) vasp_c_vec
+            do i=1,nelems_vasp
+              write(51,'(a,a)',advance="no") " ",trim(vasp_names(i))
+            end do
+            write(51,*)
+            write(51,*) vasp_numbers(1:nelems_vasp)
+         xdat_first=.false.
+         end if
+         write(51,'(a,i9)') "Direct step ",istep
 !  
 !     As in usual CONTCAR files, give the positions in direct coordinates!
 !     convert them back from cartesians, by using the inverse matrix
