@@ -37,6 +37,16 @@ subroutine egrad_aenet(xyz2,pot_grad,e_evb)
 use evb_mod 
 use general
 use pbc_mod
+use aenet_parallel,  only: pp_init,                        &
+                       pp_final,                       &
+                       pp_bcast,                       &
+                       pp_bcast_coo,                   &
+                       pp_print_info,                  &
+                       pp_bcast_InputData,             &
+                       pp_bcast_latt,                  &
+                       pp_sum,                         &
+                       ppMaster, ppRank, ppSize
+
 implicit none
 real(kind=8)::xyz2(3,natoms)
 real(kind=8)::xyz_direct(3,natoms)
@@ -103,6 +113,10 @@ end if
 !
 !    Call the aenet energy calculation routine
 !
+call pp_bcast(natoms)
+call pp_bcast(ann_elnum)
+call pp_bcast(periodic)
+call pp_bcast_latt(coord_mat)
 call aenet_energy(coord_mat,natoms,xyz_direct,at_type_ann,periodic,&
        & e_coh,e_evb,pot_grad,e_per_atom)
 

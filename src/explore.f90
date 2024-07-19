@@ -181,7 +181,7 @@ call getkey(rank)
 !     Read in the (start) structure for calculations
 !
 nkey_test=nkey_lines
-call getxyz
+call getxyz(rank)
 !
 !     Read in the potential energy surface parameters
 !

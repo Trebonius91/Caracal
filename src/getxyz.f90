@@ -31,7 +31,7 @@
 !
 !     part of EVB
 !
-subroutine getxyz
+subroutine getxyz(rank)
 use general
 use evb_mod
 use pbc_mod
@@ -50,6 +50,7 @@ character(len=1)::check_sel ! if T or F is noted in VASP POCARs
 integer::idummy ! dummy variable for line numbers..
 real(kind=8)::x_tmp,y_tmp,z_tmp  ! temporary coordinates of current atom
 integer::nmax
+integer::rank   ! the MPI rank
 integer::tag2(1000) ! local array for atom numbering
 logical::reorder
 
@@ -78,13 +79,15 @@ end do
 !
 !     if it isn´t given in the command line
 !
-do while (.not. exist)
-   write (iout,'(/," Enter Cartesian Coordinate File Name of Start Structure :  ",$)')
-   read (input,'(a120)')  xyzfile
-   call basefile (xyzfile)
-   call suffix (xyzfile,'xyz','old')
-   inquire (file=xyzfile,exist=exist)
-end do
+if (rank .eq. 0) then
+   do while (.not. exist)
+      write (iout,'(/," Enter Cartesian Coordinate File Name of Start Structure :  ",$)')
+      read (input,'(a120)')  xyzfile
+      call basefile (xyzfile)
+      call suffix (xyzfile,'xyz','old')
+      inquire (file=xyzfile,exist=exist)
+   end do
+end if
 !
 !     first open and then read the Cartesian coordinates file
 !
@@ -95,8 +98,10 @@ end do
 ixyz = freeunit ()
 coord_vasp = .false.
 if (trim(xyzfile) .eq. "POSCAR" .or. trim(xyzfile) .eq. "XDATCAR") then 
-   write(*,*)
-   write(*,*) "The geometry is given in file POSCAR. VASP format will be assumed!"
+   if (rank .eq. 0) then
+      write(*,*)
+      write(*,*) "The geometry is given in file POSCAR. VASP format will be assumed!"
+   end if
    coord_vasp = .true.
    open (unit=ixyz,file=xyzfile,status='old')
    rewind (unit=ixyz)
@@ -244,7 +249,9 @@ end if
 
 return
 60 continue
-write(*,*) "Error in input file for cartesian coordinates!"
+if (rank .eq. 0) then
+   write(*,*) "Error in input file for cartesian coordinates!"
+end if
 close (unit=ixyz)
 call fatal
 

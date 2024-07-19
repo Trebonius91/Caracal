@@ -29,7 +29,7 @@ CURRENT = $(shell pwd)
 #   The source files directory
 SRCDIR = src
 #   Compiler flags, should usually work
-FFLAGS = -cpp -fopenmp ${GULPFF} -fno-align-commons -fallow-argument-mismatch -O1 
+FFLAGS = -cpp -fopenmp ${GULPFF} -fno-align-commons -DPARALLEL -fallow-argument-mismatch -O1 
 #   Compiler flags, debug version
 #FFLAGS =  -fno-align-commons -g -ffpe-trap=zero,invalid,overflow,underflow  #-ffree-form #-Wall # debug version!
 #   Link against ownstanding Lapack, BLAS and FFTW libraries (probably deprecated)

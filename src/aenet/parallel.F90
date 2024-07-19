@@ -209,7 +209,7 @@ contains !=============================================================!
     if (isInit) return
 
 #ifdef PARALLEL
-    call MPI_Init(ierr)
+!    call MPI_Init(ierr)
 
     call MPI_Comm_size(MPI_COMM_WORLD, ppSize, ierr)
     call MPI_Comm_rank(MPI_COMM_WORLD, ppRank, ierr)
