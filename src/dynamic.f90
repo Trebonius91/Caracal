@@ -885,6 +885,7 @@ end do
 !
 eval_coord=.false.
 eval_step = 1
+seed_manual = .false.
 do i = 1, nkey_lines
    next = 1
    record = keyline(i)
@@ -1285,9 +1286,15 @@ if (rank .eq. 0) then
    end if
 end if
 !
+!     Initialize random seed for initial momenta
+!
+call random_init_local(0)
+!
 !     call the initialization routine
 !
-call mdinit(derivs,xi_ideal,dxi_act,bias_mode,1)
+call mpi_barrier(mpi_comm_world,ierr)
+call mdinit(derivs,xi_ideal,dxi_act,bias_mode,rank)
+call mpi_barrier(mpi_comm_world,ierr)
 !
 !     if you want to control if the total energy is conserved
 !

@@ -164,6 +164,7 @@ subroutine random_init_seed(value)
     integer, dimension(:), allocatable :: seed
     integer :: n, i
 
+
     call random_seed(size=n)
     allocate(seed(n))
 

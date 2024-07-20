@@ -171,84 +171,83 @@ end if
 !write(*,*) "use",use_calc_rate,rank
 if (constrain .lt. 0) then
    if (use_calc_rate .or. rank .eq. 0) then
-   if (mod(istep,iwrite) .eq. 0) then
-      write(28,*) natoms*nbeads
-      if (npt) then
-         write(28,*) boxlen_x*bohr,boxlen_y*bohr,boxlen_z*bohr
-      else
-         write(28,*)
-      end if
-      do k=1,nbeads
-         do i=1,natoms
-            write(28,*) name(i),q_i(:,i,k)*bohr
+      if (mod(istep,iwrite) .eq. 0) then
+         write(28,*) natoms*nbeads
+         if (npt) then
+            write(28,*) boxlen_x*bohr,boxlen_y*bohr,boxlen_z*bohr
+         else
+            write(28,*)
+         end if
+         do k=1,nbeads
+            do i=1,natoms
+               write(28,*) name(i),q_i(:,i,k)*bohr
+            end do
          end do
-      end do
-      flush(28)
+         flush(28)
 !
 !     If the VASP formate is used for input, write new CONTCAR and new frame 
 !       in XDATCAR files!
 !
-      if (coord_vasp  .and. nbeads .eq. 1) then
-         coord_mat(:,1)=vasp_a_vec(:)
-         coord_mat(:,2)=vasp_b_vec(:)
-         coord_mat(:,3)=vasp_c_vec(:)
+         if (coord_vasp  .and. nbeads .eq. 1) then
+            coord_mat(:,1)=vasp_a_vec(:)
+            coord_mat(:,2)=vasp_b_vec(:)
+            coord_mat(:,3)=vasp_c_vec(:)
 
-         call matinv3(coord_mat,coord_inv)
+            call matinv3(coord_mat,coord_inv)
 
-         open(unit=50,file="CONTCAR",status="replace")
-         write(50,'(a,i9,a)') "CONTCAR (step ",istep,"), written by Caracal (dynamic.x)"
-         write(50,*) vasp_scale
-         write(50,*) vasp_a_vec
-         write(50,*) vasp_b_vec
-         write(50,*) vasp_c_vec
-         do i=1,nelems_vasp
-            write(50,'(a,a)',advance="no") " ",trim(vasp_names(i))
-         end do
-         write(50,*)
-         write(50,*) vasp_numbers(1:nelems_vasp)
-         if (vasp_selective) then
-            write(50,*) "Selective dynamics"
-         end if
-         write(50,*) "Direct"
-         if (xdat_first) then
-            write(51,'(a,i9,a)') "step ",istep,", written by Caracal (dynamic.x)"
-            write(51,*) vasp_scale
-            write(51,*) vasp_a_vec
-            write(51,*) vasp_b_vec
-            write(51,*) vasp_c_vec
+            open(unit=50,file="CONTCAR",status="replace")
+            write(50,'(a,i9,a)') "CONTCAR (step ",istep,"), written by Caracal (dynamic.x)"
+            write(50,*) vasp_scale
+            write(50,*) vasp_a_vec
+            write(50,*) vasp_b_vec
+            write(50,*) vasp_c_vec
             do i=1,nelems_vasp
-              write(51,'(a,a)',advance="no") " ",trim(vasp_names(i))
+               write(50,'(a,a)',advance="no") " ",trim(vasp_names(i))
             end do
-            write(51,*)
-            write(51,*) vasp_numbers(1:nelems_vasp)
-         xdat_first=.false.
-         end if
-         write(51,'(a,i9)') "Direct step ",istep
+            write(50,*)
+            write(50,*) vasp_numbers(1:nelems_vasp)
+            if (vasp_selective) then
+               write(50,*) "Selective dynamics"
+            end if
+            write(50,*) "Direct"
+            if (xdat_first) then
+               write(51,'(a,i9,a)') "step ",istep,", written by Caracal (dynamic.x)"
+               write(51,*) vasp_scale
+               write(51,*) vasp_a_vec
+               write(51,*) vasp_b_vec
+               write(51,*) vasp_c_vec
+               do i=1,nelems_vasp
+                  write(51,'(a,a)',advance="no") " ",trim(vasp_names(i))
+               end do
+               write(51,*)
+               write(51,*) vasp_numbers(1:nelems_vasp)
+            xdat_first=.false.
+            end if
+            write(51,'(a,i9)') "Direct step ",istep
 !  
 !     As in usual CONTCAR files, give the positions in direct coordinates!
 !     convert them back from cartesians, by using the inverse matrix
 !  
-         do i=1,natoms
-            q_act_frac=matmul(coord_inv,q_i(:,i,1)*bohr)
-            if (vasp_selective) then
+            do i=1,natoms
+               q_act_frac=matmul(coord_inv,q_i(:,i,1)*bohr)
+               if (vasp_selective) then
 
-               if (at_move(i)) then
-                  write(50,*) q_act_frac(:),"   T   T   T "
-                  write(51,*) q_act_frac(:)!,"   F   F   F "
+                  if (at_move(i)) then
+                     write(50,*) q_act_frac(:),"   T   T   T "
+                     write(51,*) q_act_frac(:)!,"   F   F   F "
+                  else
+                     write(50,*) q_act_frac(:),"   F   F   F "
+                     write(51,*) q_act_frac(:)!,"   T   T   T "
+                  end if
                else
-                  write(50,*) q_act_frac(:),"   F   F   F "
-                  write(51,*) q_act_frac(:)!,"   T   T   T "
+                  write(50,*) q_act_frac(:)
+                  write(51,*) q_act_frac(:)
                end if
-            else
-               write(50,*) q_act_frac(:)
-               write(51,*) q_act_frac(:)
-            end if
-         end do
-         close(50)
-         flush(51)
+            end do
+            close(50)
+            flush(51)
+         end if
       end if
-
-   end if
    end if
 end if
 !
@@ -257,14 +256,15 @@ end if
 if (npt) then
    if (istep .eq. 1) press_act=pressure
 end if
-
-do k=1,nbeads
-   do i=1,natoms
-      do j=1,3
-         massvec(j,i,k)=mass(i)
+if (use_calc_rate .or. rank .eq. 0) then
+   do k=1,nbeads
+      do i=1,natoms
+         do j=1,3
+            massvec(j,i,k)=mass(i)
+         end do
       end do
    end do
-end do
+end if
 !
 !     For the Nose-Hoover chain thermostat: apply the full chain on the momenta
 !     on the half-time step
@@ -295,7 +295,6 @@ end if
 !     ---> (Nose-Hoover step D: second part of half time momentum update)
 !
 !if (thermostat .eq. 1 .or. thermostat .eq. 2) then
-
 if (use_calc_rate .or. rank .eq. 0) then
    p_i=p_i-0.5d0*dt*derivs
 end if
@@ -421,7 +420,6 @@ if (use_calc_rate .or. rank .eq. 0) then
   
          end do
       end if
-
 !
 !    For NPT (Nose-Hoover) or NVT/NVE ensembles
 !
@@ -836,10 +834,11 @@ if (energysplit) then
    e_noncov_split=0.d0
 end if
 xi_test=xi_real  ! TEST TEST
+call mpi_barrier(mpi_comm_world,ierr)
+call mpi_bcast(q_i,natoms*3*nbeads,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
+call mpi_bcast(p_i,natoms*3*nbeads,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
 do i=1,nbeads 
    q_1b=q_i(:,:,i)
-!   call mpi_bcast(q_i,natoms*3*nbeads,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
-!   call mpi_bcast(p_i,natoms*3*nbeads,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
    call gradient (q_1b,epot1,derivs_1d,i,rank)
    derivs(:,:,i)=derivs_1d
    epot=epot+epot1

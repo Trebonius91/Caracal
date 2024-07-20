@@ -87,14 +87,18 @@ end do
 !     ring polymer and use its positions for application 
 !     of the force constant
 !
-call get_centroid(centroid)
+if (use_calc_rate .or. rank .eq. 0) then
+   call get_centroid(centroid)
+end if
 !
 !     Add the bias potential for umbrella samplings!
 !
-if (bias_mode .eq. 1) then
-   call umbrella(centroid,xi_ideal,int_ideal,xi_real,dxi_act,derivs,1)
-else if (bias_mode .eq. 2) then
-   call umbrella(centroid,xi_ideal,int_ideal,xi_real,dxi_act,derivs,0)
+if (use_calc_rate .or. rank .eq. 0) then
+   if (bias_mode .eq. 1) then
+      call umbrella(centroid,xi_ideal,int_ideal,xi_real,dxi_act,derivs,1)
+   else if (bias_mode .eq. 2) then
+      call umbrella(centroid,xi_ideal,int_ideal,xi_real,dxi_act,derivs,0)
+   end if
 end if
 !if (calc_modus .eq. 1) stop "Jgdi3"
 !
@@ -103,58 +107,58 @@ end if
 !
 !     Beta-mode:  do the same for the Nose-Hoover thermostat!
 !
-if (.not. nve) then
-   backup = andersen_step
-   andersen_step = 1
-   if (thermostat .eq. 0 .or. thermostat .eq. 1) then
-      if (read_vel) then
-         do i=1,natoms
-            p_i(:,i,1)=-vel_start(i,:)*mass(i)
-         end do
-      else 
-         call andersen
+if (use_calc_rate .or. rank .eq. 0) then
+   if (.not. nve) then
+      backup = andersen_step
+      andersen_step = 1
+      if (thermostat .eq. 0 .or. thermostat .eq. 1) then
+         if (read_vel) then
+            do i=1,natoms
+               p_i(:,i,1)=-vel_start(i,:)*mass(i)
+            end do
+         else 
+            call andersen
+         end if
       end if
+      andersen_step = backup
+   else 
+      p_i=0
    end if
-   andersen_step = backup
-else 
-   p_i=0
-end if
 !
 !     Set the initial values for the Nose-Hoover-Chain thermostat
 !
-if (thermostat .eq. 2) then
-   call andersen
+   if (thermostat .eq. 2) then
+      call andersen
 !   p_i=0.d0
-   nfree=3.d0*natoms
-   ekt = k_B * kelvin
-   qterm = ekt * nose_q * nose_q
-   do j = 1, maxnose
-      qnh(j) = qterm
-      vnh(j)=0.d0
-      gnh(j)=0.d0
-   end do
-   qnh(1) = dble(nfree) * qnh(1)
+      nfree=3.d0*natoms
+      ekt = k_B * kelvin
+      qterm = ekt * nose_q * nose_q
+      do j = 1, maxnose
+         qnh(j) = qterm
+         vnh(j)=0.d0
+         gnh(j)=0.d0
+      end do
+      qnh(1) = dble(nfree) * qnh(1)
 !
 !    If the Nose-Hoover-Chain barostat it used, set its initial values as well
 !
-   qterm = ekt * nose_tau * nose_tau
-   qbar = dble(nfree+1) * qterm
-
-end if
+      qterm = ekt * nose_tau * nose_tau
+      qbar = dble(nfree+1) * qterm
+   end if
 !
 !     If the Berendsen barostat is used
 !
-if (barostat .eq. 1) then
-   taupres=2.d0
-   compress=0.000046d0*prescon/1000.d0
+   if (barostat .eq. 1) then
+      taupres=2.d0
+      compress=0.000046d0*prescon/1000.d0
 !
 !     If the Nose-Hoover chain barostat is used
 !
-else if (barostat .eq. 2) then
-   qterm = ekt * nose_tau * nose_tau
-   qbar = dble(nfree+1) * qterm
+   else if (barostat .eq. 2) then
+      qterm = ekt * nose_tau * nose_tau
+      qbar = dble(nfree+1) * qterm
+   end if
 end if
-
 if (fix_atoms) then
    do i=1,fix_num
       p_i(:,fix_list(i),:)=0.d0
