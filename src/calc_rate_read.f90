@@ -40,6 +40,7 @@ use pbc_mod
 use debug 
 use qmdff
 implicit none
+include 'mpif.h'
 !     The current MPI rank
 integer, intent(out) :: rank 
 !     the timestep for calculation and write out 
@@ -84,6 +85,8 @@ character(len=20)::act_bond
 character(len=20)::act_number
 logical::active,exist,section
 integer::next
+!     for MPI check
+integer::psize,ierr
 !     status of actual read in
 integer::readstat,istat
 !     For read in of number of atoms
@@ -1038,9 +1041,6 @@ do i = 1, nkey_lines
                write(*,*) "Correct format: MANUAL_POS [Xi-value for recrossing calc.]"
                call fatal
             end if            
-!     If recrossing shall be calculated with MPI
-         else if (keyword(1:20) .eq. 'MPI ') then
-            recross_mpi = .true.
 !     If recrossing part shall not be checked for errors
          else if (keyword(1:20) .eq. 'NO_CHECK ') then
             recross_check = .false.
@@ -1058,6 +1058,15 @@ if (.not. section) then
    call fatal
 end if
 
+!
+!    Check if more than one processor is available. If yes, activate recross MPI
+!
+call mpi_comm_size(mpi_comm_world,psize,ierr)
+if (psize .gt. 1) then
+   recross_mpi = .true.
+else
+   recross_mpi = .false.
+end if
 
 write(15,*) "... done!"
 

@@ -226,9 +226,9 @@ do i=1,child_times
 !     Avoid negative transmission coefficients.
 !     Has no visible effect on benchmark reactions
 !
-         if (kappa_num(child_evol) .ge. 0.d0) then
+!         if (kappa_num(child_evol) .ge. 0.d0) then
             num_total=num_total+kappa_num
-         end if
+!         end if
          denom_total=denom_total+kappa_denom
 !         stop "gofozfoz"
       end do

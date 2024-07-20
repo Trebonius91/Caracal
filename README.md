@@ -156,3 +156,5 @@ Here, literature referring to the different methods included into Caracal are gi
 - 04/29/2024: The explore program has been improved. The conjugate gradient algirithm for geometry optimization added, better output for geometry optimization. IR intensities for pGFN-FF, GFN-xTB and QMDFF in frequency calculation.
 - 06/21/2024: Neural network potentials as implemented in the aenet program are now available as an integrated PES function. Further, periodic structures can be given efficiently by the VASP POSCAR geometry format.
 - 06/24/2024: Umbrella samplings and recrossing calculations were optimized, both can now be restarted more efficiently, the parallelized recrossing is now more straightforward.
+- 07/20/2024: The dynamic.x program can now be parallelized with MPI to speed up the potential energy/gradient calculations. So far, only ANN potentials can be calculated with MPI.
+- 07/20/2024: Recrossing calculations in calc_rate.x are now calculated with MPI automatically if more than one core is used, the keyword MPI in the RECROSS section is not needed anymore.

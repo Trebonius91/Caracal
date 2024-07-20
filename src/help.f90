@@ -552,8 +552,6 @@ if (trim(progname) .eq. "calc_rate") then
    write(*,*) "       the reaction path at which the recrossing shall be "
    write(*,*) "       calculated manually. For the k(T) caculation, the PMF "
    write(*,*) "       value at its maximum (xi_TS) will still be used."
-   write(*,*) "    - MPI: If the recrossing part shall be parallelized with MPI"
-   write(*,*) "       as well. Faster but might be unstable so far!"
    write(*,*) "    - NO_CHECK: Deactivates control for bead behavior only for "
    write(*,*) "       recrossing trajectories."
    write(*,*) " * FORCE: { \n [COMMANDS] \n}: Activates an applied force during "

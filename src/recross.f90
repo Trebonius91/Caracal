@@ -235,9 +235,10 @@ if (andersen_step .eq. 0) then
    andersen_step=int(dsqrt(dble(recr_equi)))
 end if
 err_count=0
-call mdinit(derivs,xi_ideal,dxi_act,2,rank)
+!call mdinit(derivs,xi_ideal,dxi_act,2,rank)
 !if (recross_status .eq. 0) then
 if (rank .eq. 0) then
+   call mdinit(derivs,xi_ideal,dxi_act,2,rank)
 !
 !     first reset point
 !
@@ -307,6 +308,15 @@ call mpi_bcast(p_i,natoms*3*nbeads,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
 call mpi_bcast(xi_ideal,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
 
 call mpi_barrier(mpi_comm_world,ierr)
+!     Take the final structure of the first trajectory as reset point
+!
+q_start=q_i
+!
+!     Set the time dependent recrossing factor to 0!
+! 
+num_total=0.d0
+denom_total=0.d0
+
 !
 !     The master process (rank=0) it sends the actual child sampling tasks
 !     to the worker that will do the samplings for the child 
@@ -320,15 +330,11 @@ if (recross_status .eq. child_times) goto 166
 if (rank .eq. 0) then
 
   
-!
-!     Do the parent trajectory evolution with the master process and distribute 
-!     the child trajectories to the slave processes
-!
 
    t_actual=recross_status*child_interv*0.001*dt*2.41888428E-2
-
+ 
    do k=recross_status+1,child_times
-
+      
 
 !
 !     reset the recross parameters for this child run
@@ -361,8 +367,11 @@ if (rank .eq. 0) then
                end if
             end if
             dest=j
-
+!
+!     Send number of trajectory and starting structure for children to slave process
+!
             call mpi_send(schedule, count, MPI_DOUBLE_PRECISION, dest,tag_mpi,MPI_COMM_WORLD,ierr)
+            call mpi_send(q_i,natoms*3*nbeads, MPI_DOUBLE_PRECISION, dest,tag_mpi,MPI_COMM_WORLD,ierr)
          end do
 !
 !     recieve results from all slaves for the i'th round
@@ -379,29 +388,22 @@ if (rank .eq. 0) then
 
       end do
 
-
 !
 !     Now, do the remaining jobs (modulo)
 !
       do j=1,loop_rest
          dest=j
 !
-!     print info message before each spawn wafe of child trajectories
+!     Send number of trajectory and starting structure for children to slave process
 !  
          call mpi_send(i, count, MPI_DOUBLE_PRECISION, dest,tag_mpi,MPI_COMM_WORLD,ierr)
+         call mpi_send(q_i,natoms*3*nbeads, MPI_DOUBLE_PRECISION, dest,tag_mpi,MPI_COMM_WORLD,ierr)
       end do
       do j=1,loop_rest
          call mpi_recv(message, child_evol+2, MPI_DOUBLE_PRECISION, MPI_ANY_SOURCE,tag_mpi, &
                & MPI_COMM_WORLD,status,ierr)
          denom_total=denom_total+message(2)
          num_total=num_total+(message(3:child_evol+2))
-      end do
-!
-!     Switch off the remaining processors
-!
-      do j=1,loop_rest
-         dest=j
-         call mpi_send(-1, count, MPI_DOUBLE_PRECISION, dest,tag_mpi,MPI_COMM_WORLD,ierr)
       end do
 !
 !     Write the current numerator and denominator values as well as the parent structure
@@ -434,16 +436,19 @@ if (rank .eq. 0) then
       write(*,'(a,f12.8)') "The actual recrossing coefficient is: ",&
                    & num_total(child_evol)/denom_total
 
-
+      k_force=k_save
+      andersen_step=andersen_save
+      andersen_step=0
+      q_i=q_save
 !
 !     second reset point
 !
-      113 continue
 
       if (andersen_step .eq. 0) then
         andersen_step=int(dsqrt(dble(child_interv)))
       end if
 
+      113 continue
 !
 !     Also redo the initialization of the dynamics
 !   
@@ -482,16 +487,27 @@ if (rank .eq. 0) then
             end if
          end if
       end do
+ 
 !
 !     increment the informational time that has elapsed so far
 !
       t_actual=t_actual+child_interv*0.001*dt*2.41888428E-2
+   end do
+!
+!     Switch off the remaining processors
+!
+   do j=1,loop_rest
+      dest=j
+      call mpi_send(-1, count, MPI_DOUBLE_PRECISION, dest,tag_mpi,MPI_COMM_WORLD,ierr)
+      call mpi_send(q_i,natoms*3*nbeads, MPI_DOUBLE_PRECISION, dest,tag_mpi,MPI_COMM_WORLD,ierr)
    end do
 else 
    source=0
    message=rank
    do 
       call mpi_recv(numwork, count, MPI_DOUBLE_PRECISION, 0,tag_mpi,MPI_COMM_WORLD,status,ierr)
+      call mpi_recv(q_i,natoms*3*nbeads, MPI_DOUBLE_PRECISION, 0,tag_mpi,MPI_COMM_WORLD,status,ierr)
+
 !
 !     If no more samplings are to do, exit with the current worker
 !
@@ -579,10 +595,12 @@ else
 !
 !     Avoid negative transmission coefficients.
 !     Has no visible effect on benchmark reactions
+!   
+!     Seems to lead to too large recrossing coefficients! Better deactivate it!
 !
-         if (kappa_num(child_evol) .ge. 0.d0) then
+!         if (kappa_num(child_evol) .ge. 0.d0) then
             num_local=num_local+kappa_num
-         end if
+!         end if
          denom_local=denom_local+kappa_denom
      !       stop "HUohouhuo"
       end do
@@ -600,6 +618,7 @@ else
       message(3:child_evol+1)=num_local
       call mpi_send(message, child_evol+2, MPI_DOUBLE_PRECISION, source,tag_mpi,MPI_COMM_WORLD,ierr)
    end do
+
 end if
 166 continue
 call mpi_barrier(mpi_comm_world,ierr)
