@@ -499,6 +499,8 @@ if (trim(progname) .eq. "calc_rate") then
    write(*,*) "       shifted, only for ATOM_SHIFT type!"
    write(*,*) "    - SHIFT_INTERV [low, high]: Coordinate interval (Angstrom),"
    write(*,*) "       along the atom shall be shifted, only ATOM_SHIFT type!"
+   write(*,*) "    - INT_LENGTH [value]: The distance between the two local minima"
+   write(*,*) "       between which the atom is shifted, in Angstroms."
    write(*,*) " * UMBRELLA: { \n [COMMANDS] \n}: Speficies the calculations in "
    write(*,*) "       umbrella sampling phase, where the reaction is sampled."
    write(*,*) "    - BIAS [value]: Strength of the umbrella force constant"

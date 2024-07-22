@@ -139,6 +139,8 @@ umbr_dist = -1.d0
 umbr_type = "none"
 !     The asymptotic reactants separation for umbrella samplings
 r_inf = 0.d0
+!     The total length of the atom shift, for the atom_shift type
+shift_int_len = -1.0d0
 !     The file in which the startign TS trajectory shall be stored 
 ts_file = " "
 !     The lowest reaction path Xi value for PMF calculation
@@ -794,6 +796,22 @@ do i = 1, nkey_lines
                   shift2_hi=shift2_hi/bohr
                end if
             end if
+!
+!     The distance the shifted atom is shifted in cartesian coordinates (Angstroms)
+!     The distance between both minima must be taken!
+!
+         else if (keyword(1:20) .eq. 'INT_LENGTH') then
+            if (umbr_type .eq. "ATOM_SHIFT") then
+               read(record,*,iostat=readstat) names,shift_int_len
+               if (readstat .ne. 0) then
+                  write(*,*) "Correct format: INT_LENGTH [value]"
+                  call fatal 
+               end if
+!
+!     Convert distance to bohr for internal calculation
+!
+               shift_int_len=shift_int_len/bohr
+            end if
          end if
          if (keyword(1:13) .eq. '}') exit
          if (j .eq. nkey_lines-i) then
@@ -1273,6 +1291,15 @@ if (rank .eq. 0) then
         write(*,*) "No reactant max distance is given! Add the keyword DIST_INF!"
         call fatal
      end if
+   end if
+!
+!      The total length of the shift between both minima, in Angstrom
+!
+   if (shift_int_len .lt. 0.0d0) then
+      if (umbr_type .eq. "ATOM_SHIFT") then
+         write(*,*) "Please give the total distance (INT_LENGTH) for the shift!"
+         call fatal
+      end if
    end if
 !
 !      If no valid TS structure filename was given

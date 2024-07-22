@@ -180,7 +180,7 @@ else if (umbr_type .eq. "ATOM_SHIFT") then
 !
 !     calculate the rate constant in atomic units 
 !
-   k_t=kappa/sqrt((2*pi*beta*mass(shift_atom)))*exp(-beta*pmf_max)/pmf_int
+   k_t=kappa/sqrt((2*pi*beta*mass(shift_atom)))*exp(-beta*pmf_max)/pmf_int/shift_int_len
 !
 !     convert the rate constant into usual units (s^(-1))
 !
