@@ -23,7 +23,7 @@
 !> API export for the version information of the library
 module tblite_api_version
    use, intrinsic :: iso_c_binding
-   use tblite_version, only : get_tblite_version
+ !  use tblite_version, only : get_tblite_version
    implicit none
    private
 

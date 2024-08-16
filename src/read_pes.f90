@@ -1257,7 +1257,7 @@ if (aenet_ann) then
 !
 !    Call the initialization routine
 !   
-   call aenet_initialize(ann_elnum,ann_files,ann_elements)
+   call aenet_initialize(ann_elnum,ann_files,ann_elements,use_calc_rate)
    goto 678
 end if
 

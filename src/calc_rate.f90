@@ -359,7 +359,6 @@ if (trim(ts_file) .eq. "POSCAR") then
    vasp_direct = .false.
    fix_atoms = .false.
    read(31,'(a)') string
-   write(*,*) "select",string
    if (adjustl(trim(string)) .eq. "Selective dynamics" .or. &
           & adjustl(trim(string)) .eq. "selective dynamics" .or. &
           & adjustl(trim(string)) .eq. "Selective" .or. &
@@ -762,7 +761,9 @@ call system ("touch current_calc")
 !     If an external PES shall be used, generate a folder for each MPI rank such that
 !     no problems with collisions occur
 !
+
 call mpi_barrier(mpi_comm_world,impi_error)
+
 if (call_ext) then
    if (rank .lt. 10) then
       write(rank_char,'(i1)') rank
@@ -1170,8 +1171,6 @@ end if
 !
 !     (re-)allocate array with equilibrated structures
 !
-call mpi_barrier(mpi_comm_world,ierr)
-
 !
 !    Measure the needed time for umbrella samplings
 !

@@ -55,7 +55,7 @@
 !
 
 
-  subroutine aenet_initialize(ann_elnum,ann_files,ann_elements)
+  subroutine aenet_initialize(ann_elnum,ann_files,ann_elements,use_calc_rate)
 
 
   use aenet_aeio,      only: aeio_header,                    &
@@ -119,11 +119,17 @@
 
 
     logical :: fexists
+    logical :: use_calc_rate  ! if the calc_rate program is used: 
+                              !  no parallelization in that case
     integer :: nargs
     integer :: stat
     integer :: itype
 
-    call pp_init()
+    if (use_calc_rate) then 
+       call pp_init(.false.)
+    else
+       call pp_init(.true.) 
+    end if    
 
     ! broadcast the information to all MPI processes
     call pp_bcast(ann_elnum)

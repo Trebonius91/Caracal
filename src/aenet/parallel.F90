@@ -202,9 +202,10 @@ module aenet_parallel
 contains !=============================================================!
 
 
-  subroutine pp_init()
+  subroutine pp_init(use_parallel)
 
     implicit none
+    logical::use_parallel
 
     if (isInit) return
 
@@ -214,7 +215,11 @@ contains !=============================================================!
     call MPI_Comm_size(MPI_COMM_WORLD, ppSize, ierr)
     call MPI_Comm_rank(MPI_COMM_WORLD, ppRank, ierr)
 
-    isParallel = .true.
+    if (use_parallel) then
+       isParallel = .true.
+    else
+       isParallel = .false.
+    end if
 #endif
 
     if (ppRank == 0) then

@@ -146,7 +146,6 @@ real(kind=8)::ang,dihed
 !parameter(pi=3.1415926535897932384626433832795029d0)
 
 
-
 infinity = HUGE(dbl_prec_var)   ! set the larges possible real value
 !
 !     Calculate new box dimensions, if the NPT ensemble is used
@@ -290,6 +289,7 @@ if (use_calc_rate .or. rank .eq. 0) then
       end if
    end if
 end if
+
 !
 !     update the momentum (half time step)
 !     ---> (Nose-Hoover step D: second part of half time momentum update)
@@ -834,9 +834,11 @@ if (energysplit) then
    e_noncov_split=0.d0
 end if
 xi_test=xi_real  ! TEST TEST
-call mpi_barrier(mpi_comm_world,ierr)
-call mpi_bcast(q_i,natoms*3*nbeads,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
-call mpi_bcast(p_i,natoms*3*nbeads,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
+if (.not. use_calc_rate) then
+   call mpi_barrier(mpi_comm_world,ierr)
+   call mpi_bcast(q_i,natoms*3*nbeads,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
+   call mpi_bcast(p_i,natoms*3*nbeads,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
+end if
 do i=1,nbeads 
    q_1b=q_i(:,:,i)
    call gradient (q_1b,epot1,derivs_1d,i,rank)
@@ -1150,7 +1152,6 @@ if (periodic) then
       call fatal
    end if
 end if
-
 !
 !     Remove total translation and rotation of the system during the dynamics 
 !      (especially needed for Nose-Hoover thermostat!)

@@ -25,7 +25,7 @@ module tblite_output_ascii
    use mctc_env, only : wp
    use mctc_io, only : structure_type
    use mctc_io_convert, only : autoev
-   use tblite_version, only : get_tblite_version
+!  use tblite_version, only : get_tblite_version
    implicit none
    private
 
@@ -191,7 +191,7 @@ subroutine json_results(unit, indentation, energy, gradient, sigma, energies)
    character(len=*), parameter :: jsonkey = "('""',a,'"":',1x)"
    real(wp), allocatable :: array(:)
 
-   call get_tblite_version(string=version_string)
+!   call get_tblite_version(string=version_string)
 
    if (present(indentation)) then
       indent = indentation
