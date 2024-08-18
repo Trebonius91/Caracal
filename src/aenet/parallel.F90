@@ -219,6 +219,8 @@ contains !=============================================================!
        isParallel = .true.
     else
        isParallel = .false.
+       ppSize=1
+       ppRank=0
     end if
 #endif
 
