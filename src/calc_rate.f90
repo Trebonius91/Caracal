@@ -604,14 +604,14 @@ if (rank .eq. 0) then
    write(15,*) "Umbrella-samplings"
    write(15,*)  " -.-. .- .-. .- -.-. .- .-.. "
    write(15,*)
-   write(15,'(a,i2,a)') " This is a parallelized calculation, ",psize," cores are utilized."
+   write(15,'(a,i4,a)') " This is a parallelized calculation, ",psize," cores are utilized."
    write(15,*)
    write(*,*)
    write(*,*) "You are starting a rate constant calculation with connected"
    write(*,*) "Umbrella-samplings"
    write(*,*)  " -.-. .- .-. .- -.-. .- .-.."
    write(*,*)
-   write(*,'(a,i2,a)') " This is a parallelized calculation, ",psize," cores are utilized." 
+   write(*,'(a,i4,a)') " This is a parallelized calculation, ",psize," cores are utilized." 
    write(*,*) 
 end if
 
