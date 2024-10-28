@@ -107,6 +107,15 @@ do k=1,nnci
    if (periodic .and. r .gt. vdw_cut) then 
       cycle
    end if 
+! 
+!     If the eval_cutoff option is activated, add the current atom pair
+!     to the list of printed atoms within the cutoff
+!
+   if (eval_cutoff) then
+      within_cut(i1,i2) = .true.
+      within_cut(i2,i1) = .true.
+   end if
+
    oner =1.0d0/r
  
    iz1=at(i1)
@@ -124,6 +133,16 @@ do k=1,nnci
    t27=sr42(iz1,iz2)*c6t8
    e0=c6t6+t27
    e=e-e0*eps2(nk)
+
+!
+!     For energy partition in eval_cutoff: add half energy to each atom
+!
+   if (eval_cutoff) then
+      e_partition(i1)=e_partition(i1)-e0*eps2(nk)/2.d0
+      e_partition(i2)=e_partition(i2)-e0*eps2(nk)/2.d0
+   end if
+
+
 !   write(*,*) "e",e,r,k,i1,i2,e0,eps2(nk),nk
 
    drij=eps2(nk)*(c6t6*6.0d0*r4/t6+8.0d0*t27*r6/t8)
@@ -139,6 +158,14 @@ do k=1,nnci
       t27  =x*dexp(-alpha*r)
       e0   =t27*oner
       e    =e + e0*eps2(nk)
+!
+!     For energy partition in eval_cutoff: add half energy to each atom
+!
+      if (eval_cutoff) then
+         e_partition(i1)=e_partition(i1)+e0*eps2(nk)/2.d0
+         e_partition(i2)=e_partition(i2)+e0*eps2(nk)/2.d0
+      end if
+
       drij=eps2(nk)*t27*(alpha*r+1.0d0)*oner/r2
       g_local_a(1:3)=g_local_a(1:3)-vab(1:3)*drij
    end if
@@ -195,6 +222,15 @@ if (nmols .gt. 1) then
 !
             if (periodic .and. r .gt. vdw_cut) cycle
 
+! 
+!     If the eval_cutoff option is activated, add the current atom pair
+!     to the list of printed atoms within the cutoff
+!
+            if (eval_cutoff) then
+               within_cut(i1,i2) = .true.
+               within_cut(i2,i1) = .true.
+            end if
+
             oner =1.0d0/r
 
             iz1=at(i1)
@@ -226,6 +262,15 @@ if (nmols .gt. 1) then
                t27=sr42(iz1,iz2)*c6t8
             end if
             e0=c6t6+t27
+
+!
+!     For energy partition in eval_cutoff: add half energy to each atom
+!
+            if (eval_cutoff) then
+               e_partition(i1)=e_partition(i1)-e0/2.d0
+               e_partition(i2)=e_partition(i2)-e0/2.d0
+            end if
+
             e=e-e0
             drij=(c6t6*6.0d0*r4/t6+8.0d0*t27*r6/t8)
 
@@ -236,7 +281,7 @@ if (nmols .gt. 1) then
             g_local_a(1:3)=vab(1:3)*drij
 
 !
-!    Van der Waals energy: only, if distance is below the 25 bohr cutoff!
+!    Van der Waals energy: only, if distance is below the van-der-waals cutoff!
 !
             if (r .lt. 25) then
                if (ff_mod_noncov) then
@@ -249,6 +294,15 @@ if (nmols .gt. 1) then
                t27  =x*dexp(-alpha*r)
                e0   =t27*oner
                e    =e + e0
+!
+!     For energy partition in eval_cutoff: add half energy to each atom
+!
+               if (eval_cutoff) then
+                  e_partition(i1)=e_partition(i1)+e0/2.d0
+                  e_partition(i2)=e_partition(i2)+e0/2.d0
+               end if
+
+
                drij=t27*(alpha*r+1.0d0)*oner/r2
                g_local_a(1:3)=g_local_a(1:3)-vab(1:3)*drij
             end if
@@ -325,6 +379,16 @@ if (.not. ewald) then
          e0=q(i1)*q(i2)*oner*eps1(nk)*switch
       end if
       e=e+e0
+
+!
+!     For energy partition in eval_cutoff: add half energy to each atom
+!
+      if (eval_cutoff) then
+         e_partition(i1)=e_partition(i1)+e0/2.d0
+         e_partition(i2)=e_partition(i2)+e0/2.d0
+      end if
+
+
       drij=e0/r2
 
       g_local_a(1:3)=-vab(1:3)*drij
@@ -407,6 +471,14 @@ if (.not. ewald) then
                end if
                e=e+e0
                
+!
+!     For energy partition in eval_cutoff: add half energy to each atom
+!
+               if (eval_cutoff) then
+                  e_partition(i1)=e_partition(i1)+e0/2.d0
+                  e_partition(i2)=e_partition(i2)+e0/2.d0
+               end if
+
                drij=e0/r2
 
                g_local_a(1:3)=-vab(1:3)*drij
@@ -812,5 +884,6 @@ end if
 !end do
 
 enb = enb + e
+
 return
 end subroutine ff_nonb

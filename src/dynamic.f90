@@ -107,6 +107,8 @@ integer::bias_mode,keylines_backup
 integer::round,constrain
 !   for addition of mirror planes to the system
 character(len=60)::mirror_file
+!   for eval_cutoff: determination of atomic environments (QMDFF)
+real(kind=8)::surr_vec_a(3),surr_vec_b(3),surr_vec_c(3)
 !   The OMP time measurement
 real(kind=8)::time1_omp,time2_omp
 !     the evb-qmdff input
@@ -1144,10 +1146,11 @@ if (periodic .or. box_walls) then
       end if
 !
 !     Place the initial structure(s) in the center of the box!
-!   
-      x(:)=x(:)+0.5d0*(boxlen_x-xmax)
-      y(:)=y(:)+0.5d0*(boxlen_y-ymax)
-      z(:)=z(:)+0.5d0*(boxlen_z-zmax)
+!     Deactivated since it tends to break calculations 
+!  
+!      x(:)=x(:)+0.5d0*(boxlen_x-xmax)
+!      y(:)=y(:)+0.5d0*(boxlen_y-ymax)
+!      z(:)=z(:)+0.5d0*(boxlen_z-zmax)
 !
 !     If a barostat shall be applied, set the initial values 
 !
@@ -1207,6 +1210,28 @@ allocate(derivs(3,natoms,nbeads))
 !
 if (afm_run) then
    afm_move_first(:)=q_i(:,afm_move_at,1)
+end if
+
+!
+!     If for QMDFF, the eval_cutoff option is activated to printout 
+!     environments and energy contributions of atoms, open the xyz
+!     file where everything will be written into
+!
+if (rank .eq. 0) then
+   if (eval_cutoff) then
+      open(unit=293,file="eval_cutoff.xyz",status="replace")
+!
+!     Allocate array for descision if atom is within the cutoff of 
+!     another atom
+!
+      allocate(within_cut(natoms,natoms))
+!
+!     Array for the energy partition calculated for each atom (fraction for each
+!     energy partition, e.g., half of two-body interaction, third of three-body 
+!     interaction and so forth
+!
+      allocate(e_partition(natoms))
+   end if
 end if
 
 !
@@ -1285,6 +1310,7 @@ if (rank .eq. 0) then
       end do
    end if
 end if
+
 !
 !     Initialize random seed for initial momenta
 !
@@ -1411,6 +1437,40 @@ do istep = 1, nstep
 !
 
    afm_force=afm_force/bohr  ! convert to Angstrom 
+
+!
+!     If the eval_cutoff option is activated for QMDFFs, print out the 
+!     surrounding of each atom in the system to file eval_cutoff.xyz
+!     Only do this for TDUMP steps with trajectory printout!
+!
+   if (eval_cutoff) then
+      if (mod(istep,iwrite) .eq. 0) then
+         do i=1,natoms
+            idum=0
+            do j=1,natoms
+               if (within_cut(i,j)) idum=idum+1
+            end do
+            write(293,*) idum
+            write(293,'(a,i8,a,i8,a,es15.8)') "Frame No.: ",istep,", atom No.: ",&
+                    & i,", energy (Eh): ",e_partition(i)
+            do j=1,natoms
+               surr_vec_a=q_i(:,i,1)
+               if (within_cut(i,j)) then
+!
+!     Map all surrounding atoms into the current unit cell
+!
+                  surr_vec_b=q_i(:,j,1)
+                  surr_vec_c=surr_vec_b-surr_vec_a
+                  call box_image(surr_vec_c)
+                  surr_vec_b=surr_vec_a+surr_vec_c
+                  write(293,*) name(j),surr_vec_b*bohr
+               end if
+            end do
+         end do
+         flush(293)
+      end if
+   end if
+
 !
 !     if a molecular force experiment is conducted, write out 
 !     the distance between the end atoms 
@@ -1586,6 +1646,9 @@ if (rank .eq. 0) then
    end if
    close(29)
    close(30)
+   if (eval_cutoff) then
+      close(293)
+   end if
 end if
 call mpi_barrier(mpi_comm_world,ierr)
 call mpi_finalize(ierr)

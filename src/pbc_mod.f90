@@ -61,6 +61,17 @@ real(kind=8)::boxlen_x,boxlen_y,boxlen_z,boxlen_x2,boxlen_y2,boxlen_z2
 real(kind=8)::box_vol  ! volume of the box
 
 !
+!    If the eval_cutoff procedure shall be done, analysis of all atoms within a 
+!    given cutoff around each atom (only for QMDFF)
+!
+logical::eval_cutoff
+!    Array for all atom combinations: are they within the cutoff?
+logical,allocatable::within_cut(:,:)
+!    Array for the energy partition calculated for each atom (fraction for each
+!    energy partition, e.g., half of two-body interaction, third of three-body 
+!    interaction and so forth
+real(kind=8),allocatable::e_partition(:)
+!
 !     If a POSCAR file is given for geometry, assume VASP format for output
 !
 logical::coord_vasp

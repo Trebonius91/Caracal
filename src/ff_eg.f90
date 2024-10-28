@@ -45,7 +45,7 @@ use pbc_mod
 implicit none  
 integer::n,at(n)
 real(kind=8)::xyz(3,n),e,g(3,n)
-
+real(kind=8)::e_tmp
 real(kind=8)::vp(3),dt,deddt,rp,cosa,rab2,rcb2,vlen,rmul1,rmul2
 real(kind=8)::cosna(4),sinna(4),v(4),sa(4),ca(4),phix(4),dphi(4)
 real(kind=8)::va(3),vb(3),vc(3),vd(3),vba(3),vcb(3),vdc(3),vab(3)
@@ -70,6 +70,14 @@ integer::i,j,k,l,m,ic,ia,list(4),jj,mm,ii,kk,it,nt,it2
 
 e=0
 g=0
+!
+!     If the eval_cutoff option is activated, reset the within_cut array
+!     and the e_partition array with the energy for each atom
+!  
+if (eval_cutoff) then
+   within_cut=.false.
+   e_partition=0.d0
+end if
 !
 !     calculate energy and gradients: For all coordinate types, loop over 
 !     all included coordinates and sum up the parts
@@ -102,7 +110,15 @@ do m=1,nbond
 !
 !     the energy
 !
-   e=e+kij*(1.+(rij/r)**aai-2.*(rij/r)**aai2)
+   e_tmp=kij*(1.+(rij/r)**aai-2.*(rij/r)**aai2)
+   e=e+e_tmp
+!
+!     For energy partition in eval_cutoff: add half energy to each atom
+!
+   if (eval_cutoff) then
+      e_partition(i)=e_partition(i)+e_tmp/2.d0
+      e_partition(j)=e_partition(j)+e_tmp/2.d0
+   end if
 !
 !     the gradient
 !
@@ -207,6 +223,15 @@ do m=1,nangl
 !      write(parts_labels(1,comp_no),'(a,i4,i4,i4)') "angle",i,j,k
 !   end if
    e=e+ea*damp
+!
+!     For energy partition in eval_cutoff: add third energy to each atom
+!
+   if (eval_cutoff) then
+      e_partition(i)=e_partition(i)+ea*damp/3.d0
+      e_partition(j)=e_partition(j)+ea*damp/3.d0
+      e_partition(k)=e_partition(k)+ea*damp/3.d0
+   end if
+
 !
 !     calculate the gradient
 !
@@ -357,6 +382,7 @@ do m=1,ntors
 !   end if
 
       et=et*vtors(2,m)
+
 !
 !     the torsional gradient!
 !
@@ -428,6 +454,18 @@ do m=1,ntors
 !         qmdff_parts(1,struc_no,comp_no)=act_part
 !      end if
       e=e+et*damp
+!
+!     For energy partition in eval_cutoff: add quarter energy to each atom
+!
+      if (eval_cutoff) then
+         e_partition(i)=e_partition(i)+et*damp/4.d0
+         e_partition(j)=e_partition(j)+et*damp/4.d0
+         e_partition(k)=e_partition(k)+et*damp/4.d0
+         e_partition(l)=e_partition(l)+et*damp/4.d0
+      end if
+
+
+
 !----------------------------------------------------    
 !     torsions for inversions!
 !----------------------------------------------------
@@ -486,6 +524,17 @@ do m=1,ntors
       g(1:3,k)=g(1:3,k)+g_local_c
       g(1:3,l)=g(1:3,l)+g_local_d
       e=e+et*damp
+
+!
+!     For energy partition in eval_cutoff: add quarter energy to each atom
+!
+      if (eval_cutoff) then
+         e_partition(i)=e_partition(i)+et*damp/4.d0
+         e_partition(j)=e_partition(j)+et*damp/4.d0
+         e_partition(k)=e_partition(k)+et*damp/4.d0
+         e_partition(l)=e_partition(l)+et*damp/4.d0
+      end if
+
 
 !
 !     Calculate the virial tensor components, if needed!   

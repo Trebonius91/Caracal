@@ -35,6 +35,7 @@
 subroutine eabxag(n,A,B,H,xyz,ca,energy,gdr)
 use debug
 use qmdff
+use pbc_mod
 implicit none
 integer::A,B,H,n
 real(kind=8)::xyz(3,n),ca,energy,gdr(3,n)
@@ -58,6 +59,16 @@ i2=B
 i =H
 
 call eabx(n,i1,i2,i,xyz,ca,er)
+
+!
+!     For energy partition in eval_cutoff: add third energy to each atom
+!
+if (eval_cutoff) then
+   e_partition(A)=e_partition(A)+er/3.d0
+   e_partition(B)=e_partition(B)+er/3.d0
+   e_partition(H)=e_partition(H)+er/3.d0
+end if
+
 energy=energy+er
 
 !

@@ -802,7 +802,6 @@ implicit none
 !
 write(*,*) "------------------------------------------------------------------"
 write(*,*) "--- PART B: List of general PES keywords:-------------------------"
-write(*,*) " * FFNAME [QMDFF1/2/3]: names of files with QMDFF force fields"
 write(*,*) " * PES [method]: specifies the coupling method: Available are:"
 write(*,*) "    - QMDFF  (a single QMDFF for the whole PES)"
 write(*,*) "    - PGFN-FF (a pGFN-FF for the whole PES (install with GULP!)"

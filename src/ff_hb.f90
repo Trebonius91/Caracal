@@ -276,6 +276,5 @@ if (nmols .gt. 1) then
 
 end if
 
-
 return
 end subroutine ff_hb

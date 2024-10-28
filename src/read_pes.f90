@@ -70,6 +70,7 @@ real(kind=8)::s_q1_r  ! temporary variable for QMDFF damping range (RP-EVB)
 real(kind=8),allocatable::xyz_init(:,:)  ! geometry for pGFN-FF init
 real(kind=8)::xr,yr,zr
 real(kind=8)::x_tmp,y_tmp,z_tmp
+real(kind=8)::eval_cut
 logical::read_init_struc
 character(len=2),allocatable::names_init(:)   ! element symbols for pGFN-FF init
 logical::path_struc,path_energy,coupl,params
@@ -1371,6 +1372,7 @@ if (qmdffnumber .eq. 1 .or. evb_de .or. evb_dq .or. dg_evb .or. treq) then
    evb2=.false.
    evb3=.false.
    read_name=.false.
+   eval_cutoff=.false.
    exist=.false.
    ewald=.false.
    zahn=.false.
@@ -1485,6 +1487,22 @@ if (qmdffnumber .eq. 1 .or. evb_de .or. evb_dq .or. dg_evb .or. treq) then
                   write(*,*) "Correct format: VDW_CUTOFF [value (A)]"
                   call fatal
                end if
+!
+!     Activates the special evaluation mode, a cutoff is set, and for 
+!     each atom in the system, all surrounding atoms within the cutoff and 
+!     the atom itself are written into a xyz trajectory frame. 
+!     Further, the energy of the atom resulting from all interactions 
+!     is summed up
+!     Coulomb and van der Waals cutoff are set to the chosen value
+!
+            else if (keyword(1:13) .eq. 'EVAL_CUTOFF ') then
+               eval_cutoff = .true.
+               read(record,*,iostat=readstat) names,eval_cut
+               if (readstat .ne. 0) then
+                  write(*,*) "Correct format: EVAL_CUTOFF [value (A)]"
+                  call fatal
+               end if
+
 !           
 !     Determine if the QMDFF energy shifts shall be corrected automatically
 !     to exactly reproduce the first/last energy of the path or not
@@ -1513,6 +1531,10 @@ if (qmdffnumber .eq. 1 .or. evb_de .or. evb_dq .or. dg_evb .or. treq) then
          write(*,*) " ensure a useful calculation!"
          call fatal
       end if
+   end if
+   if (eval_cutoff) then
+      coul_cut=eval_cut
+      vdw_cut=eval_cut
    end if
 end if
 
@@ -2365,12 +2387,19 @@ if (rank .eq. 0) then
             write(*,'(a,3f13.7)') "     c = ",vasp_c_vec(:)
          else 
             write(*,'(a)') " * The system is simulated in a cubix periodic box: "
-            write(*,'(a,f13.7,a,f13.7,a,f13.7,a)') "       x=", boxlen_x*bohr," Ang.  ,y=",boxlen_y*bohr, &
-                        & " Ang., z=",boxlen_z*bohr,"Ang."
-            write(*,*) "* Long range Coulomb interactions treated with: ",trim(coul_method)
-            write(*,'(a,f11.3,a)') " * (Short) Coulomb interactions have a cutoff of ",coul_cut, " A"
-            write(*,'(a,f11.3,a)') " * VDW interactions have a cutoff of ",vdw_cut, " A"
+            write(*,'(a,f13.7,a,f13.7,a,f13.7,a)') "       x=", boxlen_x*bohr," A, y=",boxlen_y*bohr, &
+                        & " A, z=",boxlen_z*bohr," A"
          end if
+         write(*,*) "* Long range Coulomb interactions treated with: ",trim(coul_method)
+         write(*,'(a,f11.3,a)') " * (Short) Coulomb interactions have a cutoff of ",coul_cut*bohr, " A"
+         write(*,'(a,f11.3,a)') " * VDW interactions have a cutoff of ",vdw_cut*bohr, " A"
+         if (eval_cutoff) then
+            write(*,*) "* The EVAL_CUTOFF option has been activated. In each TDUMP step, for each"
+            write(*,*) "    atom, all surrounding atoms within the cutoff and the resultin energy "
+            write(*,*) "    from all interactions (covalent/noncovalent) will be written to file"
+            write(*,*) "    eval_cutoff.xyz."
+         end if
+
       else if (box_walls) then
          write(*,'(a)') " * The system is simulated in a hard-walls nonperiodic box: "
          write(*,'(a,f13.7,a,f13.7,a,f13.7,a)') "       x=", boxlen_x," Ang.  ,y=",boxlen_y, &

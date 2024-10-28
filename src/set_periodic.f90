@@ -68,7 +68,7 @@ data multi  /   2,   4,   6,   8,  10,  12,  16,  18,  20, &
 periodic=switch_per
 ewald=switch_ew
 zahn=switch_zahn
-coul_cut=cut_coul
+coul_cut=cut_coul/bohr
 vdw_cut=cut_vdw/bohr
 ewald_brute=brute_force
 boxlen_x=length_x

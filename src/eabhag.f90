@@ -113,6 +113,16 @@ eabh = -da*rdampl*aterm
 
 if (eabh.gt.-1.d-8) return
 
+!
+!     For energy partition in eval_cutoff: add third energy to each atom
+!
+if (eval_cutoff) then
+   e_partition(A)=e_partition(A)+eabh/3.d0
+   e_partition(B)=e_partition(B)+eabh/3.d0
+   e_partition(H)=e_partition(H)+eabh/3.d0
+end if
+
+
 energy = energy + eabh
 !
 !     For debugging: print out the single components
