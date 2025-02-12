@@ -116,7 +116,7 @@ OBJS = general.o evb_mod.o qmdff.o lm_module.o debug.o h2co_mod.o \
        bspline.o dftmod.o exp_switch.o nhc_npt.o opt_qmdff_ser.o \
        lm_qmdff.o water_init.o egrad_water.o ev_coord_init.o \
        external_grad.o custom_init.o custom_grad.o pgfn_init.o \
-       egrad_pgfn.o \
+       egrad_pgfn.o egrad_mace.o \
        \
        mctc/env/accuracy.o mctc/env/error.o mctc/env/system.o \
        mctc/env/testing.o mctc/env.o mctc/io/codata2018.o mctc/io/constants.o \

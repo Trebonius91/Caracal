@@ -97,6 +97,7 @@ params=.false.
 filegeo="dummy" ! is not used in this context
 orca=.false.
 aenet_ann=.false.
+mace_ase=.false.
 water_spc=.false.
 pes_topol=.false.
 !
@@ -285,6 +286,14 @@ else if (method .eq. "AENET_ANN") then
    if (rank .eq. 0) then
 !      write(*,*) "An artificial neural network (ANN) (aenet program) will be used!"
    end if
+!
+!     If the MACE (message-passing atomic cluster expansion) ML potential shall be 
+!      used. Since no direct communication is possible with the PyTorch implementation
+!      an indirect file IO communication with a ASE python script will be done 
+!
+else if (method .eq. "MACE") then
+   mace_ase=.true.
+
 !
 !     If the energy/gradient shall be calculated on the fly with an arbitrary 
 !      external program
@@ -1262,7 +1271,54 @@ if (aenet_ann) then
    goto 678
 end if
 
+!
+!    For calculation with MACE via external ASE Python script: call the script
+!     which then initializes the "atom" class and the MACE model and waits 
+!     for input to start
+!
+if (mace_ase) then
+   if (rank .eq. 0) then
+      write(*,*) 
+      write(*,*) "Used PES: MACE via ASE Python script."
+      write(*,*) "The MACE PES will be initialized by the script "
+      write(*,*) " which then waits for structure input from Caracal."
+      write(*,*) "For an example MACE script with Caracal, look into"
+      write(*,*) " the Caracal wiki:  ...."
+   end if         
 
+   do i = 1, nkey_lines
+      next = 1
+      record = keyline(i)
+      call gettext (record,keyword,next)
+      call upcase (keyword)
+      call upcase (record)
+      string = record(next:120)
+      if (trim(adjustl(record(1:10))) .eq. 'MACE {' .or. trim(adjustl(record(1:10))) &
+              &  .eq. 'MACE{') then
+
+         do j=1,nkey_lines-i+1
+            next=1
+            record = keyline(i+j)
+            call gettext (record,keyword,next)
+            call upcase (keyword)
+            record=adjustl(record)
+            if (keyword(1:13) .eq. 'ASE_SCRIPT ') then
+               read(record(14:120),'(a)') ase_script
+            end if
+            if (keyword(1:11) .eq. '}') exit
+            if (j .eq. nkey_lines-i) then
+               write(*,*) "The MACE section has no second delimiter! (})"
+               call fatal
+            end if
+
+         end do
+      end if
+   end do
+   goto 678
+
+
+
+end if        
 !
 !    For calculations with external arbitrary programs: read in the 
 !     link/symlink of that program
