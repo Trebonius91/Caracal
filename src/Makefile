@@ -61,7 +61,8 @@ OBJS = general.o evb_mod.o qmdff.o lm_module.o debug.o h2co_mod.o \
        \
        moment.o ff_e.o eabh0.o thermo.o axis.o thermocal.o heat.o \
        bonde.o gethirsh.o docm5.o cm5mod.o copyc6.o limit.o rsp.o \
-       basis0.o basis.o setsto3.o setsto4.o dex2.o ehtfull.o eht.o \
+       basis0_eht.o basis_eht.o setsto3.o setsto4.o dex2.o \
+       ehtfull.o eht.o \
        stints.o fermismear_eht.o gab.o compmodel.o ff_anal.o pqn.o   \
        ff_bond.o pairs.o lina.o ff_clean.o ff_mod.o rdfix.o getf.o \
        hbpara.o checktrip.o doeht.o abdamp.o eabhag.o eabxag.o   \
@@ -69,9 +70,9 @@ OBJS = general.o evb_mod.o qmdff.o lm_module.o debug.o h2co_mod.o \
        ff_egh.o ff_hb_two.o ff_eg_two.o ff_nonb_two.o ff_hb_three.o \
        ff_eg_three.o ff_nonb_three.o bangle.o valijkl.o valijk.o \
        crossprod.o vecnorm.o omega.o impsc.o dphidr.o domegadr.o \
-       ff_neighbor.o sort.o isort.o nneighbor.o outgeo.o ff_set.o \
+       ff_neighbor.o rsort.o isort.o nneighbor.o outgeo.o ff_set.o \
        modelgeo.o covbond.o atomthere.o avdamp.o getrot.o \
-       checkfour.o setnonb.o valel.o setr0.o ncoord.o getc6.o \
+       checkfour.o setnonb.o valel.o setr0.o ncoord_qmdff.o getc6.o \
        gaurd0.o gaurd.o rdghess.o hess.o g98fake.o trproj.o \
        gtrprojm.o blckmgs.o dsyprj.o htosq.o htpack1.o htpack2.o \
        preig2.o preig4.o rdhess.o rdohess.o rdchess.o hfit.o \
@@ -88,7 +89,7 @@ OBJS = general.o evb_mod.o qmdff.o lm_module.o debug.o h2co_mod.o \
        \
        atommass.o build_dmat.o getkey.o freeunit.o gettext.o \
        upcase.o nextarg.o getword.o basefile.o trimtext.o suffix.o \
-       version.o lowcase.o optimize_de.o optimize_dq.o lm_de_func.o \
+       version0.o lowcase.o optimize_de.o optimize_dq.o lm_de_func.o \
        lm_dq_func.o deltaq.o dg_evb_init_ser.o solving_lgs.o \
        lm_function.o mdstat.o mdrest.o invert.o verlet.o maxwell.o \
        ranvec.o erfinv.o erf.o erfcore.o temper.o matinv3.o \

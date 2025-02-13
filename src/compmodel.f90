@@ -98,7 +98,7 @@ call avdamp(n,at,nb,xyz,ii,jj,damp)
 !
 !     rotate around ii-jj for 360 deg. , initialize basis   
 !            
-call basis0(mm,atm,nel,nbf)
+call basis0_eht(mm,atm,nel,nbf)
 !
 !     if the cut-out is a radical, make cation out of it   
 !   
@@ -110,7 +110,7 @@ end if
 !
 !     go into EHT calculation
 !
-call basis (mm,atm,nbf,okbas)           
+call basis_eht (mm,atm,nbf,okbas)           
 if (.not.okbas) return
 pr=.false.
 if (ii.eq.nrot1.and.jj.eq.nrot2) then

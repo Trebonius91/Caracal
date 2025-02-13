@@ -1302,8 +1302,8 @@ if (mace_ase) then
             call gettext (record,keyword,next)
             call upcase (keyword)
             record=adjustl(record)
-            if (keyword(1:13) .eq. 'ASE_SCRIPT ') then
-               read(record(14:120),'(a)') ase_script
+            if (keyword(1:10) .eq. 'ASE_SCRIPT ') then
+               read(record(11:120),'(a)') ase_script
             end if
             if (keyword(1:11) .eq. '}') exit
             if (j .eq. nkey_lines-i) then
@@ -1314,6 +1314,7 @@ if (mace_ase) then
          end do
       end if
    end do
+   call system("python3 "//trim(ase_script)//" &")
    goto 678
 
 

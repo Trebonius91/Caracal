@@ -108,7 +108,7 @@ do i=1,natoms
 !
 !     sort atoms and bonds to them (?)
 !
-   call sort(1,k,rb(1,i),nb(1,i))
+   call rsort(1,k,rb(1,i),nb(1,i))
 end do
 !
 !     For lonely atoms (no coordination and WBO)

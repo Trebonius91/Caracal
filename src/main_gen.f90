@@ -269,7 +269,7 @@ call setnonb(scalehb,scalexb,vz,sr42,zab,r0ab)
 !     set numbers of bond partners by calculating distance 
 !     and include inverse damping function
 !
-call ncoord(n,rcov,at,xyz,cn,5000.0d0)
+call ncoord_qmdff(n,rcov,at,xyz,cn,5000.0d0)
 !
 !     set up parameters for EHT calculation
 !
@@ -431,8 +431,8 @@ if (.not.ex) then
 !
 !     Define basis functions for the EHT hamiltonian
 !
-   call basis0(n,at,nel,nbf)
-   call basis (n,at,nbf,okbas)
+   call basis0_eht(n,at,nel,nbf)
+   call basis_eht (n,at,nbf,okbas)
 
 
 

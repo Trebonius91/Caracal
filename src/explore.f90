@@ -751,8 +751,8 @@ if (calc_egrad) then
 !       above value topol_eht_cutoff
 !
          if (topol_bonds .eq. "EHT") then
-            call basis0(natoms,el_inds,nel,nbf)
-            call basis (natoms,el_inds,nbf,okbas) 
+            call basis0_eht(natoms,el_inds,nel,nbf)
+            call basis_eht (natoms,el_inds,nbf,okbas) 
 
             if (.not. okbas) then
                write(*,*) "Problem with EHT basis set! Maybe try BONDS VDW?"
