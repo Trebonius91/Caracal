@@ -477,7 +477,7 @@ r094_mod=r094
 
 
 call rdsolvff(n_one,xyz,at,q,imass,dens,scalehb,scalexb,fffilen1)
-call ncoord(n_one,rcov,at,xyz,cn,5000.0d0)
+call ncoord_qmdff(n_one,rcov,at,xyz,cn,5000.0d0)
 do i1=1,n_one
    iz1=at(i1)
    do i2=1,i1
@@ -712,7 +712,7 @@ if (qmdffnumber.eq.2 .or. qmdffnumber.eq.3) then
            c6xy_two(n_one,n_one),cn_two(n_one),imass_two(n_one))
 
    call rdsolvff_two(n_one,xyz_two,at_two,q_two,imass_two,dens_two,scalehb,scalexb,fffilen2)
-   call ncoord(n_one,rcov,at_two,xyz_two,cn_two,5000.0d0)
+   call ncoord_qmdff(n_one,rcov,at_two,xyz_two,cn_two,5000.0d0)
    do i1=1,n_one
       iz1_two=at_two(i1)
       do i2=1,i1
@@ -828,7 +828,7 @@ if (qmdffnumber.eq.3) then
 
    call rdsolvff_three(n_one,xyz_three,at_three,q_three,imass_three,dens_three,scalehb,&
          scalexb,fffilen3)
-   call ncoord(n_one,rcov,at_three,xyz_three,cn_three,5000.0d0)
+   call ncoord_qmdff(n_one,rcov,at_three,xyz_three,cn_three,5000.0d0)
 
    do i1=1,n_one
       iz1_three=at_three(i1)

@@ -118,7 +118,7 @@ end if
 !
 !     compute CN and pair C6
 !
-call ncoord(n_one,rcov,at,xyz,cn,5000.0d0)
+call ncoord_qmdff(n_one,rcov,at,xyz,cn,5000.0d0)
 do i1=1,n_one
    iz1=at(i1)
    do i2=1,i1
@@ -129,7 +129,7 @@ do i1=1,n_one
    end do
 end do 
 if (qmdffnumber.eq.2 .or. qmdffnumber.eq.3) then
-   call ncoord(n_one,rcov,at_two,xyz_two,cn_two,5000.0d0)
+   call ncoord_qmdff(n_one,rcov,at_two,xyz_two,cn_two,5000.0d0)
    do i1=1,n_one
       iz1_two=at_two(i1)
       do i2=1,i1
@@ -142,7 +142,7 @@ if (qmdffnumber.eq.2 .or. qmdffnumber.eq.3) then
    end do
 end if 
 if (qmdffnumber.eq.3) then
-   call ncoord(n_one,rcov,at_three,xyz_three,cn_three,5000.0d0)
+   call ncoord_qmdff(n_one,rcov,at_three,xyz_three,cn_three,5000.0d0)
    do i1=1,n_one
       iz1_three=at_three(i1)
       do i2=1,i1

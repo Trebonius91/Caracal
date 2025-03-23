@@ -146,7 +146,11 @@ if (recross_status .ne. 0) then
       write(*,*) "The recrossing calculation has been started already!"
       write(*,'(a,i6,a,i6,a)') "  ",recross_status," out of ",child_times," bunches of "
       write(*,*) "child trajectories were already calculated."
-      write(*,'(a,i6)') " We will start directly with bunch No.",recross_status+1
+      if (recross_status .ge. child_times) then
+         write(*,*) "All child trajectories were already calculated!"
+      else        
+         write(*,'(a,i6)') " We will start directly with bunch No.",recross_status+1
+      end if
    end if
 end if
 
@@ -186,11 +190,13 @@ if (recross_status .ne. 0) then
    else
       read(78,*,iostat=readstat) denom_total
       if (readstat .ne. 0) then
-         if (rank .eq. 0) then
-            write(*,*) "The file 'recross_denom_tmp.dat' is not complete! We will start the"
-            write(*,*) " recrossing calculation directly from beginning."
+         if (recross_status .lt. child_times) then     
+            if (rank .eq. 0) then
+               write(*,*) "The file 'recross_denom_tmp.dat' is not complete! We will start the"
+               write(*,*) " recrossing calculation directly from beginning."
+            end if
+            recross_status=0
          end if
-         recross_status=0
       end if
    end if
    close(78)
@@ -325,7 +331,7 @@ denom_total=0.d0
 
 loop_large=int((child_point/2)/(psize-1))
 loop_rest=mod(child_point/2,psize-1)
-if (recross_status .eq. child_times) goto 166
+if (recross_status .ge. child_times) goto 166
 
 if (rank .eq. 0) then
 

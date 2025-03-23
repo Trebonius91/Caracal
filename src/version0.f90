@@ -27,12 +27,12 @@
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 !
-!     subroutine version: checks the name of a file to be opened; highest 
+!     subroutine version0: checks the name of a file to be opened; highest 
 !         current version is returned 
 !
 !     part of EVB
 !
-subroutine version (filename1,status)
+subroutine version0 (filename1,status)
 use general
 implicit none
 integer i,leng1,trimtext
@@ -113,4 +113,4 @@ else if (status .eq. 'new') then
 end if
 
 return
-end subroutine version
+end subroutine version0

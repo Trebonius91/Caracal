@@ -1607,6 +1607,12 @@ if (rank .eq. 0) then
    if (int_coord_plot) close(191)
 end if
 !
+!    If MACE is called externally, terminate the python ASE script
+!
+if (mace_ase) then
+   call system("touch end_cycle")
+end if
+!
 !    calculate the needed time for dynamic steps
 !
 if (rank .eq. 0) then

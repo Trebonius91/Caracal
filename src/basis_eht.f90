@@ -27,14 +27,14 @@
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 !
-!     basis0: second step of basis setup for EHT: calculate 
+!     basis_eht: second step of basis setup for EHT: calculate 
 !     needed STO-3G functions and fill them into the Hamiltonian!
 !     called subroutines:
 !     - setsto3,setsto4
 !
 !     part of QMDFF
 !
-subroutine basis(n,at,nbf,ok)    
+subroutine basis_eht(n,at,nbf,ok)    
 use qmdff       
 implicit none
 integer::elem,n,nbf
@@ -349,4 +349,4 @@ do i=1,ipr
    if (alp(i).eq.0)  ok=.false.
 end do
 
-end subroutine basis
+end subroutine basis_eht

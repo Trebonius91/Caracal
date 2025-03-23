@@ -353,6 +353,11 @@ character(len=50)::ann_files(50)  ! ANN file names
 character(len=2)::ann_elements(50)  ! associated elements
 integer,allocatable::at_type_ann(:)
 !
+!     For external call to MACE
+!
+logical::mace_ase
+character(len=80)::ase_script   ! The filename of the Python ASE script
+!
 !     For certain structure analysis tools: if the program explore is used
 !
 logical::use_explore

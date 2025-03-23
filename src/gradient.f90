@@ -274,6 +274,13 @@ if (aenet_ann) then
    g_evb=pot_grad(:,:,1)
    return
 end if
+!
+!     Invoke the waiting/ideling MACE ASE script to calculate the 
+!     MACE energy and gradient!
+!
+   call egrad_mace(xyz2,pot_grad,e_evb)
+   g_evb=pot_grad(:,:,1)
+   return
 
 !
 !     Invoke the call to the chosen external program, if desired

@@ -27,50 +27,81 @@
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 !
-!     ncoord: compute coordination numbers by adding an 
-!     inverse damping function
+!     basis0_eht: first step to setup EHT basis: determine limits
+!     of single functions
 !
 !     part of QMDFF
 !
-
-subroutine ncoord(natoms,rcov,iz,xyz,cn,cn_thr)
+subroutine basis0_eht(n,at,nel,nbf)
+use qmdff
 implicit none
-real(kind=8)::k1,k3
-parameter (k1     =16)
-parameter (k3     =-4)
-integer::iz(*),natoms,i,max_elem
-real(kind=8)::xyz(3,*),cn(*),rcov(94),input
-real(kind=8)::cn_thr
+integer::n,nbf,nao,nel
+integer::at(n)
+integer::i
+real(kind=8)::z1(n) !is now in qmdff.f90! 
+nbf=0
+nel=0
+z1=0
 
-integer::iat
-real(kind=8)::dx,dy,dz,r,damp,xn,rr,rco,r2
+!     
+!      same procedure as in subroutine valel (ff_tool.f90)
+!      (at least for the z(n) array...)
+!
+do i=1,n
+!     H: 1s basis (?)
+   if (at(i).le.2)then
+      nbf=nbf+1
+      z1(i)=at(i)
+   end if
+   if (at(i).le.10.and.at(i).gt.2) then
+!     Li-F: 2s2p
+      nbf=nbf+4
+      z1(i)=at(i)-2
+   end if
+   if (at(i).le.13.and.at(i).gt.10) then
+!     Na-Al: 3s3p
+      nbf=nbf+4
+      z1(i)=at(i)-10
+   end if
+   if (at(i).le.18.and.at(i).gt.13) then
+!     Si-Ar: 3s3p
+      nbf=nbf+4
+      z1(i)=at(i)-10
+   end if
+   if ((at(i).le.36.and.at(i).ge.30).or. &
+     &  at(i).eq.19.or. at(i).eq.20) then
+!     K,Ca,Zn-Kr: 4s4p
+      nbf=nbf+4
+      z1(i)=at(i)-18
+      if (at(i).ge.30)z(i)=at(i)-28
+   end if
+   if (at(i).le.29.and.at(i).ge.21) then
+!     Sc-Cu: 4s4p3d
+      nbf=nbf+10
+      z1(i)=at(i)-18
+   end if
+   if (at(i).le.47.and.at(i).ge.39) then
+!     Y-Ag: 5s5p4d 
+      nbf=nbf+10
+      z1(i)=at(i)-36
+   end if
+   if (at(i).gt.47.and.at(i).le.54) then
+!     In-Xe: 5s5p
+      nbf=nbf+4
+      z1(i)=at(i)-46
+   end if
 
-do i=1,natoms
-   xn=0.0d0
-   do iat=1,natoms
-      if (iat.ne.i)then
-         dx=xyz(1,iat)-xyz(1,i)
-         dy=xyz(2,iat)-xyz(2,i)
-         dz=xyz(3,iat)-xyz(3,i)
-         r2=dx*dx+dy*dy+dz*dz
-!     go back to start of loop if number is too big
-         if (r2.gt.cn_thr) cycle
-         r=sqrt(r2)
-!
-!     covalent distance in Bohr between all atoms
-!
-         rco=rcov(iz(i))+rcov(iz(iat))
-         rr=rco/r
-!
-!     counting function: exponential has a better long-range 
-!     behavior than MHGs inverse damping
-!     decides if a bond is built or not
-!
-         damp=1.d0/(1.d0+exp(-k1*(rr-1.0d0)))
-         xn=xn+damp
-       end if
-   end do
-   cn(i)=xn
 end do
+!
+!     (old command idint(..) converted into int(..)) 
+!     MODDED 15.03.17: 
+!     manually calculate the number of electrons in the system!!
+!
+nel=0
+do i=1,n
+   nel=nel+z1(i)
+end do
+!nel = int(sum(z))
 
-end subroutine ncoord
+if(nbf.gt.maxao) stop 'TB basis too large'
+end subroutine basis0_eht

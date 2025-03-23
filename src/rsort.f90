@@ -27,12 +27,12 @@
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 !
-!     subroutine sort: Sort an array of real numbers
+!     subroutine rsort: Sort an array of real numbers
 !        in ascending order
 !
 !     part of QMDFF
 !
-subroutine sort(ibeg,lab,ew,ixw)
+subroutine rsort(ibeg,lab,ew,ixw)
 implicit real*8 (a-h,o-z)
 dimension ew(*),ixw(*)
 
@@ -56,7 +56,7 @@ do   ii = ibeg+1, lab
 end do
 
 return
-end subroutine sort
+end subroutine rsort
 
 !
 !     subroutine sort2: Sort an array of real numbers

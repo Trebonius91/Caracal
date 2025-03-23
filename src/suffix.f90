@@ -1,4 +1,4 @@
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !
 !   CARACAL - Ring polymer molecular dynamics and rate constant calculations
 !             on black-box generated potential energy surfaces
@@ -70,10 +70,10 @@ if (last .eq. leng1) then
    end if
    if (.not. exist) then
       filename = filename1(1:leng1)//'.'//extension(1:lext1)
-      call version (filename1,status)
+      call version0 (filename1,status)
    end if
 else if (status .eq. 'new') then
-   call version (filename1,status)
+   call version0 (filename1,status)
 end if
 
 return
