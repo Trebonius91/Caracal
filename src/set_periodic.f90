@@ -107,8 +107,9 @@ end if
 !
 !     Set the value where the smooth switch off of the Coulomb energy 
 !     near the Coulomb cutoff begins
+!     Changed: now, the cutoff sharp unless the Zahn method is used
 !
-cut_low=coul_cut-4.d0
+cut_low=coul_cut!-4.d0
 !
 !     set the global Ewald parameters
 !  

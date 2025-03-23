@@ -149,6 +149,7 @@ qscal=1.15
 !     was bondorder .ge. 0.5 in the published version   
 !
 wbocut_in=0.5
+
 !
 !     H-bond(HB) parameters/scaling for interesting elements
 !     HB as in qmsolv (D3 is in block.f)
