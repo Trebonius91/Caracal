@@ -349,7 +349,10 @@ if (.not. prefix_key) then
       else if (software .eq. "V") then
          textout = prefix1 // ".OUTCAR"
          textout2 = prefix1 // ".charges"
-      else 
+      else if (software .eq. "O") then
+         textout = prefix1 // ".out"
+         textout2 = prefix1 // ".hess"
+      else  
          textout = prefix1 // ".out"
       end if
       inquire(file=textout,exist=exist)
@@ -371,7 +374,11 @@ if (.not. prefix_key) then
          if (software .eq. "G") then
             textout = prefix2 // ".log"
          else if (software .eq. "V") then
-            textout = prefix1 // ".OUTCAR"
+            textout = prefix2 // ".OUTCAR"
+            textout2 = prefix2 // ".charges"
+         else if (software .eq. "O") then
+            textout = prefix2 // ".out"
+            textout2 = prefix2 // ".hess"
          else
             textout = prefix2 // ".out"
          end if
