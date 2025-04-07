@@ -153,7 +153,6 @@ if (recross_status .ne. 0) then
       end if
    end if
 end if
-
 !
 !     If a previous calculation has been detected, read in the num_total and denom_total
 !     values from the output files!
@@ -245,6 +244,7 @@ end if
 err_count=0
 !call mdinit(derivs,xi_ideal,dxi_act,2,rank)
 !if (recross_status .eq. 0) then
+if (recross_status .ge. child_times) goto 166
 if (rank .eq. 0) then
    call mdinit(derivs,xi_ideal,dxi_act,2,rank)
 !
