@@ -278,10 +278,11 @@ end if
 !     Invoke the waiting/ideling MACE ASE script to calculate the 
 !     MACE energy and gradient!
 !
+if (mace_ase) then
    call egrad_mace(xyz2,pot_grad,e_evb)
    g_evb=pot_grad(:,:,1)
    return
-
+end if
 !
 !     Invoke the call to the chosen external program, if desired
 !     Is several MPI ranks are used, go to the folder for each rank!
@@ -319,7 +320,6 @@ end if
 !     convert cartesian coordinates to bohr, if no analytical PES is used
 !
 !xyz2=xyz2/bohr
-
 delta_Q=0 !if no dQ couplingterm is used
 !
 !     Calculate the energies and gradients of the first QMDFF

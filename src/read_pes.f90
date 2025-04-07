@@ -2406,6 +2406,10 @@ end if
 !
 !     For periodic systems: convert the box lengths to bohr as well!
 !
+if (eval_cutoff .and. .not. periodic) then
+   write(*,*) "The eval_cutoff option can only be used for periodic systems!"
+   call fatal
+end if
 if (periodic) then
    boxlen_x=boxlen_x/bohr
    boxlen_y=boxlen_y/bohr
