@@ -1025,6 +1025,22 @@ do i = 1, nkey_lines
     end if
 end do
 !
+!     If, for more than one bead, no trajectory file with all beads shall be 
+!     written to save some time
+!
+output_sparse=.false.
+do i = 1, nkey_lines
+    next = 1
+    record = keyline(i)
+    call gettext (record,keyword,next)
+    call upcase (keyword)
+    string = record(next:120)
+    if (keyword(1:20) .eq. 'OUTPUT_SPARSE ') then
+       output_sparse=.true.
+    end if
+end do
+
+!
 !     Activate the additional output of gradients and velocities every tdump
 !     time step 
 !
@@ -1509,10 +1525,10 @@ do istep = 1, nstep
    if (energycon .or. verbose) then
       if (mod(istep,iwrite) .eq. 0) then
          if (rank .eq. 0) then
-            write(123,*) istep,epot,ekin,epot+ekin
-            e_pot_avg=e_pot_avg+epot
-            e_kin_avg=e_kin_avg+ekin
-            e_tot_avg=e_tot_avg+epot+ekin
+            write(123,*) istep,epot/nbeads,ekin/nbeads,(epot+ekin)/nbeads
+            e_pot_avg=e_pot_avg+epot/nbeads
+            e_kin_avg=e_kin_avg+ekin/nbeads
+            e_tot_avg=e_tot_avg+(epot+ekin)/nbeads
          end if
       end if
    end if

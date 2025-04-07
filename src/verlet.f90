@@ -171,18 +171,21 @@ end if
 if (constrain .lt. 0) then
    if (use_calc_rate .or. rank .eq. 0) then
       if (mod(istep,iwrite) .eq. 0) then
-         write(28,*) natoms*nbeads
-         if (npt) then
-            write(28,*) boxlen_x*bohr,boxlen_y*bohr,boxlen_z*bohr
-         else
-            write(28,*)
-         end if
-         do k=1,nbeads
-            do i=1,natoms
-               write(28,*) name(i),q_i(:,i,k)*bohr
+         if (.not. output_sparse .or. nbeads .eq. 1) then
+            write(28,*) natoms*nbeads
+            if (npt) then
+
+               write(28,*) boxlen_x*bohr,boxlen_y*bohr,boxlen_z*bohr
+            else
+               write(28,*)
+            end if
+            do k=1,nbeads
+               do i=1,natoms
+                  write(28,*) name(i),q_i(:,i,k)*bohr
+               end do
             end do
-         end do
-         flush(28)
+            flush(28)
+         end if
 !
 !     If the VASP formate is used for input, write new CONTCAR and new frame 
 !       in XDATCAR files!
@@ -681,7 +684,7 @@ if (use_calc_rate .or. rank .eq. 0) then
                         q_i(k,j,:)=q_i(k,j,:)+boxlen_z
                      end if
                      tries=tries+1
-                     if (tries .gt. 20) then
+                     if (tries .gt. 100) then
                         write(*,*) "Too many correction steps needed for periodic dynamics! (lower)"
                         write(*,*) "The system seems to be exploded! Check your settings!"
                         call fatal
@@ -691,7 +694,7 @@ if (use_calc_rate .or. rank .eq. 0) then
                      do while (q_i(1,j,i) .gt. boxlen_x)
                         q_i(1,j,:)=q_i(1,j,:)-boxlen_x
                         tries=tries+1
-                        if (tries .gt. 20) then
+                        if (tries .gt. 100) then
                            write(*,*) "Too many correction steps needed for periodic dynamics! (x, upper)"
                            write(*,*) "The system seems to be exploded! Check your settings!"
                            call fatal
@@ -701,7 +704,7 @@ if (use_calc_rate .or. rank .eq. 0) then
                      do while (q_i(2,j,i) .gt. boxlen_y)
                         q_i(2,j,:)=q_i(2,j,:)-boxlen_y
                         tries=tries+1
-                        if (tries .gt. 20) then
+                        if (tries .gt. 100) then
                            write(*,*) "Too many correction steps needed for periodic dynamics! (y,upper)"
                            write(*,*) "The system seems to be exploded! Check your settings!"
                            call fatal
@@ -711,7 +714,7 @@ if (use_calc_rate .or. rank .eq. 0) then
                      do while (q_i(3,j,i) .gt. boxlen_z)
                         q_i(3,j,:)=q_i(3,j,:)-boxlen_z
                         tries=tries+1
-                        if (tries .gt. 20) then
+                        if (tries .gt. 100) then
                            write(*,*) "Too many correction steps needed for periodic dynamics! (z,upper)"
                            write(*,*) "The system seems to be exploded! Check your settings!"
                            call fatal

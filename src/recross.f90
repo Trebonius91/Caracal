@@ -200,30 +200,32 @@ if (recross_status .ne. 0) then
       end if
    end if
    close(78)
-
-   open(unit=78,file="recross_parent_pos.dat",status="old",iostat=readstat)
-   if (readstat .ne. 0) then
-      if (rank .eq. 0) then
-         write(*,*) "The file 'recross_parent_pos.dat' is not there! We will start the recrossing"
-         write(*,*) " calculation directly from beginning."
-      end if
-      recross_status=0
-   else
-      outer: do i=1,nbeads
-         do j=1,natoms
-            read(78,*,iostat=readstat) q_i(:,j,i)
-            if (readstat .ne. 0) then
-               if (rank .eq. 0) then
-                  write(*,*) "The file 'recross_parent_pos.dat' is not complete! We will start"
-                  write(*,*) " the recrossing calculation directly from beginning."
-                  exit outer
+ 
+   if (recross_status .lt. child_times) then
+      open(unit=78,file="recross_parent_pos.dat",status="old",iostat=readstat)
+      if (readstat .ne. 0) then
+         if (rank .eq. 0) then
+            write(*,*) "The file 'recross_parent_pos.dat' is not there! We will start the recrossing"
+            write(*,*) " calculation directly from beginning."
+         end if
+         recross_status=0
+      else
+         outer: do i=1,nbeads
+            do j=1,natoms
+               read(78,*,iostat=readstat) q_i(:,j,i)
+               if (readstat .ne. 0) then
+                  if (rank .eq. 0) then
+                     write(*,*) "The file 'recross_parent_pos.dat' is not complete! We will start"
+                     write(*,*) " the recrossing calculation directly from beginning."
+                     exit outer
+                  end if
+                  recross_status=0
                end if
-               recross_status=0
-            end if
-         end do
-      end do outer
-   end if
-   close(78)
+            end do
+         end do outer
+      end if
+      close(78)
+   end if   
 end if
 !
 !     store the start structure 

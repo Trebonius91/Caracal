@@ -399,6 +399,8 @@ if (trim(progname) .eq. "dynamic") then
    write(*,*) " * OUTPUT_VERBOSE: Print more information than before: gradients to "
    write(*,*) "    'md_gradients.dat', velocities to 'md_velocities.dat' and energies"
    write(*,*) "    to 'md_energies.dat'."
+   write(*,*) " * OUTPUT_SPARSE: Print less information than before: for more than"
+   write(*,*) "    one bead, only the centroid trajectory will be written."
    write(*,*) " * AVG_EKIN: activates the calculation of kinetic energies for a system."
    write(*,*) "    A file named 'list_ekin.dat' with a list of the atoms for which the"
    write(*,*) "    kinetic energy shall be averaged must be present. Else, the "

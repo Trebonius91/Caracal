@@ -277,7 +277,7 @@ $(LIBRARY): $(OBJS)
 	${FC} ${LINKFLAGS} -o  $@ $^ $(LINKLIBS) ; strip $@
 	$(shell mkdir -p ../bin)
 	cp $@ ../bin/
-	mv $@ $(BINDIR) 
+#	mv $@ $(BINDIR) 
 
 
 #    remove all object and executable data

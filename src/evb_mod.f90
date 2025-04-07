@@ -293,6 +293,7 @@ logical::nve  ! NVE ensemble
 logical::nvt  ! NVT ensemble
 real(kind=8)::pressure
 logical::verbose  ! activates verbose output of several programs
+logical::output_sparse  ! activates sparse output of several programs
 !   If the program calc_rate.x has been called: switch for PES generation
 logical::use_calc_rate
 !   If the starting velocity shall be read in
