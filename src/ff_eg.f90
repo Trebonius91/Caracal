@@ -119,6 +119,11 @@ do m=1,nbond
       e_partition(i)=e_partition(i)+e_tmp/2.d0
       e_partition(j)=e_partition(j)+e_tmp/2.d0
    end if
+   if (eval_cutoff) then
+      within_cut(i,j) = .true.
+      within_cut(j,i) = .true.
+   end if
+
 !
 !     the gradient
 !
@@ -230,6 +235,14 @@ do m=1,nangl
       e_partition(i)=e_partition(i)+ea*damp/3.d0
       e_partition(j)=e_partition(j)+ea*damp/3.d0
       e_partition(k)=e_partition(k)+ea*damp/3.d0
+   end if
+   if (eval_cutoff) then
+      within_cut(i,j) = .true.
+      within_cut(i,k) = .true.
+      within_cut(j,i) = .true.
+      within_cut(k,i) = .true.
+      within_cut(j,k) = .true.
+      within_cut(k,j) = .true.
    end if
 
 !
@@ -463,6 +476,20 @@ do m=1,ntors
          e_partition(k)=e_partition(k)+et*damp/4.d0
          e_partition(l)=e_partition(l)+et*damp/4.d0
       end if
+      if (eval_cutoff) then
+         within_cut(i,j) = .true.
+         within_cut(i,k) = .true.
+         within_cut(i,l) = .true.
+         within_cut(j,i) = .true.
+         within_cut(k,i) = .true.
+         within_cut(l,i) = .true.
+         within_cut(j,k) = .true.
+         within_cut(j,l) = .true.
+         within_cut(k,j) = .true.
+         within_cut(l,j) = .true.
+         within_cut(k,l) = .true.
+         within_cut(l,k) = .true.
+      end if
 
 
 
@@ -533,6 +560,20 @@ do m=1,ntors
          e_partition(j)=e_partition(j)+et*damp/4.d0
          e_partition(k)=e_partition(k)+et*damp/4.d0
          e_partition(l)=e_partition(l)+et*damp/4.d0
+      end if
+      if (eval_cutoff) then
+         within_cut(i,j) = .true.
+         within_cut(i,k) = .true.
+         within_cut(i,l) = .true.
+         within_cut(j,i) = .true.
+         within_cut(k,i) = .true.
+         within_cut(l,i) = .true.
+         within_cut(j,k) = .true.
+         within_cut(j,l) = .true.
+         within_cut(k,j) = .true.
+         within_cut(l,j) = .true.
+         within_cut(k,l) = .true.
+         within_cut(l,k) = .true.
       end if
 
 

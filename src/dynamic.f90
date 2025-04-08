@@ -1458,6 +1458,7 @@ do istep = 1, nstep
 !     If the eval_cutoff option is activated for QMDFFs, print out the 
 !     surrounding of each atom in the system to file eval_cutoff.xyz
 !     Only do this for TDUMP steps with trajectory printout!
+!     The central atom is also printed out
 !
    if (eval_cutoff) then
       if (mod(istep,iwrite) .eq. 0) then
@@ -1466,9 +1467,11 @@ do istep = 1, nstep
             do j=1,natoms
                if (within_cut(i,j)) idum=idum+1
             end do
-            write(293,*) idum
+            write(*,*) "surround",idum
+            write(293,*) idum+1
             write(293,'(a,i8,a,i8,a,es15.8)') "Frame No.: ",istep,", atom No.: ",&
                     & i,", energy (Eh): ",e_partition(i)
+            write(293,*) name(i),q_i(:,i,1)*bohr
             do j=1,natoms
                surr_vec_a=q_i(:,i,1)
                if (within_cut(i,j)) then

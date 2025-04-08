@@ -68,6 +68,15 @@ if (eval_cutoff) then
    e_partition(B)=e_partition(B)+er/3.d0
    e_partition(H)=e_partition(H)+er/3.d0
 end if
+if (eval_cutoff) then
+   within_cut(A,B) = .true.
+   within_cut(A,H) = .true.
+   within_cut(B,A) = .true.
+   within_cut(H,A) = .true.
+   within_cut(B,H) = .true.
+   within_cut(H,B) = .true.
+end if
+
 
 energy=energy+er
 
