@@ -1467,11 +1467,10 @@ do istep = 1, nstep
             do j=1,natoms
                if (within_cut(i,j)) idum=idum+1
             end do
-            write(*,*) "surround",idum
             write(293,*) idum+1
             write(293,'(a,i8,a,i8,a,es15.8)') "Frame No.: ",istep,", atom No.: ",&
                     & i,", energy (Eh): ",e_partition(i)
-            write(293,*) name(i),q_i(:,i,1)*bohr
+            write(293,*) name(i),0.0,0.0,0.0
             do j=1,natoms
                surr_vec_a=q_i(:,i,1)
                if (within_cut(i,j)) then
@@ -1482,7 +1481,9 @@ do istep = 1, nstep
                   surr_vec_c=surr_vec_b-surr_vec_a
                   call box_image(surr_vec_c)
                   surr_vec_b=surr_vec_a+surr_vec_c
-                  write(293,*) name(j),surr_vec_b*bohr
+                  if (j .ne. i) then
+                     write(293,*) name(j),surr_vec_c*bohr !surr_vec_b*bohr
+                  end if
                end if
             end do
          end do
