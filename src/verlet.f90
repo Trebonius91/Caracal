@@ -161,97 +161,7 @@ if (npt) then
    vir_ten=0.d0
 end if
 
-!
-!     Write out the current trajectory frame, if iwrite 
-!
-!if (istep .gt. 997) then
-!   write(*,*) q_i(:,101,1)*bohr,xi_real
-!end if
-!write(*,*) "use",use_calc_rate,rank
-if (constrain .lt. 0) then
-   if (use_calc_rate .or. rank .eq. 0) then
-      if (mod(istep,iwrite) .eq. 0) then
-         if (.not. output_sparse .or. nbeads .eq. 1) then
-            write(28,*) natoms*nbeads
-            if (npt) then
 
-               write(28,*) boxlen_x*bohr,boxlen_y*bohr,boxlen_z*bohr
-            else
-               write(28,*)
-            end if
-            do k=1,nbeads
-               do i=1,natoms
-                  write(28,*) name(i),q_i(:,i,k)*bohr
-               end do
-            end do
-            flush(28)
-         end if
-!
-!     If the VASP formate is used for input, write new CONTCAR and new frame 
-!       in XDATCAR files!
-!
-         if (coord_vasp  .and. nbeads .eq. 1) then
-            coord_mat(:,1)=vasp_a_vec(:)
-            coord_mat(:,2)=vasp_b_vec(:)
-            coord_mat(:,3)=vasp_c_vec(:)
-
-            call matinv3(coord_mat,coord_inv)
-
-            open(unit=50,file="CONTCAR",status="replace")
-            write(50,'(a,i9,a)') "CONTCAR (step ",istep,"), written by Caracal (dynamic.x)"
-            write(50,*) vasp_scale
-            write(50,*) vasp_a_vec
-            write(50,*) vasp_b_vec
-            write(50,*) vasp_c_vec
-            do i=1,nelems_vasp
-               write(50,'(a,a)',advance="no") " ",trim(vasp_names(i))
-            end do
-            write(50,*)
-            write(50,*) vasp_numbers(1:nelems_vasp)
-            if (vasp_selective) then
-               write(50,*) "Selective dynamics"
-            end if
-            write(50,*) "Direct"
-            if (xdat_first) then
-               write(51,'(a,i9,a)') "step ",istep,", written by Caracal (dynamic.x)"
-               write(51,*) vasp_scale
-               write(51,*) vasp_a_vec
-               write(51,*) vasp_b_vec
-               write(51,*) vasp_c_vec
-               do i=1,nelems_vasp
-                  write(51,'(a,a)',advance="no") " ",trim(vasp_names(i))
-               end do
-               write(51,*)
-               write(51,*) vasp_numbers(1:nelems_vasp)
-            xdat_first=.false.
-            end if
-            write(51,'(a,i9)') "Direct step ",istep
-!  
-!     As in usual CONTCAR files, give the positions in direct coordinates!
-!     convert them back from cartesians, by using the inverse matrix
-!  
-            do i=1,natoms
-               q_act_frac=matmul(coord_inv,q_i(:,i,1)*bohr)
-               if (vasp_selective) then
-
-                  if (at_move(i)) then
-                     write(50,*) q_act_frac(:),"   T   T   T "
-                     write(51,*) q_act_frac(:)!,"   F   F   F "
-                  else
-                     write(50,*) q_act_frac(:),"   F   F   F "
-                     write(51,*) q_act_frac(:)!,"   T   T   T "
-                  end if
-               else
-                  write(50,*) q_act_frac(:)
-                  write(51,*) q_act_frac(:)
-               end if
-            end do
-            close(50)
-            flush(51)
-         end if
-      end if
-   end if
-end if
 !
 !     For the first timestep: set the pressure to the desired value
 !
@@ -732,6 +642,98 @@ if (use_calc_rate .or. rank .eq. 0) then
 !     of the force constant
 !
    call get_centroid(centroid)
+end if
+
+!
+!     Write out the current trajectory frame, if iwrite
+!
+!if (istep .gt. 997) then
+!   write(*,*) q_i(:,101,1)*bohr,xi_real
+!end if
+!write(*,*) "use",use_calc_rate,rank
+if (constrain .lt. 0) then
+   if (use_calc_rate .or. rank .eq. 0) then
+      if (mod(istep,iwrite) .eq. 0) then
+         if (.not. output_sparse .or. nbeads .eq. 1) then
+            write(28,*) natoms*nbeads
+            if (npt) then
+
+               write(28,*) boxlen_x*bohr,boxlen_y*bohr,boxlen_z*bohr
+            else
+               write(28,*)
+            end if
+            do k=1,nbeads
+               do i=1,natoms
+                  write(28,*) name(i),q_i(:,i,k)*bohr
+               end do
+            end do
+            flush(28)
+         end if
+!
+!     If the VASP formate is used for input, write new CONTCAR and new frame
+!       in XDATCAR files!
+!
+         if (coord_vasp  .and. nbeads .eq. 1) then
+            coord_mat(:,1)=vasp_a_vec(:)
+            coord_mat(:,2)=vasp_b_vec(:)
+            coord_mat(:,3)=vasp_c_vec(:)
+
+            call matinv3(coord_mat,coord_inv)
+
+            open(unit=50,file="CONTCAR",status="replace")
+            write(50,'(a,i9,a)') "CONTCAR (step ",istep,"), written by Caracal (dynamic.x)"
+            write(50,*) vasp_scale
+            write(50,*) vasp_a_vec
+            write(50,*) vasp_b_vec
+            write(50,*) vasp_c_vec
+            do i=1,nelems_vasp
+               write(50,'(a,a)',advance="no") " ",trim(vasp_names(i))
+            end do
+            write(50,*)
+            write(50,*) vasp_numbers(1:nelems_vasp)
+            if (vasp_selective) then
+               write(50,*) "Selective dynamics"
+            end if
+            write(50,*) "Direct"
+            if (xdat_first) then
+               write(51,'(a,i9,a)') "step ",istep,", written by Caracal (dynamic.x)"
+               write(51,*) vasp_scale
+               write(51,*) vasp_a_vec
+               write(51,*) vasp_b_vec
+               write(51,*) vasp_c_vec
+               do i=1,nelems_vasp
+                  write(51,'(a,a)',advance="no") " ",trim(vasp_names(i))
+               end do
+               write(51,*)
+               write(51,*) vasp_numbers(1:nelems_vasp)
+            xdat_first=.false.
+            end if
+            write(51,'(a,i9)') "Direct step ",istep
+!
+!     As in usual CONTCAR files, give the positions in direct coordinates!
+!     convert them back from cartesians, by using the inverse matrix
+!
+            do i=1,natoms
+               q_act_frac=matmul(coord_inv,q_i(:,i,1)*bohr)
+               if (vasp_selective) then
+
+                  if (at_move(i)) then
+                     write(50,*) q_act_frac(:),"   T   T   T "
+                     write(51,*) q_act_frac(:)!,"   F   F   F "
+                  else
+                     write(50,*) q_act_frac(:),"   F   F   F "
+                     write(51,*) q_act_frac(:)!,"   T   T   T "
+                  end if
+               else
+                  write(50,*) q_act_frac(:)
+                  write(51,*) q_act_frac(:)
+               end if
+            end do
+            close(50)
+            flush(51)
+         end if
+      end if
+   end if
 end if
 !
 !     Write out the current centroid trajectory frame for more than one bead, if iwrite 
