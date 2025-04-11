@@ -646,11 +646,8 @@ end if
 
 !
 !     Write out the current trajectory frame, if iwrite
+!     Write updated position after Verlet position update step
 !
-!if (istep .gt. 997) then
-!   write(*,*) q_i(:,101,1)*bohr,xi_real
-!end if
-!write(*,*) "use",use_calc_rate,rank
 if (constrain .lt. 0) then
    if (use_calc_rate .or. rank .eq. 0) then
       if (mod(istep,iwrite) .eq. 0) then
