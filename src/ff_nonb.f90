@@ -367,7 +367,7 @@ if (.not. ewald) then
             end if
          end if
       end if      
-  
+      if (r .gt. coul_cut) cycle  
 
       oner =1.0d0/r
 !
@@ -450,7 +450,7 @@ if (.not. ewald) then
                      end if
                   end if
                end if
-
+               if (r .gt. coul_cut) cycle
 
                oner =1.0d0/r
        

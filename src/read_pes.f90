@@ -1434,7 +1434,7 @@ if (qmdffnumber .eq. 1 .or. evb_de .or. evb_dq .or. dg_evb .or. treq) then
    ewald=.false.
    zahn=.false.
    coul_method="ZAHN"
-   coul_cut=10.d0
+   coul_cut=50.d0
    vdw_cut=10.d0
    do i = 1, nkey_lines
       next = 1

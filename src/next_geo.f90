@@ -106,7 +106,7 @@ else
       write(*,*)"atom number mismatch! This should not happen..."
       stop 'atom number emergency!'
    end if
-   read(input_unit,*,iostat=readstat) 
+   read(input_unit,'(a)',iostat=readstat) traj_frame_com
    if (readstat .ne. 0) then
       write(*,*) "The structure file seems to be currupted!"
       call fatal
@@ -118,7 +118,6 @@ else
       if (allocated(el_names)) deallocate(el_names)
       allocate(el_names(num_atoms))
    end if
-
 
    do i=1,num_atoms
       read(input_unit,*,iostat=readstat)atom,xr,yr,zr

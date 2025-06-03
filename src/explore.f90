@@ -81,6 +81,7 @@ real(kind=8),allocatable::internal(:),B_mat(:,:),dB_mat(:,:,:)
 logical::path_struc,print_wilson
 integer::wilson_mode,ref_count
 integer::time_int1,time_int2
+integer::n_write
 ! for manual internal coordinates
 integer,dimension(:,:),allocatable::coord_tmp
 integer,dimension(:),allocatable::coord_types
@@ -91,6 +92,7 @@ real(kind=8)::time1_omp,time2_omp
 integer mode,next,j,k,readstatus,dg_evb_mode,mat_size
 integer::int_mode  ! method for defining internal coordinates (if used)
 logical::exist,exists,has_next,coupl1,par_soschl
+logical::eval_cutoff_2
 
 logical::grad,frequency,opt_min,orca_fake,ts_opt,calc_irc,calc_egrad
 ! for EVB-QMDFF hessian calculation
@@ -609,6 +611,21 @@ if (calc_egrad) then
       end if
    end do
 
+!
+!     If a eval_cutoff calculation from dynamic.x (file eval_cutoff_all.xyz) 
+!      shall be evaluated
+!
+   do_debug=.false.
+   do i = 1, nkey_lines
+      next = 1
+      record = keyline(i)
+      call gettext (record,keyword,next)
+      call upcase (keyword)
+      string = record(next:120)
+      if (keyword(1:16) .eq. 'eval_cutoff ') then
+         eval_cutoff_2=.true.
+      end if
+   end do
 
 !
 !     Print debug information message
@@ -700,6 +717,7 @@ if (calc_egrad) then
    if (.not. pes_topol) then
       open (unit=99,file="single_qmdff.dat",status='unknown')
    end if
+   if (eval_cutoff_2) open (unit=218,file="xyz_grads.xyz")
    if (treq) open (unit=48,file="treq.out",status="unknown")
    if (int_grad_plot) open (unit=192,file="int_grad.out",status="unknown")
    do
@@ -916,6 +934,30 @@ if (calc_egrad) then
 !
       coord=coord/bohr
       call gradient(coord,e_evb,g_evb,1,1)  ! else calculate the usual gradient
+
+!
+!     If the eval_cutoff option is activated, write a combined structure+gradients 
+!       file, but consider only atoms with a gradient of more than 1E-10 in any of 
+!       the directions
+!
+      if (eval_cutoff_2) then
+         n_write=0     
+         do i=1,natoms
+            if ((g_evb(1,i) .gt. 1E-10) .or. (g_evb(2,i) .gt. 1E-10) & 
+                     &.or. (g_evb(3,i) .gt. 1E-10)) then
+                n_write=n_write+1 
+            end if         
+         end do
+
+         write(218,*) n_write
+         write(218,*) trim(traj_frame_com),", E=",e_evb
+         do i=1,natoms
+            if ((g_evb(1,i) .gt. 1E-10) .or. (g_evb(2,i) .gt. 1E-10) &
+                     &.or. (g_evb(3,i) .gt. 1E-10)) then
+               write(218,*) name(i),coord(:,i)*bohr,g_evb(:,i)
+            end if
+         end do
+      end if        
 !
 !     If desired, calculate the Wilson matrix the structure and print it to file
 !
@@ -1019,6 +1061,7 @@ if (calc_egrad) then
    end if
    if (treq) close(48)
    if (int_grad_plot) close(192)
+   if (eval_cutoff_2) close(218)
    if (do_debug) then
 !
 !    Components of first QMDFF

@@ -68,6 +68,7 @@ real(kind=8),allocatable::len_avg(:),len_avgs(:)
 integer::afm_avg
 integer::afm_segment
 integer::afm_segment_avg
+integer::at_inc
 logical::afm_second
 character(len=120)::xyzfile
 
@@ -1236,6 +1237,7 @@ end if
 if (rank .eq. 0) then
    if (eval_cutoff) then
       open(unit=293,file="eval_cutoff.xyz",status="replace")
+      open(unit=295,file="eval_cutoff_all.xyz",status="replace")
 !
 !     Allocate array for descision if atom is within the cutoff of 
 !     another atom
@@ -1468,9 +1470,13 @@ do istep = 1, nstep
                if (within_cut(i,j)) idum=idum+1
             end do
             write(293,*) idum+1
+            write(295,*) natoms
             write(293,'(a,i8,a,i8,a,es15.8)') "Frame No.: ",istep,", atom No.: ",&
                     & i,", energy (Eh): ",e_partition(i)
+            write(295,'(a,i8,a,i8)') "Frame No.: ",istep,", atom No.: ",i
             write(293,*) name(i),0.0,0.0,0.0
+            write(295,*) name(i),0.0,0.0,0.0
+            at_inc=0
             do j=1,natoms
                surr_vec_a=q_i(:,i,1)
                if (within_cut(i,j)) then
@@ -1483,6 +1489,16 @@ do istep = 1, nstep
                   surr_vec_b=surr_vec_a+surr_vec_c
                   if (j .ne. i) then
                      write(293,*) name(j),surr_vec_c*bohr !surr_vec_b*bohr
+                     write(295,*) name(j),surr_vec_c*bohr
+                  end if
+               else
+!
+!     For the full trajectory, shift all nonactive atoms to 
+!       positions far away to avoid any interactions
+!
+                  at_inc=at_inc+1    
+                  if (j .ne. i) then 
+                     write(295,*) name(j),0.d0,0.d0,100000.d0*at_inc
                   end if
                end if
             end do
@@ -1674,6 +1690,7 @@ if (rank .eq. 0) then
    close(30)
    if (eval_cutoff) then
       close(293)
+      close(295)
    end if
 end if
 call mpi_barrier(mpi_comm_world,ierr)
