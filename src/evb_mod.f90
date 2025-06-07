@@ -296,6 +296,8 @@ logical::verbose  ! activates verbose output of several programs
 logical::output_sparse  ! activates sparse output of several programs
 !   If the program calc_rate.x has been called: switch for PES generation
 logical::use_calc_rate
+!   The the program stick_coeff.x has been called 
+logical::use_stick_coeff
 !   If the starting velocity shall be read in
 logical::read_vel
 real(kind=8),allocatable::vel_start(:,:)

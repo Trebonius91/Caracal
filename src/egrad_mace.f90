@@ -85,7 +85,6 @@ end if
 !   xyz_frac_act=matmul(coord_mat_inv,xyz2(:,i))
 !   xyz_direct(:,i)=xyz_frac_act
 !end do
-
 !
 !    Write the temporary POSCAR file for the MACE call
 !

@@ -143,6 +143,10 @@ use_rpmd=.true.
 !
 use_calc_rate=.false.
 !
+!     The program stick_coeff is not used... 
+!
+use_stick_coeff = .false.
+!
 !     The explore program is not used
 !
 use_explore = .false.

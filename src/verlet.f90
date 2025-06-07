@@ -168,7 +168,7 @@ end if
 if (npt) then
    if (istep .eq. 1) press_act=pressure
 end if
-if (use_calc_rate .or. rank .eq. 0) then
+if (use_calc_rate .or. use_stick_coeff .or. rank .eq. 0) then
    do k=1,nbeads
       do i=1,natoms
          do j=1,3
@@ -181,7 +181,7 @@ end if
 !     For the Nose-Hoover chain thermostat: apply the full chain on the momenta
 !     on the half-time step
 !
-if (use_calc_rate .or. rank .eq. 0) then
+if (use_calc_rate .or. use_stick_coeff .or. rank .eq. 0) then
    if (constrain .ne. 2) then
       if (thermostat .eq. 2) then
          call get_centroid(centroid)
@@ -208,7 +208,7 @@ end if
 !     ---> (Nose-Hoover step D: second part of half time momentum update)
 !
 !if (thermostat .eq. 1 .or. thermostat .eq. 2) then
-if (use_calc_rate .or. rank .eq. 0) then
+if (use_calc_rate .or. use_stick_coeff .or. rank .eq. 0) then
    p_i=p_i-0.5d0*dt*derivs
 end if
 !end if
@@ -217,7 +217,7 @@ end if
 !
 !     set momentum to zero for fixed atoms 
 !
-if (use_calc_rate .or. rank .eq. 0) then
+if (use_calc_rate .or. use_stick_coeff .or. rank .eq. 0) then
    do i=1,natoms
       if (.not. at_move(i)) then
          p_i(:,i,:)=0.d0
@@ -227,7 +227,7 @@ end if
 !
 !     calculate averaged kinetic energy for subset of the system
 !
-if (use_calc_rate .or. rank .eq. 0) then
+if (use_calc_rate .or. use_stick_coeff .or. rank .eq. 0) then
    if (calc_ekin) then
 !
 !     first, calculate the kinetic energy by applying the centroid-momenta approximation
@@ -265,7 +265,7 @@ end if
 !
 !     for AFM simulatons: fix only the anchor atom!
 !
-if (use_calc_rate .or. rank .eq. 0) then
+if (use_calc_rate .or. use_stick_coeff .or. rank .eq. 0) then
    if (afm_run) then
       p_i(:,afm_fix_at,:)=0.d0
    end if 
@@ -273,7 +273,7 @@ end if
 !
 !     If a barostat is used: prepare the volume update
 !
-if (use_calc_rate .or. rank .eq. 0) then
+if (use_calc_rate .or. use_stick_coeff .or. rank .eq. 0) then
    if (npt) then
       if (barostat .eq. 2) then
          term = vbar*0.5d0*dt
@@ -293,7 +293,7 @@ end if
 !     update the positions: for one bead, do the usual verlet procedure
 !
 !     ---> Nose-Hoover step E
-if (use_calc_rate .or. rank .eq. 0) then
+if (use_calc_rate .or. use_stick_coeff .or. rank .eq. 0) then
    if (nbeads .eq. 1) then
 !
 !     If a system with hard box walls is simulated: check, if one of the atoms 
@@ -649,7 +649,7 @@ end if
 !     Write updated position after Verlet position update step
 !
 if (constrain .lt. 0) then
-   if (use_calc_rate .or. rank .eq. 0) then
+   if (use_calc_rate .or. use_stick_coeff .or. rank .eq. 0) then
       if (mod(istep,iwrite) .eq. 0) then
          if (.not. output_sparse .or. nbeads .eq. 1) then
             write(28,*) natoms*nbeads
@@ -813,7 +813,7 @@ end if
 !
 !     constrain the system to the xi value if desired
 !
-if (use_calc_rate .or. rank .eq. 0) then
+if (use_calc_rate .or. use_stick_coeff .or. rank .eq. 0) then
    const_good=0
    if (constrain .eq. 1) then
       call constrain_q(centroid,xi_ideal,dxi_act,const_good,dt)
@@ -836,7 +836,7 @@ if (energysplit) then
    e_noncov_split=0.d0
 end if
 xi_test=xi_real  ! TEST TEST
-if (.not. use_calc_rate) then
+if (.not. use_calc_rate .and. .not. use_stick_coeff) then
    call mpi_barrier(mpi_comm_world,ierr)
    call mpi_bcast(q_i,natoms*3*nbeads,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
    call mpi_bcast(p_i,natoms*3*nbeads,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
@@ -850,7 +850,7 @@ end do
 !
 !   write out the gradients to file (verbose)
 !
-if (use_calc_rate .or. rank .eq. 0) then
+if (use_calc_rate .or. use_stick_coeff .or. rank .eq. 0) then
    if (verbose) then 
       if (mod(istep,iwrite) .eq. 0) then
          write(29,*) natoms*nbeads
@@ -881,7 +881,7 @@ end if
 !     For Mechanochemistry calculations: Add the additional forces here 
 !     to the gradient of the reference method!
 !
-if (use_calc_rate .or. rank .eq. 0) then
+if (use_calc_rate .or. use_stick_coeff .or. rank .eq. 0) then
    if (add_force) then
       do i=1,nbeads
          derivs(:,force1_at,i)=derivs(:,force1_at,i)+force1_v(:)*force1_k
@@ -931,14 +931,14 @@ end if
 !
 !     ---> (Nose-Hoover step F: first part of full time momentum update)
 !
-if (use_calc_rate .or. rank .eq. 0) then
+if (use_calc_rate .or. use_stick_coeff .or. rank .eq. 0) then
    p_i=p_i-0.5d0*dt*derivs
 end if
 
 !
 !     constrain the momentum (zero for dxi) if desired
 !
-if (use_calc_rate .or. rank .eq. 0) then
+if (use_calc_rate .or. use_stick_coeff .or. rank .eq. 0) then
    if (constrain .eq. 1) then
       call constrain_p(dxi_act)
    end if
@@ -949,7 +949,7 @@ end if
 !     on the full-time step
 !
 !call get_centroid(centroid)
-if (use_calc_rate .or. rank .eq. 0) then
+if (use_calc_rate .or. use_stick_coeff .or. rank .eq. 0) then
    if (constrain .ne. 2) then
       if (thermostat .eq. 2) then
 !
@@ -996,7 +996,7 @@ end if
 !
 !     If the Berendsen barostat is chosen, rescale the box and the coordinates
 !
-if (use_calc_rate .or. rank .eq. 0) then
+if (use_calc_rate .or. use_stick_coeff .or. rank .eq. 0) then
    if (npt) then
       if (barostat .eq. 1) then
          beren_scale=(1.d0+(dt*compress/taupres)*(press_act-pressure))**(1.d0/3.d0)
@@ -1029,7 +1029,7 @@ end if
 !
 !     calculate temperature and other dynamical parameters for each dump step
 !
-if (use_calc_rate .or. rank .eq. 0) then
+if (use_calc_rate .or. use_stick_coeff .or. rank .eq. 0) then
    if (npt) then
       press_avg=press_avg+press_act
    end if
@@ -1049,20 +1049,21 @@ if (use_calc_rate .or. rank .eq. 0) then
       else 
          act_temp=2d0*ekin1/3d0/0.316679D-5/natoms/nbeads/nbeads
       end if
-      if (npt) then
-         act_vol=volbox*bohr**3
-         act_dens=(mass_tot*1.6605402E-24*emass)/(act_vol*1E-24)
+      if (.not. use_stick_coeff) then
+         if (npt) then
+            act_vol=volbox*bohr**3
+            act_dens=(mass_tot*1.6605402E-24*emass)/(act_vol*1E-24)
       
 
-         write(*,'(i8,f12.5,a,f10.4,a,f12.4,f14.5,a,f12.6)') istep,epot/nbeads,"     ",act_temp,"  ",act_vol, & 
-               & press_avg*prescon/iwrite,"    ",act_dens
-      else if (nvt) then 
-         write(*,'(a,i8,a,f12.5,a,f10.4,a)') " Step: ",istep,"  --  pot. energy: ", &
-                   & epot/nbeads," Hartree  --  temperature: ",act_temp," K"
-      else 
-         write(*,'(a,i8,a,f12.5,a)') " Step: ",istep,"  --  pot. energy: ", &
-                & epot/nbeads," Hartree "
-
+            write(*,'(i8,f12.5,a,f10.4,a,f12.4,f14.5,a,f12.6)') istep,epot/nbeads,"     ",act_temp,"  ",act_vol, & 
+                  & press_avg*prescon/iwrite,"    ",act_dens
+         else if (nvt) then 
+            write(*,'(a,i8,a,f12.5,a,f10.4,a)') " Step: ",istep,"  --  pot. energy: ", &
+                      & epot/nbeads," Hartree  --  temperature: ",act_temp," K"
+         else 
+            write(*,'(a,i8,a,f12.5,a)') " Step: ",istep,"  --  pot. energy: ", &
+                   & epot/nbeads," Hartree "
+         end if
       end if
       if (.not. nve) then
          write(236,*) istep,act_temp
@@ -1074,7 +1075,7 @@ end if
 !
 !     Calculate values of evaluated coordinates in actual structure 
 !
-if (use_calc_rate .or. rank .eq. 0) then
+if (use_calc_rate .or. use_stick_coeff .or. rank .eq. 0) then
    if (eval_coord) then
       if (mod(istep,eval_step) .eq. 0) then
          write(141,'(i10)',advance="no") istep
@@ -1118,14 +1119,14 @@ do i=1,nbeads
    do j=1,natoms
       do k=1,3
          if (q_i(k,j,i) .ne. q_i(k,j,i)) then
-            if (use_calc_rate .or. rank .eq. 0) then
+            if (use_calc_rate .or. use_stick_coeff .or. rank .eq. 0) then
                write(*,*) "Something went wrong during the dynamics."
                write(*,*) "One of the spatial coordinates is NaN!" 
             end if
             call fatal
          end if
          if (q_i(k,j,i) .gt. infinity) then
-            if (use_calc_rate .or. rank .eq. 0) then
+            if (use_calc_rate .or. use_stick_coeff .or. rank .eq. 0) then
                write(*,*) "Something went wrong during the dynamics."
                write(*,*) "One of the spatial coordinates is infinity!"
             end if
@@ -1140,14 +1141,14 @@ end do
 if (periodic) then
    volbox=boxlen_x*boxlen_y*boxlen_z
    if (volbox .ne. volbox) then
-      if (use_calc_rate .or. rank .eq. 0) then
+      if (use_calc_rate .or. use_stick_coeff .or. rank .eq. 0) then
          write(*,*) "Something went wrong during the dynamics."
          write(*,*) "The volume of the simulation box is NaN!"
       end if
       call fatal
    end if
    if (volbox .gt. infinity) then
-      if (use_calc_rate .or. rank .eq. 0) then
+      if (use_calc_rate .or. use_stick_coeff .or. rank .eq. 0) then
          write(*,*) "Something went wrong during the dynamics."
          write(*,*) "The volume of the simulation box is infinity!"
       end if
@@ -1160,7 +1161,7 @@ end if
 !
 if (constrain .lt. 0) then
 !   if (.not. coord_vasp) then
-      if (use_calc_rate .or. rank .eq. 0) then
+      if (use_calc_rate .or. use_stick_coeff .or. rank .eq. 0) then
          call transrot(centroid)
       end if
 !   end if

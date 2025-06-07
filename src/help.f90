@@ -784,6 +784,64 @@ if (trim(progname) .eq. "poly_qmdff") then
    write(*,*) "around the molecule bulk."
 end if
 
+
+if (trim(progname) .eq. "stick_coeff") then
+   write(*,*) "------------------------------------------------------------------"
+   write(*,*) "------ PROGRAM STICK_COEFF.X : SHORT OVERVIEW AND HELP -----------"
+   write(*,*) "------------------------------------------------------------------"
+   write(*,*) "--- PART A: basic usage:------------------------------------------"
+   write(*,*) "This program calculates the sticking coefficient of an arbitrary"
+   write(*,*) "diatomic molecule on an arbitrary surface for certain initial"
+   write(*,*) "conditions at a certain temperature."
+   write(*,*) "The calculations can be done serial or parallel with MPI."
+   write(*,*) "A number of single trajectories is started and the fraction of "
+   write(*,*) "molecules stuck on the surface is calculated."
+   write(*,*) "This program must be started with MPI, one process is the master."
+   write(*,*) "The final structures of all collision trajectories are written"
+   write(*,*) "file XDATCAR_final."
+!
+!     General potential energy surface infos (same for all programs)
+!
+   call help_evb()
+!
+!     end of general section for potential energy surface
+!     start with keywords for STICK_COEFF subprogram
+!
+   write(*,*) " * XYZSTART [.xyz file with start structure (Angstrom)]: the input"
+   write(*,*) "    structure for the calculations."
+   write(*,*) " * RPMD_BEADS [number]: Number of ring polymer beads of the "
+   write(*,*) "    system (def.: 1 == classical calculation)"
+   write(*,*) " * ENSEMBLE [NVE, NVT]: Which type of thermodyn. ensemble"
+   write(*,*) " * STEPS [number]: Number of single verlet steps in dynamic."
+   write(*,*) " * DELTAT [value]: Lengh of a single MD timestep in fs."
+   write(*,*) " * TDUMP [value]: Time, after which a new trajectory structure"
+   write(*,*) "    shall be written out, in fs (if WRITE_TRAJS activated)."
+   write(*,*) " * NUM_TRAJS [number]: Total number of sticking trajectories."
+   write(*,*) " * COLL_ENER [value]: The total collision energy of the molecule"
+   write(*,*) "    in eV."
+   write(*,*) " * ENER_REF [name]: If the collision energy is referenced to the"
+   write(*,*) "    total kinetic energy (TOTAL) or just the fraction of the "
+   write(*,*) "    kinetic energy orthogonal to the surface (ORTHO)."
+   write(*,*) " * WRITE_TRAJS: If xyz fieles of all collision trajectories "
+   write(*,*) "    shall be printed to separate files."
+   write(*,*) " * NVT { \n [COMMANDS] \n}: Specifies the NVT ensemble."
+   write(*,*) "    - TEMP [value]: Desired temperature of the system in K."
+   write(*,*) "    - THERMOSTAT [name]: Type of thermostat to be applied (now,"
+   write(*,*) "       ANDERSEN, NOSE-HOOVER (chain) are available)."
+   write(*,*) "    - ANDERSEN_STEP [number]: after how many MD steps the velocity"
+   write(*,*) "       reset according to the Andersen thermostat shall be done."
+   write(*,*) "       (default: after 7 fs)"
+   write(*,*) "    - NOSE_DAMP [number]: The friction factor Q for the Nose-Hoover"
+   write(*,*) "       thermostat, in multiples of the MD timestep. (default: 100)"
+   write(*,*) " * FIX_ATOMS [filename]: Fix a number of atoms during the dynamics."
+   write(*,*) "    The specified file contains one atom to be fixed per line."
+   write(*,*) " * RANDOM_SEED [value]: The random number generator will be initialized"
+   write(*,*) "    manually to the given value. For benchmarking and exact "
+   write(*,*) "    reproduction of results."
+
+
+end if
+
 write(*,*) "------------------------------------------------------------------"
 return
 end subroutine help

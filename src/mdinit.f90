@@ -107,7 +107,7 @@ end if
 !
 !     Beta-mode:  do the same for the Nose-Hoover thermostat!
 !
-if (use_calc_rate .or. rank .eq. 0) then
+if (use_calc_rate .or. use_stick_coeff .or. rank .eq. 0) then
    if (.not. nve) then
       backup = andersen_step
       andersen_step = 1

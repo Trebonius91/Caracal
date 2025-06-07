@@ -248,10 +248,10 @@ OBJS = general.o evb_mod.o qmdff.o lm_module.o debug.o h2co_mod.o \
        egrad_nh3oh.o util_nh3oh.o main_h2co.o util_h2co.o \
        \
        qmdffgen.o evbopt.o dynamic.o explore.o calc_rate.o \
-       black_box.o poly_qmdff.o 
+       black_box.o poly_qmdff.o stick_coeff.o
  
 EXES = qmdffgen.x dynamic.x evbopt.x explore.x calc_rate.x \
-       black_box.x poly_qmdff.x 
+       black_box.x poly_qmdff.x stick_coeff.x
 
 all: $(OBJS)  $(EXES)
 

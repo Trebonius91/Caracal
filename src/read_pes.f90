@@ -57,6 +57,7 @@ character(len=70)::file_irc_struc
 character(len=70)::file_irc_ens
 character(len=70)::filets,filets2,names
 character(len=80)::coul_method,a80
+character(len=80)::sys_com
 character(len=1)::qmdffnum
 real(kind=8),dimension(:,:),allocatable::coord
 real(kind=8),dimension(:,:),allocatable::g_evb
@@ -1285,7 +1286,6 @@ if (mace_ase) then
       write(*,*) "For an example MACE script with Caracal, look into"
       write(*,*) " the Caracal wiki:  ...."
    end if         
-
    do i = 1, nkey_lines
       next = 1
       record = keyline(i)
@@ -1314,7 +1314,28 @@ if (mace_ase) then
          end do
       end if
    end do
-   call system("python3 "//trim(ase_script)//" &")
+!
+!    For the stick_coeff program: copy the input for the ase_script 
+!    and the MACE model file to one folder for each MPI rank!
+!
+   if (rank .gt. 0) then
+      if (rank .lt. 10) then 
+         write(sys_com,'(a,i1)') "rank",rank  
+      else if (rank .lt. 100) then
+         write(sys_com,'(a,i2)') "rank",rank
+      else 
+         write(sys_com,'(a,i3)') "rank",rank
+      end if
+      call system ("mkdir "//trim(sys_com))
+      call system ("cp "//trim(ase_script)//" "//trim(sys_com))
+      call system ("cp *.model "//trim(sys_com))
+      call chdir (trim(sys_com))
+      call system("python3 "//trim(ase_script)//" > pylog 1> pyerr &")
+   else
+      if (.not. use_stick_coeff) then 
+         call system("python3 "//trim(ase_script)//" > pylog 1> pyerr &")
+      end if
+   end if
    goto 678
 
 
