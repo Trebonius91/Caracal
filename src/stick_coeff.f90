@@ -110,6 +110,7 @@ integer::num_traj  ! total number of trajectories
 integer::count,dest,loop_large,loop_rest
 integer::schedule,tag_mpi,traj_result
 integer::numwork,traj_act
+integer::test33
 character(len=80)::sys_com
 real(kind=8),allocatable::message(:)
 real(kind=8)::coord_mat(3,3),coord_inv(3,3)
@@ -870,6 +871,7 @@ loop_rest=mod(num_traj,psize-1)
 !     define default count value
 count=1
 tag_mpi=0
+test33=num_traj
 allocate(q_result_act(3,natoms,psize-1))
 open(unit=57,file="XDATCAR_final",status="replace")
 xdat_first=.true.
@@ -1018,6 +1020,7 @@ else
    message=rank
    do
       call mpi_recv(numwork, count, MPI_DOUBLE_PRECISION, 0,tag_mpi,MPI_COMM_WORLD,status,ierr)
+      num_traj=test33
 !
 !     If no more samplings are to do, exit with the current worker
 !       
