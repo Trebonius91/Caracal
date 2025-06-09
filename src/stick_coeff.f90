@@ -117,6 +117,7 @@ real(kind=8)::coord_mat(3,3),coord_inv(3,3)
 real(kind=8)::q_act_frac(3)
 real(kind=8)::coll_ener,coll_e_at
 real(kind=8)::mom_fac
+real(kind=8)::bond_crit
 real(kind=8)::p_mol_tot(3),p_mol_abs
 real(kind=8)::p_factor
 real(kind=8)::z_com_init,bond_len_init ! abortion criteria
@@ -125,6 +126,7 @@ integer::num_reactive,num_nonreactive,num_unfinished
 real(kind=8),allocatable::q_i_initial(:,:,:)  ! the initial structure
 character(len=50)::ener_ref
 logical::write_trajs
+real(kind=8)::q_i1_frac(3),q_i2_frac(3)
 !   The OMP time measurement
 real(kind=8)::time1_omp,time2_omp
 !     the MPI rank 
@@ -245,6 +247,7 @@ num_traj=0
 coll_ener=0.d0
 ener_ref="none"
 write_trajs=.false.
+bond_crit=2.0d0
 allocate(dxi_act(3,natoms))
 !
 !    Read in the commands from the keyfile 
@@ -291,6 +294,14 @@ do i = 1, nkey_lines
 !     written)
    else if (keyword(1:15) .eq. 'WRITE_TRAJS ') then
       write_trajs=.true.
+!
+!    The criterion for reactivity in terms of the molecular bond
+!     length: multiples of the initial bond length required for 
+!     a trajectory to be counted as reactive
+!
+   else if (keyword(1:15) .eq. 'BOND_CRIT ') then
+      read(record,*) names,bond_crit
+
    end if
 end do
 !
@@ -368,7 +379,13 @@ else
       write(*,*) "No trajectories will be written to xyz files."
    end if
 end if
-
+if (bond_crit .lt. 1.d0) then
+   if (rank .eq. 0) then
+      write(*,*) "Please give a reactive bond length fraction of at least 1 times the"
+      write(*,*) "  initial bond length (keyword BOND_CRIT)!"
+      call fatal
+   end if
+end if
 !
 !     Read in the potential energy surface 
 !
@@ -762,7 +779,7 @@ if (int_coord_plot) open(unit=191,file="int_coord.out",status="unknown")
 !
 if (rank .eq. 0) then
    write(*,*) "----------------------------------------------------------"
-   write(*,*) "The following molecular dynamics job will be started:"
+   write(*,*) "The following sticking coefficient job will be started:"
    write(*,*) " - Input geometry: ",trim(xyzfile)
    if (nbeads .eq. 1) then
       write(*,*) " - Number of RPMD beads: 1 (classical)"
@@ -771,22 +788,25 @@ if (rank .eq. 0) then
    end if
    if (ensemble .eq. "NVT") then
       write(*,*) " - Thermodynamic ensemble: NVT "
-   else if (ensemble .eq. "NPT") then
-      write(*,*) " - Thermodynamic ensemble: NpT "
    else if (ensemble .eq. "NVE") then
       write(*,*) " - Thermodynamic ensemble: NVE "
    end if
-   write(*,'(a,i10)') "  - Number of simulated MD steps:",nstep
+   write(*,'(a,i10)') "  - Total number of sticking coefficient trajectories:",num_traj
+   write(*,'(a,i10)') "  - Max. number of simulated MD steps per trajectory:",nstep
    write(*,'(a,f12.5)') "  - MD time step (fs):",dt*2.41888428E-2
-   write(*,'(a,f15.5)') "  - Total simulated timescale (ps):",dt*2.41888428E-2*nstep/1000.d0
-   write(*,'(a,f13.5,a)') "  - Trajectory frames will be written every",dtdump," fs"
+   write(*,'(a,f15.5)') "  - Maximum timescale per trajectory (ps):",dt*2.41888428E-2*nstep/1000.d0
+   if (write_trajs) then
+      write(*,'(a,f13.5,a)') "  - Trajectory frames will be written every",dtdump," fs"
+   end if
    if (nvt) then
       write(*,'(a,f12.5)') "  - Desired temperature (K): ",kelvin
       write(*,*) " - The temperature will be applied by the ",trim(thermo)," thermostat"
+      write(*,'(a,f12.5)') "  - Initial total kinetic energy of the molecule (eV): ",coll_ener
+      write(*,'(a,f12.5)') "  - Bond length elongation reactivity criterion: ",bond_crit
       if (periodic) then
       end if
       if (box_walls) then
-         write(*,*) " - The hard walled box has the dimensions (x,y,z) (Angstron):"
+         write(*,*) " - The hard walled box has the dimensions (x,y,z) (Angstrom):"
          write(*,'(a,f14.6,f14.6,f14.6)') "    ",boxlen_x*bohr,boxlen_y*bohr,boxlen_z*bohr
       end if
       if (thermo .eq. "ANDERSEN") then
@@ -796,51 +816,18 @@ if (rank .eq. 0) then
          write(*,'(a,f12.5,a)') "  - The Nose-Hoover thermostat damping Q is: ",nose_q," time steps"    
       end if 
    end if
-
-   if (npt) then
-      write(*,'(a,f12.5)') "  - Desired temperature (K): ",kelvin
-      write(*,'(a,f12.5)') "  - Desired pressure (atm): ",pressure*prescon
-      write(*,*) " - The temperature will be applied by the ",trim(thermo)," thermostat"
-      write(*,*) " - The pressure will be applied by the ",trim(baro_name), " barostat"
-      write(*,*) " - The periodic box has the initial dimensions (x,y,z) (Angstron):"
-      write(*,'(a,f14.6,f14.6,f14.6)') "    ",boxlen_x*bohr,boxlen_y*bohr,boxlen_z*bohr
-      if (box_walls) then
-         write(*,*) " - The hard walled box has the dimensions (x,y,z) (Angstron):"
-         write(*,'(a,f14.6,f14.6,f14.6)') "    ",boxlen_x*bohr,boxlen_y*bohr,boxlen_z*bohr
-      end if
-      if (thermo .eq. "ANDERSEN") then
-         write(*,'(a,i6,a)') "  - The Andersen velocity rescaling is done every ",andersen_step," MD steps"
-      end if
-      if (thermo .eq. "NOSE-HOOVER") then
-         write(*,'(a,f12.5,a)') "  - The Nose-Hoover thermostat damping Q is: ",nose_q," time steps"
-      end if
-   end if
-   if (mirrors) then
-      write(*,*) " - The following mirror planes will be present in the system:"
-      do i=1,mirror_num
-         if (mirror_dims(i) .eq. 1) then
-            write(*,'(a,i6,a,f12.6,a)') "     atom ",mirror_ats(i),", : x at",mirror_pos(i)*bohr," Ang."
-         else if (mirror_dims(i) .eq. 2) then
-            write(*,'(a,i6,a,f12.6,a)') "     atom ",mirror_ats(i),", : y at",mirror_pos(i)*bohr," Ang."
-         else if (mirror_dims(i) .eq. 3) then
-            write(*,'(a,i6,a,f12.6,a)') "     atom ",mirror_ats(i),", : z at",mirror_pos(i)*bohr," Ang."
-         end if
-      end do
-   end if
 end if
 
 !
 !     Initialize random seed for initial momenta
 !
-call random_init_local(0)
+call random_init_local(rank)
 !
 !     call the initialization routine
 !
-!     Broadcast positions and momenta to all threads
+!     Broadcast positions to all threads
 !
 call mpi_bcast(q_i,natoms*3*nbeads,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
-call mpi_bcast(p_i,natoms*3*nbeads,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
-call mpi_barrier(mpi_comm_world,ierr)
 call mpi_barrier(mpi_comm_world,ierr)
 !
 !    Morse for "here is Caracal"
@@ -891,8 +878,37 @@ z_com_init=(q_i(3,natoms-1,1)+q_i(3,natoms,1))/2d0
 !    Initial bond length of the molecue, as determination for the 
 !    reactivy
 !
-bond_ads_vec=(q_i(:,natoms-1,1)-q_i(:,natoms,1))
-call box_image(bond_ads_vec)
+coord_mat(:,1)=vasp_a_vec(:)
+coord_mat(:,2)=vasp_b_vec(:)
+coord_mat(:,3)=vasp_c_vec(:)
+!
+!    Calculate bond vector in direct coordinates and remove image flags
+!
+call matinv3(coord_mat,coord_inv)
+
+q_i1_frac=matmul(coord_inv,q_i(:,natoms-1,1)*bohr)
+q_i2_frac=matmul(coord_inv,q_i(:,natoms,1)*bohr)
+
+bond_ads_vec=q_i1_frac-q_i2_frac
+!
+!    Correct the x,y and z components
+!
+do while (abs(bond_ads_vec(1)) .gt. 0.5d0)
+   bond_ads_vec(1)=bond_ads_vec(1)-sign(1.0d0,bond_ads_vec(1))
+end do
+do while (abs(bond_ads_vec(2)) .gt. 0.5d0)
+   bond_ads_vec(2)=bond_ads_vec(2)-sign(1.0d0,bond_ads_vec(2))
+end do
+do while (abs(bond_ads_vec(3)) .gt. 0.5d0)
+   bond_ads_vec(3)=bond_ads_vec(3)-sign(1.0d0,bond_ads_vec(3))
+end do
+!
+!    Convert back to cartesian coordinates 
+!
+bond_ads_vec=matmul(coord_mat,bond_ads_vec/bohr)
+!
+!    Determine the initial bond length
+!
 bond_len_init=sqrt(dot_product(bond_ads_vec,bond_ads_vec))
 !
 !    Total number of trajectories according to assignment
@@ -1024,7 +1040,7 @@ if (rank .eq. 0) then
       end do
       if (message(1) .gt. 0.99999d0) then
          write(58,*) "Trajectory",traj_act,": reactive!"
-      else if (message(1) .lt. 0.00000d0) then
+      else if (message(1) .lt. 0.00001d0) then
          write(58,*) "Trajectory",traj_act,": not reactive!"
       else
          write(58,*) "Trajectory",traj_act,": unfinished!"
@@ -1054,12 +1070,6 @@ if (rank .eq. 0) then
 !     As in usual CONTCAR files, give the positions in direct coordinates!
 !     convert them back from cartesians, by using the inverse matrix
 !
-      coord_mat(:,1)=vasp_a_vec(:)
-      coord_mat(:,2)=vasp_b_vec(:)
-      coord_mat(:,3)=vasp_c_vec(:)
-
-      call matinv3(coord_mat,coord_inv)
-
       do k=1,natoms
          q_act_frac=matmul(coord_inv,q_result_act(:,k,j)*bohr)
          write(57,*) q_act_frac(:)
@@ -1191,9 +1201,30 @@ else
 !
 !     The reactive case:
 !
-         bond_ads_vec=(q_i(:,natoms-1,1)-q_i(:,natoms,1))
-         call box_image(bond_ads_vec)
-         if (sqrt(dot_product(bond_ads_vec,bond_ads_vec)) .gt. (1.3d0*bond_len_init)) then
+         q_i1_frac=matmul(coord_inv,q_i(:,natoms-1,1)*bohr)
+         q_i2_frac=matmul(coord_inv,q_i(:,natoms,1)*bohr)
+
+         bond_ads_vec=q_i1_frac-q_i2_frac
+!
+!    Correct the x,y and z components
+!
+         do while (abs(bond_ads_vec(1)) .gt. 0.5d0)
+            bond_ads_vec(1)=bond_ads_vec(1)-sign(1.0d0,bond_ads_vec(1))
+         end do
+         do while (abs(bond_ads_vec(2)) .gt. 0.5d0)
+            bond_ads_vec(2)=bond_ads_vec(2)-sign(1.0d0,bond_ads_vec(2))
+         end do
+         do while (abs(bond_ads_vec(3)) .gt. 0.5d0)
+            bond_ads_vec(3)=bond_ads_vec(3)-sign(1.0d0,bond_ads_vec(3))
+         end do
+!
+!    Convert back to cartesian coordinates 
+!
+         bond_ads_vec=matmul(coord_mat,bond_ads_vec/bohr)
+!
+!    Calculate current bond length and compare to initial one 
+!
+         if (sqrt(dot_product(bond_ads_vec,bond_ads_vec)) .gt. (bond_crit*bond_len_init)) then
             write(*,'(a,i7,a,i7,a)') " Trajectory No. ",traj_act," was reactive! (MD step:",istep,")"
             message(1)=1.d0
             exit

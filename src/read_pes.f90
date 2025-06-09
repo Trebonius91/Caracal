@@ -2593,9 +2593,34 @@ if (rank .eq. 0) then
       else
          write(*,*) "* The simulated system has no periodicity."
       end if
-
-
-
+   end if
+!
+!     The MACE MLIP, called by external ASE routines
+!
+   if (mace_ase) then
+      write(*,*) "* PES description: MACE MLIP from external ASE routine"
+      write(*,*) "*  Name of called ASE script: ",trim(ase_script)
+      if (natoms .gt. 0) then
+         write(*,'(a,i8)') " *  Number of atoms: ",natoms
+      end if
+      if (periodic) then
+         if (coord_vasp) then
+            write(*,'(a)') " *  The system is simulated in a periodic box given by POSCAR: "
+            write(*,'(a,3f13.7)') "     a = ",vasp_a_vec(:)
+            write(*,'(a,3f13.7)') "     b = ",vasp_b_vec(:)
+            write(*,'(a,3f13.7)') "     c = ",vasp_c_vec(:)
+         else
+            write(*,'(a)') " *  The system is simulated in a cubix periodic box: "
+            write(*,'(a,f13.7,a,f13.7,a,f13.7,a)') "        x=", boxlen_x*bohr," Ang.  ,y=",boxlen_y*bohr, &
+                        & " Ang., z=",boxlen_z*bohr,"Ang."
+         end if
+      else if (box_walls) then
+         write(*,'(a)') " *  The system is simulated in a hard-walls nonperiodic box: "
+         write(*,'(a,f13.7,a,f13.7,a,f13.7,a)') "       x=", boxlen_x," Ang.  ,y=",boxlen_y, &
+                     & " Ang., z=",boxlen_z,"Ang."
+      else
+         write(*,*) "* The simulated system has no periodicity."
+      end if
    end if  
 
 !
