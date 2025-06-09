@@ -114,7 +114,14 @@ character(len=80)::sys_com
 real(kind=8),allocatable::message(:)
 real(kind=8)::coord_mat(3,3),coord_inv(3,3)
 real(kind=8)::q_act_frac(3)
-real(kind=8)::coll_ener
+real(kind=8)::coll_ener,coll_e_at
+real(kind=8)::mom_fac
+real(kind=8)::p_mol_tot(3),p_mol_abs
+real(kind=8)::p_factor
+real(kind=8)::z_com_init,bond_len_init ! abortion criteria
+real(kind=8)::bond_ads_vec(3)
+integer::num_reactive,num_nonreactive,num_unfinished
+real(kind=8),allocatable::q_i_initial(:,:,:)  ! the initial structure
 character(len=50)::ener_ref
 logical::write_trajs
 !   The OMP time measurement
@@ -867,11 +874,42 @@ allocate(message(1+nbeads*natoms*3))
 !
 loop_large=int((num_traj)/(psize-1))
 loop_rest=mod(num_traj,psize-1)
-!     define default count value
+!
+!     define default count value for MPI communication
+!
 count=1
 tag_mpi=0
 allocate(q_result_act(3,natoms,psize-1))
+!
+!    Initial center of mass of the molecule (z-axis), as 
+!    determination for the reactivity
+!
+z_com_init=(q_i(3,natoms-1,1)+q_i(3,natoms,1))/2d0
+!
+!    Initial bond length of the molecue, as determination for the 
+!    reactivy
+!
+bond_ads_vec=(q_i(:,natoms-1,1)-q_i(:,natoms,1))
+call box_image(bond_ads_vec)
+bond_len_init=sqrt(dot_product(bond_ads_vec,bond_ads_vec))
+!
+!    Total number of trajectories according to assignment
+!
+num_reactive=0
+num_nonreactive=0
+num_unfinished=0
+!
+!    Store the initial structure to reset the workers after finishing
+!
+allocate(q_i_initial(3,natoms,nbeads))
+q_i_initial=q_i
+!
+!    Open file where all final trajectory positions 
+!    will be written
+!
 open(unit=57,file="XDATCAR_final",status="replace")
+open(unit=58,file="traj_results.dat",status="replace")
+write(58,*)  "This file contains the final status of all sticking coefficient trajectories!"
 xdat_first=.true.
 if (rank .eq. 0) then
 !
@@ -896,19 +934,30 @@ if (rank .eq. 0) then
 !
 !     recieve results from all slaves for the i'th round
 !     Only consider first bead now (layer maybe centroid?)
+!     and add status of current run (reactive, nonreactive, n.a.) to traj_results.dat file
 !
       do j=1,psize-1
          if (i .lt. loop_large+1) then
+            traj_act=(schedule-1)*(psize-1)+j
             call mpi_recv(message, 3*natoms*nbeads+1, MPI_DOUBLE_PRECISION, MPI_ANY_SOURCE,tag_mpi, &
                & MPI_COMM_WORLD,status,ierr)
-            traj_result=int(message(1))
             do k=1,1
                do l=1,natoms
                   do m=1,3
                      q_result_act(m,l,j)=message((l-1)*3+m+1)
                   end do
                end do
-           end do
+            end do
+            if (message(1) .gt. 0.99999d0) then
+               write(58,*) "Trajectory",traj_act,": reactive!"   
+               num_reactive=num_reactive+1            
+            else if (message(1) .lt. 0.00000d0) then
+               write(58,*) "Trajectory",traj_act,": not reactive!"
+               num_nonreactive=num_nonreactive+1
+            else 
+               write(58,*) "Trajectory",traj_act,": unfinished!"
+               num_unfinished=num_unfinished+1
+            end if
          end if
       end do
 !
@@ -964,7 +1013,6 @@ if (rank .eq. 0) then
    do j=1,loop_rest
       call mpi_recv(message, 3*natoms*nbeads+1, MPI_DOUBLE_PRECISION, MPI_ANY_SOURCE,tag_mpi, &
          & MPI_COMM_WORLD,status,ierr)
-      traj_result=int(message(1))
       do k=1,1
          do l=1,natoms
             do m=1,3
@@ -972,6 +1020,14 @@ if (rank .eq. 0) then
             end do
          end do
       end do
+      if (message(1) .gt. 0.99999d0) then
+         write(58,*) "Trajectory",traj_act,": reactive!"
+      else if (message(1) .lt. 0.00000d0) then
+         write(58,*) "Trajectory",traj_act,": not reactive!"
+      else
+         write(58,*) "Trajectory",traj_act,": unfinished!"
+      end if
+
    end do
 !
 !     Append final structures to XDATCAR_end file
@@ -1024,8 +1080,16 @@ else
       if (numwork .eq. -1) then
          exit
       end if
+!
+!     Set structure of the worker to the initial structure 
+!
+      q_i=q_i_initial
+!
+!     Define the number of the current trajectory
+!
+
       traj_act=(numwork-1)*(psize-1)+rank
-      write(*,'(a,i7,a,i7,a)') " Start trajectory",(numwork-1)*(psize-1)+rank," of ",num_traj," ..."
+      write(*,'(a,i7,a,i7,a)') " Start trajectory",traj_act," of ",num_traj," ..."
 !
 !     File name for trajectory file of each trajectory (only is write_traj is activated!)
 !
@@ -1057,6 +1121,39 @@ else
             p_i(3,j,1)=-p_i(3,j,1)
          end if
       end do
+!
+!     Scale the total momentum of the gas phase molecule to the value ordered 
+!     by COLL_ENER:
+!     Calculation: COLL_ENER is the total kinetic energy of the molecule, in eV
+!     The momentum p_i in Caracal is given in atomic units: hbar/a_0 
+!     firt, convert kinetic energy to Hartree:
+!   
+      coll_e_at=coll_ener/evolt
+!
+!     Then, use the formula for momentum from kinetic energy (p=sqrt(2m*Ek)):
+!
+      mom_fac=sqrt(2*(mass(natoms-1)+mass(natoms))*coll_e_at)
+!
+!     Determine the total momentum vector of the gas phase molecule
+!
+      p_mol_tot=p_i(:,natoms-1,1)+p_i(:,natoms,1)
+! 
+!     Determine the length of the total momentum vector
+!
+      p_mol_abs=sqrt(p_mol_tot(1)**2+p_mol_tot(2)**2+p_mol_tot(3)**2)
+!
+!     Now increase the length of the total momentum vector of the gas phase
+!     molecules until it is equal to the proposed total energy of it
+!
+      p_factor=mom_fac/p_mol_abs
+  
+      if (p_factor .gt. 1) then
+         p_i(:,natoms-1,1)=p_i(:,natoms-1,1)+(p_factor-1)*p_mol_tot/p_mol_abs
+         p_i(:,natoms,1)=p_i(:,natoms,1)+(p_factor-1)*p_mol_tot/p_mol_abs 
+      else
+         p_i(:,natoms-1,1)=p_i(:,natoms-1,1)-(1-p_factor)*p_mol_tot
+         p_i(:,natoms,1)=p_i(:,natoms,1)-(1-p_factor)*p_mol_tot
+      end if
 
       do istep = 1, nstep
          analyze=.false.
@@ -1072,15 +1169,49 @@ else
          epot=0.d0
          call verlet (istep,dt,derivs,epot,ekin,afm_force,xi_ideal,xi_real,dxi_act, &
                   & round,constrain,analyze,rank)
+!
+!     After each MD step, check if the trajectory was reactive or not! 
+!     If a descision can be made, abort it and finish the job
+!     Not reactive: z-position (COM) is above the inital position (molecule was 
+!       reflected by the surface and moves upwards)
+!     Reactive: bond length is more than 1.3 times the initial value (molecule
+!       has dissociated) (other criteria, like low z momentum over more
+!       than xx steps could be applied as well?)
+!
+!     The nonreactive case:
+!
+         if ((q_i(3,natoms-1,1)+q_i(3,natoms,1))/2d0 .gt. z_com_init) then
+            write(*,'(a,i7,a,i7,a)') " Trajectory No. ",traj_act," was not reactive! (MD step:",istep,")"
+            message(1)=0.d0
+            exit
+         end if
+!
+!     The reactive case:
+!
+         bond_ads_vec=(q_i(:,natoms-1,1)-q_i(:,natoms,1))
+         call box_image(bond_ads_vec)
+         if (sqrt(dot_product(bond_ads_vec,bond_ads_vec)) .gt. (1.3d0*bond_len_init)) then
+            write(*,'(a,i7,a,i7,a)') " Trajectory No. ",traj_act," was reactive! (MD step:",istep,")"
+            message(1)=1.d0
+            exit
+         end if
+
+
       end do
       if (write_trajs) then
          close(28)
       end if
-
+!
+!     If no reactivity could be measured at all (reaction not finished?)
+!     assign a message of 0.5 (average case)
+!
+      if (istep .eq. nstep+1) then
+         write(*,'(a,i7,a)') " Trajectory No. ",traj_act," could not be classified!"
+         message(1)=0.5d0
+      end if
 !
 !     Send back the message with the result: does the molecule stick to the surface?
 !
-      message(1)=1    
       do i=1,nbeads
          do j=1,natoms
             do k=1,3
@@ -1098,7 +1229,8 @@ call mpi_barrier(mpi_comm_world,ierr)
 if (mace_ase) then
    call system("touch end_cycle")
 end if
-
+close(57)
+close(58)
 
 !
 !    If MACE is called externally, terminate the python ASE script
@@ -1133,7 +1265,24 @@ if (rank .eq. 0) then
    write(*,*) 
    write(*,*) "Final structures of all trajectories are written to "
    write(*,*) " the file XDATCAR_final."
+   write(*,*) "Reactivities of all structures written to traj_results.dat"
    write(*,*)
+!
+!     Calculate and write the resulting sticking coefficient:
+!
+   write(*,'(a,i7)') "  - Number of reactive trajectories: ",num_reactive
+   write(*,'(a,i7)') "  - Number of nonreactive trajectories: ",num_nonreactive
+   write(*,'(a,i7)') "  - Number of not finished trajectories: ",num_unfinished
+   write(*,*) 
+   if ((num_unfinished) .eq. num_traj) then
+      write(*,*) "All trajectories are unfinished!"
+      write(*,*) "No Sticking coefficient can be determined."
+   else
+      write(*,'(a,f12.7)') "  The resulting sticking coefficient is: ",real(num_reactive)/&
+                & real(num_reactive+num_nonreactive)
+   end if
+   write(*,*) 
+
    write(*,'(A, F12.3, A)') " The calculation needed a time of",duration_omp," seconds."
 !write(*,'(A, i10, A)') " The calculation needed a time of ",duration_omp," seconds."
    write(*,*)

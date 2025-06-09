@@ -48,7 +48,6 @@ real(kind=8)::w(3)
 !
 !     Precalculate frequently used variables
 !
-
 ekt=1.380649E-23/4.3597447E-18*kelvin
 nc = 5
 ns = 3
@@ -61,12 +60,21 @@ eksum=0.d0
 
 !
 !     first, calculate the kinetic energy by applying the centroid-momenta approximation
+!     For stick_coeff program: exclude the atoms of the gas phase molecule!
 !
-do i=1,natoms
-   do j=1,nbeads
-      eksum=eksum+dot_product(p_i(:,i,j),p_i(:,i,j))/(2d0*mass(i))/nbeads/nbeads
+if (use_stick_coeff) then
+   do i=1,natoms-2
+      do j=1,nbeads
+         eksum=eksum+dot_product(p_i(:,i,j),p_i(:,i,j))/(2d0*mass(i))/nbeads/nbeads
+      end do
    end do
-end do
+else
+   do i=1,natoms
+      do j=1,nbeads
+         eksum=eksum+dot_product(p_i(:,i,j),p_i(:,i,j))/(2d0*mass(i))/nbeads/nbeads
+      end do
+   end do
+end if
 !
 !     Calculate the actual kinetic energy via the virial theorem
 !  
@@ -120,15 +128,25 @@ do i = 1, nc
 end do
 !
 !    Rescale the momenta
+!    For stick_coeff: exclude colliding molecule
 !
-do i = 1, natoms
-   do j=1,nbeads
-      do k = 1, 3
-         p_i(k,i,j) = scale * p_i(k,i,j)
+if (use_stick_coeff) then
+   do i = 1, natoms-2
+      do j=1,nbeads
+         do k = 1, 3
+            p_i(k,i,j) = scale * p_i(k,i,j)
+         end do
       end do
    end do
-end do
-
+else
+   do i = 1, natoms
+      do j=1,nbeads
+         do k = 1, 3
+            p_i(k,i,j) = scale * p_i(k,i,j)
+         end do
+      end do
+   end do
+end if
 return
 end subroutine nhc 
 

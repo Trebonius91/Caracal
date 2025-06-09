@@ -915,13 +915,7 @@ if (use_calc_rate .or. use_stick_coeff .or. rank .eq. 0) then
    else if (constrain .eq. 1) then
       call umbrella(centroid,xi_ideal,int_ideal,xi_real,dxi_act,derivs,1)
    else if (constrain .eq. 2) then
-!   write(*,*) "derivs_before",derivs,xi_real
-!   write(*,*) "potential!",derivs
-!   write(*,*) "centrooid!",centroid
       call umbrella(centroid,xi_ideal,int_ideal,xi_real,dxi_act,derivs,1)
-!   write(*,*) "dxii",dxi_act
-!   stop "Bogougvo"
-!   write(*,*) "derivs_after",derivs,xi_real
    else if (constrain .eq. 3) then
       call umbrella(centroid,xi_ideal,int_ideal,xi_real,dxi_act,derivs,0)
    end if
