@@ -110,6 +110,8 @@ integer::round,constrain
 character(len=60)::mirror_file
 !   for eval_cutoff: determination of atomic environments (QMDFF)
 real(kind=8)::surr_vec_a(3),surr_vec_b(3),surr_vec_c(3)
+real(kind=8)::dtdump_cut
+integer::iwrite_cut
 !   The OMP time measurement
 real(kind=8)::time1_omp,time2_omp
 !     the evb-qmdff input
@@ -237,6 +239,7 @@ ensemble="NVE"
 nstep=0
 dt=1.d0
 dtdump=1.d0
+dtdump_cut=1.d0
 bias_mode=0  ! no umbrella sampling as default
 allocate(dxi_act(3,natoms))
 !
@@ -266,6 +269,9 @@ do i = 1, nkey_lines
 !    Time between two xyz trajectory dumps
    else if (keyword(1:11) .eq. 'TDUMP ') then
       read(record,*) names,dtdump
+!    Time between two dumps of eval_cutoff applications
+   else if (keyword(1:13) .eq. 'TDUMP_CUT ') then
+      read(record,*) names,dtdump_cut
    end if
 end do
 !
@@ -310,7 +316,10 @@ end if
 !    The write frequency
 !
 iwrite = nint(dtdump/(dt))
-
+!     
+!    The write frequency for the cutoff evaluation
+!     
+iwrite_cut = nint(dtdump_cut/(dt))
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!     Read the parameter for the NVE ensemble     !!
@@ -1467,7 +1476,7 @@ do istep = 1, nstep
 !     The central atom is also printed out
 !
    if (eval_cutoff) then
-      if (mod(istep,iwrite) .eq. 0) then
+      if (mod(istep,iwrite_cut) .eq. 0) then
          do i=1,natoms
             idum=0
             do j=1,natoms

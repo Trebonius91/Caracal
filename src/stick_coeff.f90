@@ -951,7 +951,7 @@ if (rank .eq. 0) then
       end do
 !
 !     recieve results from all slaves for the i'th round
-!     Only consider first bead now (layer maybe centroid?)
+!     Only consider first bead now (later maybe centroid?)
 !     and add status of current run (reactive, nonreactive, n.a.) to traj_results.dat file
 !
       do j=1,psize-1
@@ -969,7 +969,7 @@ if (rank .eq. 0) then
             if (message(1) .gt. 0.99999d0) then
                write(58,*) "Trajectory",traj_act,": reactive!"   
                num_reactive=num_reactive+1            
-            else if (message(1) .lt. 0.00000d0) then
+            else if (message(1) .lt. 0.00001d0) then
                write(58,*) "Trajectory",traj_act,": not reactive!"
                num_nonreactive=num_nonreactive+1
             else 

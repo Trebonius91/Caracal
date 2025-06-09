@@ -622,7 +622,7 @@ if (calc_egrad) then
       call gettext (record,keyword,next)
       call upcase (keyword)
       string = record(next:120)
-      if (keyword(1:16) .eq. 'eval_cutoff ') then
+      if (keyword(1:16) .eq. 'EVAL_CUTOFF ') then
          eval_cutoff_2=.true.
       end if
    end do
@@ -954,7 +954,7 @@ if (calc_egrad) then
          do i=1,natoms
             if ((g_evb(1,i) .gt. 1E-10) .or. (g_evb(2,i) .gt. 1E-10) &
                      &.or. (g_evb(3,i) .gt. 1E-10)) then
-               write(218,*) name(i),coord(:,i)*bohr,g_evb(:,i)
+               write(218,*) name(i),coord(:,i)*bohr,g_evb(:,i),i
             end if
          end do
       end if        
