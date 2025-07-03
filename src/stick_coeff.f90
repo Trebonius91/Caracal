@@ -135,6 +135,16 @@ integer::rank
 integer::threads,id
 real(kind=8)::duration_omp
 
+!Variables used for the new reactivity criterion:
+integer :: num_steps = 0                  !Number of steps the molecule has spent below z_crit
+integer :: num_steps_crit                 !Number of steps the molecule needs to stay below z_crit
+real(kind=8) :: z_crit                    !Height below which molecule needs to stay for be trapped (q_i(3, num_metal_crit,...) + d_crit)
+real(kind=8),parameter :: d_crit = 6.50   !Distance above surface inside which molecule needs to stay, in Bohr               
+integer, parameter :: t_crit = 200        !Time during which molecule needs to stay below z_crit, in fs
+integer :: num_metal_crit                 !Number of the atom used to determine surface height        
+logical :: new_crit = .false.             !Logical for switching on new reactivity criteria 
+
+
 !
 !     Start MPI parallel computation:
 !     Since the whole program is executed by all processes, all "serial"
@@ -301,6 +311,14 @@ do i = 1, nkey_lines
 !
    else if (keyword(1:15) .eq. 'BOND_CRIT ') then
       read(record,*) names,bond_crit
+
+   else if (keyword(1:15) .eq. 'Z_ATOM') then
+      read(record,*) names,num_metal_crit
+
+   else if (keyword(1:15) .eq. 'NEW_CRIT') then
+      new_crit = .true.
+
+
 
    end if
 end do
@@ -726,6 +744,8 @@ if (npt .and. .not. periodic) then
    end if
    call fatal
 end if
+
+
 !
 !     initialize and setup dynamics
 !     --> allocate arrays for positions (q_i) and momenta (p_i) and 
@@ -736,7 +756,7 @@ do k=1,nbeads
    do i=1,natoms
       q_i(1,i,k)=x(i)/bohr
       q_i(2,i,k)=y(i)/bohr
-      q_i(3,i,k)=z(i)/bohr    
+      q_i(3,i,k)=z(i)/bohr
    end do
 end do
 !
@@ -1040,10 +1060,13 @@ if (rank .eq. 0) then
       end do
       if (message(1) .gt. 0.99999d0) then
          write(58,*) "Trajectory",traj_act,": reactive!"
+         num_reactive=num_reactive+1
       else if (message(1) .lt. 0.00001d0) then
          write(58,*) "Trajectory",traj_act,": not reactive!"
+         num_nonreactive=num_nonreactive+1
       else
          write(58,*) "Trajectory",traj_act,": unfinished!"
+         num_unfinished=num_unfinished+1
       end if
 
    end do
@@ -1198,38 +1221,61 @@ else
             message(1)=0.d0
             exit
          end if
-!
-!     The reactive case:
-!
-         q_i1_frac=matmul(coord_inv,q_i(:,natoms-1,1)*bohr)
-         q_i2_frac=matmul(coord_inv,q_i(:,natoms,1)*bohr)
 
-         bond_ads_vec=q_i1_frac-q_i2_frac
+
+!
+!     The reactive case (molecule stays longer than t_crit above surface):
+!
+         if (new_crit .eqv. .true.) then
+            num_steps_crit = int(t_crit / (dt*2.41888428E-2))
+            z_crit = d_crit + q_i(3,num_metal_crit,1)
+
+            if ((q_i(3,natoms-1,1)+q_i(3,natoms,1))/2d0 .le. z_crit) then
+               num_steps = num_steps + 1
+               if (num_steps .ge. num_steps_crit) then 
+                  write(*,'(a,i7,a,i7,a)') " Trajectory No. ",traj_act," was reactive! (MD step:",istep,")"
+                  message(1)=1.d0
+                  exit
+               end if
+            else
+               num_steps = 0
+            end if
+         else 
+
+
+
+!
+!     The reactive case: (bond length > 2x initial bond length)
+!        
+            q_i1_frac=matmul(coord_inv,q_i(:,natoms-1,1)*bohr)
+            q_i2_frac=matmul(coord_inv,q_i(:,natoms,1)*bohr)
+
+            bond_ads_vec=q_i1_frac-q_i2_frac
 !
 !    Correct the x,y and z components
 !
-         do while (abs(bond_ads_vec(1)) .gt. 0.5d0)
-            bond_ads_vec(1)=bond_ads_vec(1)-sign(1.0d0,bond_ads_vec(1))
-         end do
-         do while (abs(bond_ads_vec(2)) .gt. 0.5d0)
-            bond_ads_vec(2)=bond_ads_vec(2)-sign(1.0d0,bond_ads_vec(2))
-         end do
-         do while (abs(bond_ads_vec(3)) .gt. 0.5d0)
-            bond_ads_vec(3)=bond_ads_vec(3)-sign(1.0d0,bond_ads_vec(3))
-         end do
+            do while (abs(bond_ads_vec(1)) .gt. 0.5d0)
+               bond_ads_vec(1)=bond_ads_vec(1)-sign(1.0d0,bond_ads_vec(1))
+            end do
+            do while (abs(bond_ads_vec(2)) .gt. 0.5d0)
+               bond_ads_vec(2)=bond_ads_vec(2)-sign(1.0d0,bond_ads_vec(2))
+            end do
+            do while (abs(bond_ads_vec(3)) .gt. 0.5d0)
+               bond_ads_vec(3)=bond_ads_vec(3)-sign(1.0d0,bond_ads_vec(3))
+            end do
 !
 !    Convert back to cartesian coordinates 
 !
-         bond_ads_vec=matmul(coord_mat,bond_ads_vec/bohr)
+            bond_ads_vec=matmul(coord_mat,bond_ads_vec/bohr)
 !
 !    Calculate current bond length and compare to initial one 
 !
-         if (sqrt(dot_product(bond_ads_vec,bond_ads_vec)) .gt. (bond_crit*bond_len_init)) then
-            write(*,'(a,i7,a,i7,a)') " Trajectory No. ",traj_act," was reactive! (MD step:",istep,")"
-            message(1)=1.d0
-            exit
+            if (sqrt(dot_product(bond_ads_vec,bond_ads_vec)) .gt. (bond_crit*bond_len_init)) then
+               write(*,'(a,i7,a,i7,a)') " Trajectory No. ",traj_act," was reactive! (MD step:",istep,")"
+               message(1)=1.d0
+               exit
+            end if
          end if
-
 
       end do
       if (write_trajs) then
