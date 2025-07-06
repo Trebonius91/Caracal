@@ -57,7 +57,7 @@ LINKFLAGS = -fopenmp -static-libgcc -L${MKLROOT}/lib/intel64 -Wl,--no-as-needed 
 #    - Other analytic PES
 #    - program files
 OBJS = general.o evb_mod.o qmdff.o lm_module.o debug.o h2co_mod.o \
-       pbc_mod.o fftw_mod.o xtb_mod.o \
+       pbc_mod.o fftw_mod.o xtb_mod.o inter_mace.o \
        \
        moment.o ff_e.o eabh0.o thermo.o axis.o thermocal.o heat.o \
        bonde.o gethirsh.o docm5.o cm5mod.o copyc6.o limit.o rsp.o \
@@ -117,7 +117,7 @@ OBJS = general.o evb_mod.o qmdff.o lm_module.o debug.o h2co_mod.o \
        bspline.o dftmod.o exp_switch.o nhc_npt.o opt_qmdff_ser.o \
        lm_qmdff.o water_init.o egrad_water.o ev_coord_init.o \
        external_grad.o custom_init.o custom_grad.o pgfn_init.o \
-       egrad_pgfn.o egrad_mace.o \
+       egrad_pgfn.o egrad_mace.o  \
        \
        mctc/env/accuracy.o mctc/env/error.o mctc/env/system.o \
        mctc/env/testing.o mctc/env.o mctc/io/codata2018.o mctc/io/constants.o \
@@ -266,6 +266,8 @@ all: $(OBJS)  $(EXES)
 %.o: %.F90
 	$(FC) $(FFLAGS) -c $< -o $@
 
+%.o: %.c
+	$(CC) $(CFLAGS) 
 
 #    Create the library-file
 $(LIBRARY): $(OBJS)

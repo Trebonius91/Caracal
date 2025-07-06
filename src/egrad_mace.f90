@@ -33,6 +33,7 @@
 !     part of EVB
 !
 
+
 subroutine egrad_mace(xyz2,pot_grad,e_evb)
 use evb_mod 
 use general
@@ -85,6 +86,13 @@ end if
 !   xyz_frac_act=matmul(coord_mat_inv,xyz2(:,i))
 !   xyz_direct(:,i)=xyz_frac_act
 !end do
+!
+!    Do a test for the direct call to Python via C_API wrapper
+!
+
+
+
+
 !
 !    Write the temporary POSCAR file for the MACE call
 !
