@@ -1318,24 +1318,30 @@ if (mace_ase) then
 !    For the stick_coeff program: copy the input for the ase_script 
 !    and the MACE model file to one folder for each MPI rank!
 !
-   if (rank .gt. 0) then
-      if (rank .lt. 10) then 
-         write(sys_com,'(a,i1)') "rank",rank  
-      else if (rank .lt. 100) then
-         write(sys_com,'(a,i2)') "rank",rank
-      else 
-         write(sys_com,'(a,i3)') "rank",rank
-      end if
-      call system ("mkdir "//trim(sys_com))
-      call system ("cp "//trim(ase_script)//" "//trim(sys_com))
-      call system ("cp *.model "//trim(sys_com))
-      call chdir (trim(sys_com))
-      call system("python3 "//trim(ase_script)//" > pylog 1> pyerr &")
-   else
-      if (.not. use_stick_coeff) then 
-         call system("python3 "//trim(ase_script)//" > pylog 1> pyerr &")
-      end if
-   end if
+!   if (rank .gt. 0) then
+!      if (rank .lt. 10) then 
+!         write(sys_com,'(a,i1)') "rank",rank  
+!      else if (rank .lt. 100) then
+!         write(sys_com,'(a,i2)') "rank",rank
+!      else 
+!         write(sys_com,'(a,i3)') "rank",rank
+!      end if
+!      call system ("mkdir "//trim(sys_com))
+!      call system ("cp "//trim(ase_script)//" "//trim(sys_com))
+!      call system ("cp *.model "//trim(sys_com))
+!      call chdir (trim(sys_com))
+!      call system("python3 "//trim(ase_script)//" > pylog 1> pyerr &")
+!   else
+!      if (.not. use_stick_coeff) then 
+!         call system("python3 "//trim(ase_script)//" > pylog 1> pyerr &")
+!      end if
+!   end if
+
+!
+!    New version: initialize MACE directly via Python/C Wrapper
+!
+   call mace_init(natoms,xyz,names)
+
    goto 678
 
 
@@ -2621,6 +2627,10 @@ if (rank .eq. 0) then
       else
          write(*,*) "* The simulated system has no periodicity."
       end if
+
+      stop "MACE under construction!"
+
+
    end if  
 
 !

@@ -1,11 +1,11 @@
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!
+!           
 !   CARACAL - Ring polymer molecular dynamics and rate constant calculations
 !             on black-box generated potential energy surfaces
-!
+!     
 !   Copyright (c) 2023 by Julien Steffen (mail@j-steffen.org)
 !                         Stefan Grimme (grimme@thch.uni-bonn.de) (QMDFF code)
-!
+!           
 !   Permission is hereby granted, free of charge, to any person obtaining a
 !   copy of this software and associated documentation files (the "Software"),
 !   to deal in the Software without restriction, including without limitation
@@ -24,38 +24,59 @@
 !   FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 !   DEALINGS IN THE SOFTWARE.
 !
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 !
-!     subroutine inter_mace: Dummy routines for the interface to ASE
-!      over a C wrapper for a submission of input and output to Python
-!      without file-IO      
+!     subroutine mace_init: initialize the MACE MLIP via the ASE with a 
+!      Python/C Wrapper mechanism
 !
 !     part of EVB
+! 
+subroutine mace_init(natoms,xyz_init,names_init) 
+use pbc_mod
+use inter_mace
+implicit none 
+integer,intent(in)::natoms
+real(kind=8),intent(in)::xyz_init(3,natoms)
+character(len=2),intent(in)::names_init(natoms)
+real(kind=8)::charges(natoms)
+real(kind=8),allocatable::coord_cell(:,:)
+character(len=4)::atomicsymbols(natoms)
+character(len=80)::keywords,libraryfile
+logical::lgulpoutput
+integer::ndim
+real(kind=8),allocatable::cell(:,:)
+real(kind=8)::xyz(3,natoms)
+
+!
+!     If a VASP POSCAR file is the input, take its box shape!
 !
 
-module inter_mace
+allocate(coord_cell(3,3))
+coord_cell(1:3,1:3) = 0.0d0
+if (coord_vasp) then
+   ndim=3
+   coord_cell(:,1)=vasp_a_vec
+   coord_cell(:,2)=vasp_b_vec
+   coord_cell(:,3)=vasp_c_vec
+else
+   if (periodic) then
+      ndim=3
+      coord_cell(1,1)=boxlen_x
+      coord_cell(2,2)=boxlen_y
+      coord_cell(3,3)=boxlen_z
+   else
+      ndim=0
+   end if
+end if
+!
+!  Set atomic coordinates
+!
+xyz(:,:)=xyz_init(:,:)
+atomicsymbols(:)=names_init(:)
 
-interface
-   subroutine init_mace(coords,names,natoms) bind(C)
-      use iso_c_binding
-      real(c_double),dimension(*)::coords
-      character(c_char),dimension(*)::names
-      integer(c_int)::natoms
-    
+write(*,*) "Init routine!"
+call init_mace(xyz,atomicsymbols,natoms)
 
-   end subroutine init_mace
-
-   subroutine ase_mace(coords,energy,gradient,natoms) bind(C)
-      use iso_c_binding
-      real(c_double),dimension(*)::coords
-      real(c_double),dimension(*)::gradient
-      real(c_double)::energy
-      integer(c_int)::natoms
-
-
-   end subroutine ase_mace
-
-end interface      
-
-end module inter_mace
+return
+end subroutine

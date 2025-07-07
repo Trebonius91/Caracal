@@ -8,6 +8,8 @@
 #FC = ifort  
 #   GNU/Intel Fortran compiler for MPI version
 FC = mpifort 
+#   GNU/Intel C compiler for the ASE wrapper
+CC = mpicc
 
 #   Location of the compiled and linked executables
 BINDIR = ~/bin
@@ -15,6 +17,10 @@ BINDIR = ~/bin
 #   The Caracal library file 
 LIBRARY = libcaracal.a
 CURRENT = $(shell pwd)
+#   The Python.h header files for the ASE wrapper
+PYINCLUDES = $(shell python3-config --includes)
+#   The absolute path of the directory with the Python files
+PYTHON_SRC_DIR = $(shell realpath ./C_API)
 
 #   Location of the GULP package, if compiled with Caracal
 #   Choose either Linux (for Linux) or Darwin (for Mac) 
@@ -28,11 +34,14 @@ CURRENT = $(shell pwd)
 
 #   The source files directory
 SRCDIR = src
-#   Compiler flags, should usually work
+#   Fortran Compiler flags, should usually work
 FFLAGS = -cpp -fopenmp ${GULPFF} -fno-align-commons -DPARALLEL -fallow-argument-mismatch -O1 
 #FFLAGS = -cpp -fopenmp ${GULPFF} -fno-align-commons -fallow-argument-mismatch -O1
-#   Compiler flags, debug version
+#   Fortran Compiler flags, debug version
 #FFLAGS =  -fno-align-commons -g -ffpe-trap=zero,invalid,overflow,underflow  #-ffree-form #-Wall # debug version!
+#   C Compiler flags for ASE wrapper
+CFLAGS = ${PYINCLUDES} -O2 -DPYTHON_SRC_DIR=\"$(PYTHON_SRC_DIR)\"
+
 #   Link against ownstanding Lapack, BLAS and FFTW libraries (probably deprecated)
 #LINKFLAGS = -static-libgcc -fopenmp -llapack -lblas -lfftw3 -fno-align-commons # normal version 
 #   link against Intel MKL, has been tested with GNU Fortran MPI compiler
@@ -117,7 +126,7 @@ OBJS = general.o evb_mod.o qmdff.o lm_module.o debug.o h2co_mod.o \
        bspline.o dftmod.o exp_switch.o nhc_npt.o opt_qmdff_ser.o \
        lm_qmdff.o water_init.o egrad_water.o ev_coord_init.o \
        external_grad.o custom_init.o custom_grad.o pgfn_init.o \
-       egrad_pgfn.o egrad_mace.o  \
+       egrad_pgfn.o egrad_mace.o mace_init.o  \
        \
        mctc/env/accuracy.o mctc/env/error.o mctc/env/system.o \
        mctc/env/testing.o mctc/env.o mctc/io/codata2018.o mctc/io/constants.o \
@@ -247,6 +256,8 @@ OBJS = general.o evb_mod.o qmdff.o lm_module.o debug.o h2co_mod.o \
        egrad_mueller.o egrad_o3.o egrad_ch4cn.o util_ch4cn.o  \
        egrad_nh3oh.o util_nh3oh.o main_h2co.o util_h2co.o \
        \
+       C_API/python_calls.o \
+       \
        qmdffgen.o evbopt.o dynamic.o explore.o calc_rate.o \
        black_box.o poly_qmdff.o stick_coeff.o
  
@@ -267,7 +278,7 @@ all: $(OBJS)  $(EXES)
 	$(FC) $(FFLAGS) -c $< -o $@
 
 %.o: %.c
-	$(CC) $(CFLAGS) 
+	$(CC) $(CFLAGS) -c $< -o $@
 
 #    Create the library-file
 $(LIBRARY): $(OBJS)
