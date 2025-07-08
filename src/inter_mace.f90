@@ -37,22 +37,27 @@
 module inter_mace
 
 interface
-   subroutine init_mace(coords,names,natoms) bind(C)
+!
+!     The initialization routine
+!
+   subroutine init_mace(mlip_file,coord_file,set_disp) bind(C)
       use iso_c_binding
-      real(c_double),dimension(*)::coords
-      character(c_char),dimension(*)::names
-      integer(c_int)::natoms
-    
+      character(kind=c_char),dimension(*)::mlip_file
+      character(kind=c_char),dimension(*)::coord_file
+      logical(kind=c_bool)::set_disp
 
    end subroutine init_mace
 
-   subroutine ase_mace(coords,energy,gradient,natoms) bind(C)
+!
+!     The energy+gradient calculation routine
+!
+   subroutine ase_mace(coords,unitcell,energy,gradient,natoms) bind(C)
       use iso_c_binding
       real(c_double),dimension(*)::coords
+      real(c_double),dimension(*)::unitcell
       real(c_double),dimension(*)::gradient
       real(c_double)::energy
       integer(c_int)::natoms
-
 
    end subroutine ase_mace
 

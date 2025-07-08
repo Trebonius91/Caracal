@@ -17,10 +17,16 @@ BINDIR = ~/bin
 #   The Caracal library file 
 LIBRARY = libcaracal.a
 CURRENT = $(shell pwd)
+
 #   The Python.h header files for the ASE wrapper
 PYINCLUDES = $(shell python3-config --includes)
 #   The absolute path of the directory with the Python files
 PYTHON_SRC_DIR = $(shell realpath ./C_API)
+#   For the final linking: the explicit location of the Python library
+PYTHON_LINK = $(shell python3-config --ldflags)
+#   The name of the Python library, depending on the current version
+PYTHON_LIB = -lpython$(shell python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
+
 
 #   Location of the GULP package, if compiled with Caracal
 #   Choose either Linux (for Linux) or Darwin (for Mac) 
@@ -45,7 +51,10 @@ CFLAGS = ${PYINCLUDES} -O2 -DPYTHON_SRC_DIR=\"$(PYTHON_SRC_DIR)\"
 #   Link against ownstanding Lapack, BLAS and FFTW libraries (probably deprecated)
 #LINKFLAGS = -static-libgcc -fopenmp -llapack -lblas -lfftw3 -fno-align-commons # normal version 
 #   link against Intel MKL, has been tested with GNU Fortran MPI compiler
-LINKFLAGS = -fopenmp -static-libgcc -L${MKLROOT}/lib/intel64 -Wl,--no-as-needed -lmkl_intel_lp64 -lmkl_gnu_thread -lmkl_core -lgomp -lpthread -lm -ldl 
+LINKFLAGS = -fopenmp -static-libgcc ${PYINCLUDES} \
+     -DPYTHON_SRC_DIR=\"$(PYTHON_SRC_DIR)\" -L${MKLROOT}/lib/intel64 \
+     -Wl,--no-as-needed -lmkl_intel_lp64 -lmkl_gnu_thread -lmkl_core \
+     -lgomp -lpthread ${PYTHON_LINK} ${PYTHON_LIB} -lm -ldl 
 
 
 

@@ -559,12 +559,6 @@ if (nvt) then
    end if   
 end if
 
-if (mace_ase) then
-   if (rank .gt. 0) then
-      call system ("cp ../"//trim(xyzfile)//" .")
-   end if
-end if
-
 !
 !     define the beta parameter for thermodynamics
 !
@@ -1130,15 +1124,15 @@ else
 !     File name for trajectory file of each trajectory (only is write_traj is activated!)
 !
       if (traj_act .lt. 10) then
-         write(sys_com,'(a,i1,a)') "../traj",traj_act,".xyz"
+         write(sys_com,'(a,i1,a)') "traj",traj_act,".xyz"
       else if (traj_act .lt. 100) then
-         write(sys_com,'(a,i2,a)') "../traj",traj_act,".xyz"
+         write(sys_com,'(a,i2,a)') "traj",traj_act,".xyz"
       else if (traj_act .lt. 1000) then
-         write(sys_com,'(a,i3,a)') "../traj",traj_act,".xyz"
+         write(sys_com,'(a,i3,a)') "traj",traj_act,".xyz"
       else if (traj_act .lt. 10000) then
-         write(sys_com,'(a,i4,a)') "../traj",traj_act,".xyz"
+         write(sys_com,'(a,i4,a)') "traj",traj_act,".xyz"
       else
-         write(sys_com,'(a,i4,a)') "../traj",traj_act,".xyz"
+         write(sys_com,'(a,i4,a)') "traj",traj_act,".xyz"
       end if
       if (write_trajs) then
          open(unit=28,file=sys_com,status="replace")
@@ -1306,33 +1300,9 @@ call mpi_barrier(mpi_comm_world,ierr)
 !
 !    If MACE is called externally, terminate the python ASE script
 !
-if (mace_ase) then
-   call system("touch end_cycle")
-end if
 close(57)
 close(58)
 
-!
-!    If MACE is called externally, terminate the python ASE script
-!
-if (mace_ase) then
-   if (rank .gt. 0) then
-      if (rank .lt. 10) then
-         write(sys_com,'(a,i1)') "rank",rank
-      else if (rank .lt. 100) then
-         write(sys_com,'(a,i2)') "rank",rank
-      else
-         write(sys_com,'(a,i3)') "rank",rank
-      end if
-      call system("touch end_cycle")
-      call sleep(1)
-      call system("cd ..")
-      call chdir ("..")
-      call system("rm -r "//trim(sys_com))
-   end if
-
-   call system("touch end_cycle")
-end if
 !
 !    calculate the needed time for dynamic steps
 !

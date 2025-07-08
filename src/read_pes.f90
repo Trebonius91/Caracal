@@ -57,6 +57,9 @@ character(len=70)::file_irc_struc
 character(len=70)::file_irc_ens
 character(len=70)::filets,filets2,names
 character(len=80)::coul_method,a80
+character(len=80)::mlip_file   ! the MACE MLIP file
+character(len=80)::coord_file   ! the MACE coordinate file
+logical::set_disp   ! if empirical dispersion shall be added to MACE
 character(len=80)::sys_com
 character(len=1)::qmdffnum
 real(kind=8),dimension(:,:),allocatable::coord
@@ -72,7 +75,7 @@ real(kind=8),allocatable::xyz_init(:,:)  ! geometry for pGFN-FF init
 real(kind=8)::xr,yr,zr
 real(kind=8)::x_tmp,y_tmp,z_tmp
 real(kind=8)::eval_cut
-logical::read_init_struc
+logical::read_init_struc,mlip_exist
 character(len=2),allocatable::names_init(:)   ! element symbols for pGFN-FF init
 logical::path_struc,path_energy,coupl,params
 logical::evb1,evb2,evb3,ffname1,ffname2,ffname3,defqmdff
@@ -1286,6 +1289,9 @@ if (mace_ase) then
       write(*,*) "For an example MACE script with Caracal, look into"
       write(*,*) " the Caracal wiki:  ...."
    end if         
+   mlip_file="none" 
+   coord_file="none"
+   set_disp=.false.
    do i = 1, nkey_lines
       next = 1
       record = keyline(i)
@@ -1302,18 +1308,78 @@ if (mace_ase) then
             call gettext (record,keyword,next)
             call upcase (keyword)
             record=adjustl(record)
-            if (keyword(1:10) .eq. 'ASE_SCRIPT ') then
-               read(record(11:120),'(a)') ase_script
+!
+!     The file name of the MACE MLIP
+!
+            if (keyword(1:10) .eq. 'MLIP_FILE ') then
+               read(record(11:120),'(a)',iostat=readstat) mlip_file
+               if (readstat .ne. 0) then
+                  if (rank .eq. 0) then
+                     write(*,*) "Correct format: MLIP_FILE [File name of MACE potential]"
+                  end if
+                  call fatal
+               end if
+!
+!     The file name of the initial structure 
+!
+            else if (keyword(1:11) .eq. 'COORD_FILE ') then
+               read(record(12:120),'(a)',iostat=readstat) coord_file
+               if (readstat .ne. 0) then
+                  if (rank .eq. 0) then
+                     write(*,*) "Correct format: COORD_FILE [File name of initial coordinates]"
+                  end if
+                  call fatal
+               end if
+!
+!     If D3 dispersion shall be added to MACE or not
+!
+            else if (keyword(1:10) .eq. 'ADD_DISP ') then
+               set_disp=.true.
             end if
             if (keyword(1:11) .eq. '}') exit
             if (j .eq. nkey_lines-i) then
-               write(*,*) "The MACE section has no second delimiter! (})"
+               if (rank .eq. 0) then
+                  write(*,*) "The MACE section has no second delimiter! (})"
+               end if
                call fatal
             end if
 
          end do
       end if
    end do
+!
+!    Check if the MLIP_FILE command is given and if the file actually exists
+!
+   if (trim(mlip_file) .eq. "none") then
+      if (rank .eq. 0) then
+         write(*,*) "Please give the MLIP_FILE command in the MACE section!"
+      end if
+      call fatal
+   end if
+   inquire(file=trim(mlip_file),exist=mlip_exist) 
+   if (.not. mlip_exist) then
+      if (rank .eq. 0) then
+         write(*,*) "The file ",trim(mlip_file)," is not there!"
+      end if
+      call fatal
+   end if
+!
+!    Check if the COORD_FILE command is given and if the file exists
+!
+   if (trim(coord_file) .eq. "none") then
+      if (rank .eq. 0) then
+         write(*,*) "Please give the COORD_FILE command in the MACE section!"
+      end if
+      call fatal
+   end if
+   inquire(file=trim(coord_file),exist=mlip_exist)
+   if (.not. mlip_exist) then
+      if (rank .eq. 0) then
+         write(*,*) "The file ",trim(coord_file)," is not there!"
+      end if
+      call fatal
+   end if
+
 !
 !    For the stick_coeff program: copy the input for the ase_script 
 !    and the MACE model file to one folder for each MPI rank!
@@ -1340,7 +1406,7 @@ if (mace_ase) then
 !
 !    New version: initialize MACE directly via Python/C Wrapper
 !
-   call mace_init(natoms,xyz,names)
+   call mace_init(mlip_file,coord_file,set_disp)
 
    goto 678
 
@@ -2605,7 +2671,13 @@ if (rank .eq. 0) then
 !
    if (mace_ase) then
       write(*,*) "* PES description: MACE MLIP from external ASE routine"
-      write(*,*) "*  Name of called ASE script: ",trim(ase_script)
+      write(*,*) "*  Name of MACE MLIP file: ",trim(mlip_file)
+      write(*,*) "*  Name of initial coordinate file: ",trim(coord_file)
+      if (set_disp) then
+         write(*,*) "*  Empirical D3 dispersion will be added."   
+      else
+         write(*,*) "*  No empirical D3 dispersion will be added."
+      end if
       if (natoms .gt. 0) then
          write(*,'(a,i8)') " *  Number of atoms: ",natoms
       end if
@@ -2627,10 +2699,6 @@ if (rank .eq. 0) then
       else
          write(*,*) "* The simulated system has no periodicity."
       end if
-
-      stop "MACE under construction!"
-
-
    end if  
 
 !

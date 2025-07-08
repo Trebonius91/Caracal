@@ -1,5 +1,36 @@
-# This script serves to call the MACE energy and gradients for a Caracal
-#  calculation, where Caracal uses the respective MACE commands
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#
+#   CARACAL - Ring polymer molecular dynamics and rate constant calculations
+#             on black-box generated potential energy surfaces
+#
+#   Copyright (c) 2023 by Julien Steffen (mail@j-steffen.org)
+#                         Stefan Grimme (grimme@thch.uni-bonn.de) (QMDFF code)
+#
+#   Permission is hereby granted, free of charge, to any person obtaining a
+#   copy of this software and associated documentation files (the "Software"),
+#   to deal in the Software without restriction, including without limitation
+#   the rights to use, copy, modify, merge, publish, distribute, sublicense,
+#   and/or sell copies of the Software, and to permit persons to whom the
+#   Software is furnished to do so, subject to the following conditions:
+#
+#   The above copyright notice and this permission notice shall be included in
+#   all copies or substantial portions of the Software.
+#
+#   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+#   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+#   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+#   THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+#   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+#   FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+#   DEALINGS IN THE SOFTWARE.
+#
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+#
+#     Python-file call_mace: Initialization and usage of MACE, called via the 
+#      C-wrapper routines
+#
+
 from ase import units
 from ase import build
 from ase.md.langevin import Langevin
@@ -17,19 +48,40 @@ import os
 from mace.calculators import mace_mp
 import sys
 
-def init_mace:
 #
-#   Define the MACE model
+#    Predefine global objects that are preserved in memory during simulation
 #
-   #macemp = mace_mp() # return the default medium ASE calculator equivalent to mace_mp(model="medium")
-   #macemp = mace_mp(model="large") # return a larger model
-   #macemp = mace_mp(model="https://tinyurl.com/y7uhwpje") # downlaod the model at the given url
-   macemp = mace_mp(model="./mace_fine_tuning_run2_run-1.model") # return a model with D3 dispersion correction
+
+atoms=None
+calc=None
+
+#
+#    The initialization routine: read in the MACE MLIP and define it for the 
+#      current geometry/system
+#
+def init_mace(mlip_file,coord_file,set_disp):
+#
+#    Redefine global variables
+#
+   global atoms, calc
+#
+#    Define the MACE model
+#
+#
+#    Returns a model with D3 dispersion correction
+#
+   if set_disp:
+      macemp = mace_mp(model=mlip_file,dispersion=True)
+#
+#    Returns a model without D3 dispersion correction
+#
+   else:
+      macemp = mace_mp(model=mlip_file,dispersion=False) 
 
 #
 #    Read in the initial geometry from the POSCAR file and initialize the atoms object
 #
-   atoms = read('POSCAR')
+   atoms = read(coord_file)
 
    natoms = len(atoms)
 #
@@ -37,13 +89,29 @@ def init_mace:
 #
    calc = macemp
 
+   if atoms is None or calc is None:
+      raise RuntimeError("init_mace must be called before ase_mace")
+
+#
+#    The energy+gradient calculation routine: call MACE to calculate energy 
+#     and gradient for the current structure
+#
 def ase_mace(coords,unitcell,natoms):
+#  
+#    Redefine global variables
+#
+
+   global atoms, calc
 
 
-   xyz = np.zeros((natoms,3))
-   xyz = coords
+   if atoms is None or calc is None:
+      raise RuntimeError("init_mace must be called before ase_mace")
+
+#
+#    Update coordinates in global atoms object
+#
    atoms.set_cell(unitcell)
-   atoms.set_positions(xyz)
+   atoms.set_positions(coords)
 #
 #    Perform the actual MACE calculation for potential energy 
 #     and the forces
@@ -51,5 +119,8 @@ def ase_mace(coords,unitcell,natoms):
    atoms.calc=calc
    energy=atoms.get_potential_energy()
    gradient=atoms.get_forces()
-
-   return energy,gradient
+#
+#    Return the gradient as usual list insteaf of a numpy array to avoid a 
+#     Segmentation Fault on the C side!
+#
+   return energy,gradient.tolist()

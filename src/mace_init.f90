@@ -32,51 +32,17 @@
 !
 !     part of EVB
 ! 
-subroutine mace_init(natoms,xyz_init,names_init) 
+subroutine mace_init(mlip_file,coord_file,set_disp) 
 use pbc_mod
 use inter_mace
+
 implicit none 
-integer,intent(in)::natoms
-real(kind=8),intent(in)::xyz_init(3,natoms)
-character(len=2),intent(in)::names_init(natoms)
-real(kind=8)::charges(natoms)
-real(kind=8),allocatable::coord_cell(:,:)
-character(len=4)::atomicsymbols(natoms)
-character(len=80)::keywords,libraryfile
-logical::lgulpoutput
+character(len=80)::keywords,mlip_file,coord_file
+logical(1)::set_disp
 integer::ndim
-real(kind=8),allocatable::cell(:,:)
-real(kind=8)::xyz(3,natoms)
 
-!
-!     If a VASP POSCAR file is the input, take its box shape!
-!
 
-allocate(coord_cell(3,3))
-coord_cell(1:3,1:3) = 0.0d0
-if (coord_vasp) then
-   ndim=3
-   coord_cell(:,1)=vasp_a_vec
-   coord_cell(:,2)=vasp_b_vec
-   coord_cell(:,3)=vasp_c_vec
-else
-   if (periodic) then
-      ndim=3
-      coord_cell(1,1)=boxlen_x
-      coord_cell(2,2)=boxlen_y
-      coord_cell(3,3)=boxlen_z
-   else
-      ndim=0
-   end if
-end if
-!
-!  Set atomic coordinates
-!
-xyz(:,:)=xyz_init(:,:)
-atomicsymbols(:)=names_init(:)
-
-write(*,*) "Init routine!"
-call init_mace(xyz,atomicsymbols,natoms)
+call init_mace(trim(mlip_file),trim(coord_file),set_disp)
 
 return
 end subroutine

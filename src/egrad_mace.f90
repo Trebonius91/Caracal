@@ -38,6 +38,7 @@ subroutine egrad_mace(xyz2,pot_grad,e_evb)
 use evb_mod 
 use general
 use pbc_mod
+use inter_mace
 
 implicit none
 real(kind=8)::xyz2(3,natoms)
@@ -89,47 +90,46 @@ end if
 !
 !    Do a test for the direct call to Python via C_API wrapper
 !
-
-
-
+call ase_mace(xyz2*bohr,coord_mat,e_evb,pot_grad,natoms)
 
 !
 !    Write the temporary POSCAR file for the MACE call
 !
-open(unit=19,file="POSCAR_tmp",status="replace")
-write(19,*) coord_mat(:,1)
-write(19,*) coord_mat(:,2)
-write(19,*) coord_mat(:,3)
-do i=1,natoms
-   write(19,*) xyz2(:,i)*bohr
-end do
-close(19)
+!open(unit=19,file="POSCAR_tmp",status="replace")
+!write(19,*) coord_mat(:,1)
+!write(19,*) coord_mat(:,2)
+!write(19,*) coord_mat(:,3)
+!do i=1,natoms
+!   write(19,*) xyz2(:,i)*bohr
+!end do
+!close(19)
 
 !
 !    Generate the empty start_read file as signal that the
 !    ASE Python script can read the structure and 
 !    perform the calculation
 !
-call system("touch start_read")
-do
+!call system("touch start_read")
+!do
 !   call sleep(1)
 !   write(*,*) "looop"
-   INQUIRE(FILE="end_calc", EXIST=file_exists)
-   if (file_exists) exit
-end do
-call system("rm end_calc")
+!   INQUIRE(FILE="end_calc", EXIST=file_exists)
+!   if (file_exists) exit
+!end do
+!call system("rm end_calc")
 !
 !    Read the resulting energy and gradients
 !
-open(unit=21,file="MACE_results.dat",status="old")
-read(21,*) e_evb
-do i=1,natoms
-   read(21,*) pot_grad(:,i,1)
-end do
-close(21)
+!open(unit=21,file="MACE_results.dat",status="old")
+!read(21,*) e_evb
+!do i=1,natoms
+!   read(21,*) pot_grad(:,i,1)
+!end do
+!close(21)
 !
 !    Convert energy and gradient vector to atomic coordinates
 !
+
 e_evb=e_evb/evolt
 pot_grad=-pot_grad/evolt*bohr
 
