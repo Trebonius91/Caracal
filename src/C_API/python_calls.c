@@ -34,6 +34,7 @@
 
 #include <Python.h>
 #include <stdio.h>
+#include <stdbool.h>
 
 static PyObject *pModule = NULL;
 

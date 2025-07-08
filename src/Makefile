@@ -56,6 +56,7 @@ LINKFLAGS = -fopenmp -static-libgcc ${PYINCLUDES} \
      -Wl,--no-as-needed -lmkl_intel_lp64 -lmkl_gnu_thread -lmkl_core \
      -lgomp -lpthread ${PYTHON_LINK} ${PYTHON_LIB} -lm -ldl 
 
+LINKLIBS = libcaracal.a -lgfortran
 
 
 #   Targets by default
@@ -298,7 +299,7 @@ $(LIBRARY): $(OBJS)
 #    Generate the directory on the fly
 # $@ is the actual element on the list
 %.x: %.o libcaracal.a ${GULPLINK} 
-	${FC} ${LINKFLAGS} -o  $@ $^ $(LINKLIBS) ; strip $@
+	${FC} ${LINKFLAGS} $^ $(LINKLIBS) -o $@ ; strip $@
 	$(shell mkdir -p ../bin)
 	cp $@ ../bin/
 	mv $@ $(BINDIR) 
