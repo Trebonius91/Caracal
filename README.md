@@ -99,7 +99,11 @@ For compilation, the following dependencies are required:
 ## Compiling from Source
 
 The Makefile, which is located in the main directory, should be modified to meet your system requirements, choosing a suitable set of compiler and required libraries
-(a separate configure file will be added in the future). After, this, copy it to the src directory and run
+(a separate configure file will be added in the future). 
+Since Caracal now includes an API to call machine-learned interatomic potential (MLIP) energies+gradients from ASE, up to date Fortran and C compilers need to be present, as well as a recent Python version. 
+If the latter differs too much from the first, broken dependencies can occur during linking.
+
+After, this, copy it to the src directory and run
 ```
 $ make
 ```

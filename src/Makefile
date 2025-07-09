@@ -7,7 +7,7 @@
 #   Intel Fortran compiler
 #FC = ifort  
 #   GNU/Intel Fortran compiler for MPI version
-FC = mpifort 
+FC = mpifort
 #   GNU/Intel C compiler for the ASE wrapper
 CC = mpicc
 
@@ -56,8 +56,7 @@ LINKFLAGS = -fopenmp -static-libgcc ${PYINCLUDES} \
      -Wl,--no-as-needed -lmkl_intel_lp64 -lmkl_gnu_thread -lmkl_core \
      -lgomp -lpthread ${PYTHON_LINK} ${PYTHON_LIB} -lm -ldl 
 
-LINKLIBS = libcaracal.a -lgfortran
-
+LINKLIBS = -lgfortran
 
 #   Targets by default
 .PHONY: all
