@@ -7,7 +7,9 @@
 #   Intel Fortran compiler
 #FC = ifort  
 #   GNU/Intel Fortran compiler for MPI version
-FC = mpifort 
+FC = mpifort
+#   GNU/Intel C compiler for the ASE wrapper
+CC = mpicc
 
 #   Location of the compiled and linked executables
 BINDIR = ~/bin
@@ -15,6 +17,16 @@ BINDIR = ~/bin
 #   The Caracal library file 
 LIBRARY = libcaracal.a
 CURRENT = $(shell pwd)
+
+#   The Python.h header files for the ASE wrapper
+PYINCLUDES = $(shell python3-config --includes)
+#   The absolute path of the directory with the Python files
+PYTHON_SRC_DIR = $(shell realpath ./C_API)
+#   For the final linking: the explicit location of the Python library
+PYTHON_LINK = $(shell python3-config --ldflags)
+#   The name of the Python library, depending on the current version
+PYTHON_LIB = -lpython$(shell python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
+
 
 #   Location of the GULP package, if compiled with Caracal
 #   Choose either Linux (for Linux) or Darwin (for Mac) 
@@ -28,16 +40,23 @@ CURRENT = $(shell pwd)
 
 #   The source files directory
 SRCDIR = src
-#   Compiler flags, should usually work
-FFLAGS = -cpp -fopenmp ${GULPFF} -fno-align-commons -fallow-argument-mismatch -O1 
-#   Compiler flags, debug version
+#   Fortran Compiler flags, should usually work
+FFLAGS = -cpp -fopenmp ${GULPFF} -fno-align-commons -DPARALLEL -fallow-argument-mismatch -O1 
+#FFLAGS = -cpp -fopenmp ${GULPFF} -fno-align-commons -fallow-argument-mismatch -O1
+#   Fortran Compiler flags, debug version
 #FFLAGS =  -fno-align-commons -g -ffpe-trap=zero,invalid,overflow,underflow  #-ffree-form #-Wall # debug version!
+#   C Compiler flags for ASE wrapper
+CFLAGS = ${PYINCLUDES} -O2 -DPYTHON_SRC_DIR=\"$(PYTHON_SRC_DIR)\"
+
 #   Link against ownstanding Lapack, BLAS and FFTW libraries (probably deprecated)
 #LINKFLAGS = -static-libgcc -fopenmp -llapack -lblas -lfftw3 -fno-align-commons # normal version 
 #   link against Intel MKL, has been tested with GNU Fortran MPI compiler
-LINKFLAGS = -fopenmp -static-libgcc -L${MKLROOT}/lib/intel64 -Wl,--no-as-needed -lmkl_intel_lp64 -lmkl_gnu_thread -lmkl_core -lgomp -lpthread -lm -ldl 
+LINKFLAGS = -fopenmp -static-libgcc ${PYINCLUDES} \
+     -DPYTHON_SRC_DIR=\"$(PYTHON_SRC_DIR)\" -L${MKLROOT}/lib/intel64 \
+     -Wl,--no-as-needed -lmkl_intel_lp64 -lmkl_gnu_thread -lmkl_core \
+     -lgomp -lpthread ${PYTHON_LINK} ${PYTHON_LIB} -lm -ldl 
 
-
+LINKLIBS = -lgfortran
 
 #   Targets by default
 .PHONY: all
@@ -56,11 +75,12 @@ LINKFLAGS = -fopenmp -static-libgcc -L${MKLROOT}/lib/intel64 -Wl,--no-as-needed 
 #    - Other analytic PES
 #    - program files
 OBJS = general.o evb_mod.o qmdff.o lm_module.o debug.o h2co_mod.o \
-       pbc_mod.o fftw_mod.o xtb_mod.o \
+       pbc_mod.o fftw_mod.o xtb_mod.o inter_mace.o \
        \
        moment.o ff_e.o eabh0.o thermo.o axis.o thermocal.o heat.o \
        bonde.o gethirsh.o docm5.o cm5mod.o copyc6.o limit.o rsp.o \
-       basis0.o basis.o setsto3.o setsto4.o dex2.o ehtfull.o eht.o \
+       basis0_eht.o basis_eht.o setsto3.o setsto4.o dex2.o \
+       ehtfull.o eht.o \
        stints.o fermismear_eht.o gab.o compmodel.o ff_anal.o pqn.o   \
        ff_bond.o pairs.o lina.o ff_clean.o ff_mod.o rdfix.o getf.o \
        hbpara.o checktrip.o doeht.o abdamp.o eabhag.o eabxag.o   \
@@ -68,9 +88,9 @@ OBJS = general.o evb_mod.o qmdff.o lm_module.o debug.o h2co_mod.o \
        ff_egh.o ff_hb_two.o ff_eg_two.o ff_nonb_two.o ff_hb_three.o \
        ff_eg_three.o ff_nonb_three.o bangle.o valijkl.o valijk.o \
        crossprod.o vecnorm.o omega.o impsc.o dphidr.o domegadr.o \
-       ff_neighbor.o sort.o isort.o nneighbor.o outgeo.o ff_set.o \
+       ff_neighbor.o rsort.o isort.o nneighbor.o outgeo.o ff_set.o \
        modelgeo.o covbond.o atomthere.o avdamp.o getrot.o \
-       checkfour.o setnonb.o valel.o setr0.o ncoord.o getc6.o \
+       checkfour.o setnonb.o valel.o setr0.o ncoord_qmdff.o getc6.o \
        gaurd0.o gaurd.o rdghess.o hess.o g98fake.o trproj.o \
        gtrprojm.o blckmgs.o dsyprj.o htosq.o htpack1.o htpack2.o \
        preig2.o preig4.o rdhess.o rdohess.o rdchess.o hfit.o \
@@ -87,7 +107,7 @@ OBJS = general.o evb_mod.o qmdff.o lm_module.o debug.o h2co_mod.o \
        \
        atommass.o build_dmat.o getkey.o freeunit.o gettext.o \
        upcase.o nextarg.o getword.o basefile.o trimtext.o suffix.o \
-       version.o lowcase.o optimize_de.o optimize_dq.o lm_de_func.o \
+       version0.o lowcase.o optimize_de.o optimize_dq.o lm_de_func.o \
        lm_dq_func.o deltaq.o dg_evb_init_ser.o solving_lgs.o \
        lm_function.o mdstat.o mdrest.o invert.o verlet.o maxwell.o \
        ranvec.o erfinv.o erf.o erfcore.o temper.o matinv3.o \
@@ -115,7 +135,7 @@ OBJS = general.o evb_mod.o qmdff.o lm_module.o debug.o h2co_mod.o \
        bspline.o dftmod.o exp_switch.o nhc_npt.o opt_qmdff_ser.o \
        lm_qmdff.o water_init.o egrad_water.o ev_coord_init.o \
        external_grad.o custom_init.o custom_grad.o pgfn_init.o \
-       egrad_pgfn.o \
+       egrad_pgfn.o egrad_mace.o mace_init.o  \
        \
        mctc/env/accuracy.o mctc/env/error.o mctc/env/system.o \
        mctc/env/testing.o mctc/env.o mctc/io/codata2018.o mctc/io/constants.o \
@@ -245,11 +265,13 @@ OBJS = general.o evb_mod.o qmdff.o lm_module.o debug.o h2co_mod.o \
        egrad_mueller.o egrad_o3.o egrad_ch4cn.o util_ch4cn.o  \
        egrad_nh3oh.o util_nh3oh.o main_h2co.o util_h2co.o \
        \
+       C_API/python_calls.o \
+       \
        qmdffgen.o evbopt.o dynamic.o explore.o calc_rate.o \
-       black_box.o poly_qmdff.o 
+       black_box.o poly_qmdff.o stick_coeff.o
  
 EXES = qmdffgen.x dynamic.x evbopt.x explore.x calc_rate.x \
-       black_box.x poly_qmdff.x 
+       black_box.x poly_qmdff.x stick_coeff.x
 
 all: $(OBJS)  $(EXES)
 
@@ -264,6 +286,8 @@ all: $(OBJS)  $(EXES)
 %.o: %.F90
 	$(FC) $(FFLAGS) -c $< -o $@
 
+%.o: %.c
+	$(CC) $(CFLAGS) -c $< -o $@
 
 #    Create the library-file
 $(LIBRARY): $(OBJS)
@@ -274,10 +298,10 @@ $(LIBRARY): $(OBJS)
 #    Generate the directory on the fly
 # $@ is the actual element on the list
 %.x: %.o libcaracal.a ${GULPLINK} 
-	${FC} ${LINKFLAGS} -o  $@ $^ $(LINKLIBS) ; strip $@
+	${FC} ${LINKFLAGS} $^ $(LINKLIBS) -o $@ ; strip $@
 	$(shell mkdir -p ../bin)
 	cp $@ ../bin/
-#	mv $@ $(BINDIR) 
+	mv $@ $(BINDIR) 
 
 
 #    remove all object and executable data

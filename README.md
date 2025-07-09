@@ -162,3 +162,6 @@ Here, literature referring to the different methods included into Caracal are gi
 - 06/24/2024: Umbrella samplings and recrossing calculations were optimized, both can now be restarted more efficiently, the parallelized recrossing is now more straightforward.
 - 07/20/2024: The dynamic.x program can now be parallelized with MPI to speed up the potential energy/gradient calculations. So far, only ANN potentials can be calculated with MPI.
 - 07/20/2024: Recrossing calculations in calc_rate.x are now calculated with MPI automatically if more than one core is used, the keyword MPI in the RECROSS section is not needed anymore.
+- 08/10/2024: Behler-Parrinello neural networks (2nd generation) are now included via the aenet program source code (accessible via the aenet_ann command).
+- 06/04/2025: A new program stick_coeff.x enabling the automated calculation of molecular sticking coefficients on surfaces has been added.
+- 07/09/2025: The inclusion of several modern machine-learned interatomic potential (MLIP) distributions like MACE has been made possible by a C-wrapper to the ASE program.
