@@ -42,11 +42,16 @@ static PyObject *pModule = NULL;
 //     The initialization routine: Read in the force field and define the 
 //     structure of the system.
 //
-void init_mace(char *mlip_file, char *coord_file, bool *set_disp) {
+void init_mace(char *mlip_file, char *coord_file, int mlip_len, int coord_len, bool *set_disp) {
    PyObject *pName, *pFunc, *pArgs;
 
+//   fprintf("init start part1");
+
+   char mlip_buffer[256];
+   char coord_buffer[256];
+
 //
-//     Initiaize Python interpreter
+//     Initialize Python interpreter
 //
    Py_Initialize();
    if (!Py_IsInitialized()) {
@@ -57,6 +62,21 @@ void init_mace(char *mlip_file, char *coord_file, bool *set_disp) {
 //     Source directory of Python file added to sys.path
 //
    PyRun_SimpleString("import sys\nsys.path.append(\"" PYTHON_SRC_DIR "\")\n");
+
+//
+//     Determine lengths of transmitted strings to avoid filling with garbage
+//
+   if (mlip_len >= sizeof(mlip_buffer))
+      mlip_len = sizeof(mlip_buffer) - 1;
+
+   memcpy(mlip_buffer, mlip_file, mlip_len);
+   mlip_buffer[mlip_len] = '\0';  
+
+   if (coord_len >= sizeof(coord_buffer))
+      coord_len = sizeof(coord_buffer) - 1;
+
+   memcpy(coord_buffer, coord_file, coord_len);
+   coord_buffer[coord_len] = '\0'; 
 
 //
 //     Now call the actual Python code, first define the function!
@@ -88,11 +108,11 @@ void init_mace(char *mlip_file, char *coord_file, bool *set_disp) {
 //
 //     Pack MLIP filename into Python string
 //
-         PyTuple_SetItem(pArgs, 0, PyUnicode_FromString(mlip_file));
+         PyTuple_SetItem(pArgs, 0, PyUnicode_FromString(mlip_buffer));
 //
 //     Pack structure filename into Python string
 //
-         PyTuple_SetItem(pArgs, 1, PyUnicode_FromString(coord_file));
+         PyTuple_SetItem(pArgs, 1, PyUnicode_FromString(coord_buffer));
 //
 //     Pack dispersion switch into Python string
 //
