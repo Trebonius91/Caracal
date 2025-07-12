@@ -701,6 +701,7 @@ if (pot_ana) then
       write(*,*) "10)   CH4 + CN  (CH4CN)   (7 atoms: H, C, H, H, H, C, N)"
       write(*,*) "11)   GeH4 + OH (GeH4OH)  (7 atoms: H, Ge, H, H, H, O, H)"
       write(*,*) "12)   C2H6 + H  (C2H7)    (9 atoms: C, H, H, H, C, H, H, H, H)"
+      write(*,*) "13)   C2H + CN (CH6CN)    (10 atoms: C, C, H, H, H, H, H, H, C, N)"
       write(*,*)
       write(15,*) "Infos about potential initialization written to file pot_info.out."
       write(15,*)

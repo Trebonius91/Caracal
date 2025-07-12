@@ -106,7 +106,6 @@ allocate(V_mat(Nn,Nn))
 allocate(Eigval(Nn))
 allocate(WORK(LWORK))
 allocate(ipiv(Nn))
-
 !
 !     (1) Calculate gradient and hessian for the input structure
 !

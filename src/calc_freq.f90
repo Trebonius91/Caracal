@@ -281,52 +281,64 @@ do i=1,natoms
    coord(:,i)=coord(:,i)-com_coord(:)
 end do
 
-
 !
 !     Write molden format output file for full system 
 !
-open(unit=49,file="explore.molden",status="replace")
-write(49,*) "[Molden Format]"
-write(49,*) "[Atoms] Angs"
-do i=1,natoms
+!
+if (calc_freq_int) then
+   open(unit=49,file="explore.molden",status="replace")
+   write(49,*) "[Molden Format]"
+   write(49,*) "[Atoms] Angs"
+   do i=1,natoms
 !   write(*,*) " ",name(i),i,elem_index(i),coord(:,i)
-   write(49,'(a,a,i7,i4,3f12.6)') " ",name(i),i,elem_index(i), &
+      write(49,'(a,a,i7,i4,3f12.6)') " ",name(i),i,elem_index(i), &
                 & coord(:,i)
-end do
-write(49,*) "[FREQ]"
-do i=1,3*(natoms-fix_num)
-   write(49,'(f10.4)') W(3*(natoms-fix_num)-i+1)
-end do
-write(49,*) "[INT]"
-if (sum(totintens) .lt. 1d0) then
-   do i=1,3*(natoms-fix_num)
-      write(49,'(f10.4)') 1.d0
-   end do   
-else
-   do i=1,3*(natoms-fix_num)
-      write(49,'(f10.4)') totintens(i)
    end do
-end if
-write(49,*) "[FR-COORD]"
-do i=1,natoms
-   write(49,'(a,a,3f11.6)') " ",name(i),coord(:,i)/bohr
-end do
-write(49,*) "[FR-NORM-COORD]"
-do i=1,3*(natoms-fix_num)
-   write(49,'(a,i7)') "vibration",i
-   ind=1
-   do j=1,natoms
-      write(49,'(3f11.6)') n_vib2(:,j,i)
+   write(49,*) "[FREQ]"
+   do i=1,3*(natoms-fix_num)
+      write(49,'(f10.4)') W(3*(natoms-fix_num)-i+1)
    end do
-end do
-close(49)
-write(*,*)
-write(*,*) "File 'explore.molden' for mode visualization (all atoms) written!"
+   write(49,*) "[INT]"
 
+   if (sum(totintens) .lt. 1d0) then
+      do i=1,3*(natoms-fix_num)
+         write(49,'(f10.4)') 1.d0
+      end do   
+   else
+      do i=1,3*(natoms-fix_num)
+         write(49,'(f10.4)') totintens(i)
+      end do
+   end if
+   write(49,*) "[FR-COORD]"
+   do i=1,natoms
+      write(49,'(a,a,3f11.6)') " ",name(i),coord(:,i)/bohr
+   end do
+   write(49,*) "[FR-NORM-COORD]"
+   do i=1,3*(natoms-fix_num)
+      write(49,'(a,i7)') "vibration",i
+      ind=1
+      do j=1,natoms
+         write(49,'(3f11.6)') n_vib2(:,j,i)
+      end do
+   end do
+   close(49)
+   write(*,*)
+   write(*,*) "File 'explore.molden' for mode visualization (all atoms) written!"
+end if
 !
 !    return unchanged hessian
 !
 hess=hess_backup 
+
+!
+!    for return of frequencies
+!
+freqs=W
+!
+!   Now, if desired, calculate the normal mode cartesian displacements!!
+!
+eigvecs=A_Mat
+
  
 deallocate(A_mat,W,work,n_vib,coord)
 return
