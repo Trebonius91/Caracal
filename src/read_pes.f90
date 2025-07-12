@@ -640,6 +640,26 @@ else if (method .eq. "ANA_C2H7") then
 !   (no initialization needed)
    natoms=9  ! store number of atoms..
    pot_ana=.true.
+else if (method .eq. "ANA_C2H6CN") then
+   if (rank .eq. 0) then
+      open(unit=16,file="pot_info.out",status="unknown")
+      write(16,*) "Informational output about the used analytical PES:"
+      if (rank .eq. 0) then
+         write(*,*) "----------"
+      end if
+      write(15,*) "The C2H6+CN potential energy surface is used."
+      write(15,*) "References:  Joaquin Espinosa-Garcia and Cipriano Rangel"
+      write(15,*) "             J. Chem. Phys., 159, 124307 (2023)."
+      write(15,*)
+      write(*,*) "The C2H6+CN potential energy surface is used."
+      write(*,*) "References:  Joaquin Espinosa-Garcia and Cipriano Rangel"
+      write(*,*) "             J. Chem. Phys., 159, 124307 (2023)."
+      write(*,*)
+   end if
+   pot_type="c2h6cn"
+!   (no initialization needed)
+   natoms=10  ! store number of atoms..
+   pot_ana=.true.
 else if (method .eq. "TOPOL") then
    if (rank .eq. 0) then
       if (.not. use_explore) then
