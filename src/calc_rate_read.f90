@@ -183,6 +183,10 @@ fix_atoms=.false.
 nve = .false.
 !     No NpT ensemble will be used 
 npt = .false.
+!     If a trajectory of equilibration frames shall be written
+print_equi=.false.
+!     The frequency of print_equi frames (each N equilibration frame written)
+print_equi_freq=0
 !     No periodic calculation
 periodic = .false.
 
@@ -268,7 +272,18 @@ do i = 1, nkey_lines
       if (readstat .ne. 0) then 
          write(*,*) "Correct format: RPMD_XI_TOL [coordinate tolerance (a.u.)]"
          call fatal
-      end if      
+      end if 
+!
+!     if structures during the equilibration phase shall be 
+!      printed to a trajectory (e.g., for MLIP trainings)
+!
+   else if (keyword(1:20) .eq. 'PRINT_EQUI ') then
+      print_equi=.true.
+      read(record,*,iostat=readstat) names,print_equi_freq
+      if (readstat .ne. 0) then
+         write(*,*) "Correct format: PRINT_EQUI [Write frequency]"
+         call fatal
+      end if     
    else if (keyword(1:20) .eq. 'GEN_TEST ') then
       gen_test = .true.
    else if (keyword(1:20) .eq. 'MAX_ERROR ') then

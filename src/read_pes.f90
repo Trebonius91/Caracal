@@ -57,9 +57,10 @@ character(len=70)::file_irc_struc
 character(len=70)::file_irc_ens
 character(len=70)::filets,filets2,names
 character(len=80)::coul_method,a80
-character(len=80)::mlip_file   ! the MACE MLIP file
-character(len=80)::coord_file   ! the MACE coordinate file
+character(len=80)::mlip_file   ! the MACE/UMA etc. MLIP file
+character(len=80)::coord_file   ! the MACE/UMA etc. coordinate file
 logical::set_disp   ! if empirical dispersion shall be added to MACE
+character(len=80)::task_name  ! the task for UMA (system specification)
 character(len=80)::sys_com
 character(len=1)::qmdffnum
 real(kind=8),dimension(:,:),allocatable::coord
@@ -297,7 +298,14 @@ else if (method .eq. "AENET_ANN") then
 !
 else if (method .eq. "MACE") then
    mace_ase=.true.
-
+!
+!
+!     If the UMA (Universal models for atom) foundation model (one of them) shall
+!      be used. Since no direct communication is possible with the PyTorch implementation
+!      an indirect file IO communication with a ASE python script will be done
+!
+else if (method .eq. "UMA") then
+   uma_ase=.true.   
 !
 !     If the energy/gradient shall be calculated on the fly with an arbitrary 
 !      external program
@@ -1297,18 +1305,13 @@ if (aenet_ann) then
 end if
 
 !
-!    For calculation with MACE via external ASE Python script: call the script
-!     which then initializes the "atom" class and the MACE model and waits 
-!     for input to start
+!    For calculation with MACE via external ASE Python script: initialize
+!      the python objects with the MLIP and the actual system
 !
 if (mace_ase) then
    if (rank .eq. 0) then
       write(*,*) 
-      write(*,*) "Used PES: MACE via ASE Python script."
-      write(*,*) "The MACE PES will be initialized by the script "
-      write(*,*) " which then waits for structure input from Caracal."
-      write(*,*) "For an example MACE script with Caracal, look into"
-      write(*,*) " the Caracal wiki:  ...."
+      write(*,*) "Used PES: MACE via ASE (C-wrapper)"
    end if         
    mlip_file="none" 
    coord_file="none"
@@ -1400,38 +1403,160 @@ if (mace_ase) then
       end if
       call fatal
    end if
-
-!
-!    For the stick_coeff program: copy the input for the ase_script 
-!    and the MACE model file to one folder for each MPI rank!
-!
-!   if (rank .gt. 0) then
-!      if (rank .lt. 10) then 
-!         write(sys_com,'(a,i1)') "rank",rank  
-!      else if (rank .lt. 100) then
-!         write(sys_com,'(a,i2)') "rank",rank
-!      else 
-!         write(sys_com,'(a,i3)') "rank",rank
-!      end if
-!      call system ("mkdir "//trim(sys_com))
-!      call system ("cp "//trim(ase_script)//" "//trim(sys_com))
-!      call system ("cp *.model "//trim(sys_com))
-!      call chdir (trim(sys_com))
-!      call system("python3 "//trim(ase_script)//" > pylog 1> pyerr &")
-!   else
-!      if (.not. use_stick_coeff) then 
-!         call system("python3 "//trim(ase_script)//" > pylog 1> pyerr &")
-!      end if
-!   end if
-
 !
 !    New version: initialize MACE directly via Python/C Wrapper
 !
    call mace_init(mlip_file,coord_file,set_disp)
 
    goto 678
+end if
 
+!
+!    For calculation with UMA via external ASE Python script: initialize
+!      the python objects with the MLIP and the actual system
+!
+if (uma_ase) then
+   if (rank .eq. 0) then
+      write(*,*)
+      write(*,*) "Used PES: UMA via ASE (C-wrapper)"
+   end if
+   mlip_file="none"
+   coord_file="none"
+   task_name="none"
+   do i = 1, nkey_lines
+      next = 1
+      record = keyline(i)
+      call gettext (record,keyword,next)
+      call upcase (keyword)
+      call upcase (record)
+      string = record(next:120)
+      if (trim(adjustl(record(1:10))) .eq. 'UMA {' .or. trim(adjustl(record(1:10))) &
+              &  .eq. 'UMA{') then
 
+         do j=1,nkey_lines-i+1
+            next=1
+            record = keyline(i+j)
+            call gettext (record,keyword,next)
+            call upcase (keyword)
+            record=adjustl(record)
+!
+!     The file name of the MACE MLIP
+!
+            if (keyword(1:10) .eq. 'MLIP_FILE ') then
+               read(record(11:120),'(a)',iostat=readstat) mlip_file
+               if (readstat .ne. 0) then
+                  if (rank .eq. 0) then
+                     write(*,*) "Correct format: MLIP_FILE [File name of MACE potential]"
+                  end if
+                  call fatal
+               end if
+!
+!     The file name of the initial structure
+!
+            else if (keyword(1:11) .eq. 'COORD_FILE ') then
+               read(record(12:120),'(a)',iostat=readstat) coord_file
+               if (readstat .ne. 0) then
+                  if (rank .eq. 0) then
+                     write(*,*) "Correct format: COORD_FILE [File name of initial coordinates]"
+                  end if
+                  call fatal
+               end if
+!
+!     The task name, specialization of the UMA MLIP
+!
+            else if (keyword(1:10) .eq. 'TASK_NAME ') then
+               read(record(11:120),'(a)',iostat=readstat) task_name
+               if (readstat .ne. 0) then
+                  if (rank .eq. 0) then
+                     write(*,*) "Correct format: TASK_NAME [Type of system to be calculated]"
+                  end if
+                  call fatal
+               end if
+            end if
+            if (keyword(1:11) .eq. '}') exit
+            if (j .eq. nkey_lines-i) then
+               if (rank .eq. 0) then
+                  write(*,*) "The MACE section has no second delimiter! (})"
+               end if
+               call fatal
+            end if
+
+         end do
+      end if
+   end do
+!
+!    Check if the MLIP_FILE command is given and if the file actually exists
+!
+   if (trim(mlip_file) .eq. "none") then
+      if (rank .eq. 0) then
+         write(*,*) "Please give the MLIP_FILE command in the UMA section!"
+      end if
+      call fatal
+   end if
+   inquire(file=trim(mlip_file),exist=mlip_exist)
+   if (.not. mlip_exist) then
+      if (rank .eq. 0) then
+         write(*,*) "The file ",trim(mlip_file)," is not there!"
+      end if
+      call fatal
+   end if
+!
+!    Check if the COORD_FILE command is given and if the file exists
+!
+   if (trim(coord_file) .eq. "none") then
+      if (rank .eq. 0) then
+         write(*,*) "Please give the COORD_FILE command in the UMA section!"
+      end if
+      call fatal
+   end if
+   inquire(file=trim(coord_file),exist=mlip_exist)
+   if (.not. mlip_exist) then
+      if (rank .eq. 0) then
+         write(*,*) "The file ",trim(coord_file)," is not there!"
+      end if
+      call fatal
+   end if
+!
+!    Check if the TASK_NAME command is given and one of the valid choices
+!      
+!
+   if (trim(task_name) .eq. "none") then
+      if (rank .eq. 0) then
+         write(*,*) "Please give the TASK_NAME command in the UMA section!"
+      end if
+      call fatal
+   end if
+
+   if (trim(task_name) .eq. "CATALYSIS") then
+      task_name="oc20"
+   else if (trim(task_name) .eq. "MATERIAL") then
+      task_name="omat"
+   else if (trim(task_name) .eq. "MOLECULE") then
+      task_name="omol"
+   else if (trim(task_name) .eq. "MOF") then
+      task_name="odac"
+   else if (trim(task_name) .eq. "CRYSTAL") then
+      task_name="omc"
+   else 
+      write(*,*) "Please give a valid task/application for the model, possible:"
+      write(*,*) " CATALYSIS, MATERIAL, MOLECULAR, MOF, CRYSTAL"
+      call fatal
+   end if
+
+   inquire(file=trim(coord_file),exist=mlip_exist)
+   if (.not. mlip_exist) then
+      if (rank .eq. 0) then
+         write(*,*) "The file ",trim(coord_file)," is not there!"
+      end if
+      call fatal
+   end if
+
+!
+!    New version: initialize MACE directly via Python/C Wrapper
+!
+   call uma_init(mlip_file,coord_file,task_name)
+
+   goto 678
 
 end if        
 !
@@ -2699,6 +2824,49 @@ if (rank .eq. 0) then
       else
          write(*,*) "*  No empirical D3 dispersion will be added."
       end if
+      if (natoms .gt. 0) then
+         write(*,'(a,i8)') " *  Number of atoms: ",natoms
+      end if
+      if (periodic) then
+         if (coord_vasp) then
+            write(*,'(a)') " *  The system is simulated in a periodic box given by POSCAR: "
+            write(*,'(a,3f13.7)') "     a = ",vasp_a_vec(:)
+            write(*,'(a,3f13.7)') "     b = ",vasp_b_vec(:)
+            write(*,'(a,3f13.7)') "     c = ",vasp_c_vec(:)
+         else
+            write(*,'(a)') " *  The system is simulated in a cubix periodic box: "
+            write(*,'(a,f13.7,a,f13.7,a,f13.7,a)') "        x=", boxlen_x*bohr," Ang.  ,y=",boxlen_y*bohr, &
+                        & " Ang., z=",boxlen_z*bohr,"Ang."
+         end if
+      else if (box_walls) then
+         write(*,'(a)') " *  The system is simulated in a hard-walls nonperiodic box: "
+         write(*,'(a,f13.7,a,f13.7,a,f13.7,a)') "       x=", boxlen_x," Ang.  ,y=",boxlen_y, &
+                     & " Ang., z=",boxlen_z,"Ang."
+      else
+         write(*,*) "* The simulated system has no periodicity."
+      end if
+   end if  
+
+!
+!     The UMA MLIP, called by external ASE routines
+!
+   if (uma_ase) then
+      write(*,*) "* PES description: UMA MLIP from external ASE routine"
+      write(*,*) "*  Name of UMA MLIP file: ",trim(mlip_file)
+      write(*,*) "*  Name of initial coordinate file: ",trim(coord_file)
+      if (trim(task_name) .eq. "oc20") then
+         write(*,*) "*  Type of system: catalyst/catalytic reaction"
+      else if (trim(task_name) .eq. "omat") then
+         write(*,*) "*  Type of system: inorganic material"
+      else if (trim(task_name) .eq. "omol") then
+         write(*,*) "*  Type of system: molecule"
+      else if (trim(task_name) .eq. "odac") then
+         write(*,*) "*  Type of system: MOF"
+      else if (trim(task_name) .eq. "omc") then
+         write(*,*) "*  Type of system: molecular crystal"
+      end if
+   else
+
       if (natoms .gt. 0) then
          write(*,'(a,i8)') " *  Number of atoms: ",natoms
       end if

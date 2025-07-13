@@ -285,6 +285,15 @@ if (mace_ase) then
    g_evb=pot_grad(:,:,1)
    return
 end if
+!     Invoke the waiting/ideling UMA ASE script to calculate the 
+!     UMA energy and gradient!
+!
+if (uma_ase) then
+   call egrad_uma(xyz2,pot_grad,e_evb)
+   g_evb=pot_grad(:,:,1)
+   return
+end if
+
 !
 !     Invoke the call to the chosen external program, if desired
 !     Is several MPI ranks are used, go to the folder for each rank!

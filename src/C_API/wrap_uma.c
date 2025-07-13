@@ -27,7 +27,7 @@
 //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 //
-//     C-file python_calls: Wrapper routines needed for a direct 
+//     C-file wrap_uma: Wrapper routines needed for a direct 
 //     communication between Fortran and Python for communication
 //     with ASE
 //
@@ -42,13 +42,15 @@ static PyObject *pModule = NULL;
 //     The initialization routine: Read in the force field and define the 
 //     structure of the system.
 //
-void init_mace(char *mlip_file, char *coord_file, int mlip_len, int coord_len, bool *set_disp) {
+void init_uma(char *mlip_file, char *coord_file, char *task_name, int mlip_len, 
+              int coord_len, int task_len) {
    PyObject *pName, *pFunc, *pArgs;
 
 //   fprintf("init start part1");
 
    char mlip_buffer[256];
    char coord_buffer[256];
+   char task_buffer[256];
 
 //
 //     Initialize Python interpreter
@@ -78,15 +80,21 @@ void init_mace(char *mlip_file, char *coord_file, int mlip_len, int coord_len, b
    memcpy(coord_buffer, coord_file, coord_len);
    coord_buffer[coord_len] = '\0'; 
 
+   if (task_len >= sizeof(task_buffer))
+      task_len = sizeof(task_buffer) - 1;
+
+   memcpy(task_buffer, task_name, task_len);
+   task_buffer[task_len] = '\0';
+
 //
 //     Now call the actual Python code, first define the function!
 //
-   pName = PyUnicode_FromString("call_mace");
+   pName = PyUnicode_FromString("call_uma");
    pModule = PyImport_Import(pName);
    Py_DECREF(pName);
 
     if (pModule == NULL) {
-        pModule = PyImport_ImportModule("call_mace");
+        pModule = PyImport_ImportModule("call_uma");
         if (!pModule) {
             PyErr_Print();
             return;
@@ -98,7 +106,7 @@ void init_mace(char *mlip_file, char *coord_file, int mlip_len, int coord_len, b
 //
 //     Get function from module
 //
-      pFunc = PyObject_GetAttrString(pModule, "init_mace");
+      pFunc = PyObject_GetAttrString(pModule, "init_uma");
       if (pFunc && PyCallable_Check(pFunc)) {
 
 //
@@ -114,9 +122,9 @@ void init_mace(char *mlip_file, char *coord_file, int mlip_len, int coord_len, b
 //
          PyTuple_SetItem(pArgs, 1, PyUnicode_FromString(coord_buffer));
 //
-//     Pack dispersion switch into Python string
+//     Pack the task (which sub-version of UMA to be used) into Python string
 //
-         PyTuple_SetItem(pArgs, 2, PyBool_FromLong(*set_disp ? 1 : 0));
+         PyTuple_SetItem(pArgs, 2, PyUnicode_FromString(task_buffer));
 //
 //     Call Python function
 //
@@ -124,7 +132,7 @@ void init_mace(char *mlip_file, char *coord_file, int mlip_len, int coord_len, b
          Py_DECREF(pArgs);
          if (pResult == NULL) {
             PyErr_Print();
-            fprintf(stderr, "Error in MACE initialization python routine! \n");
+            fprintf(stderr, "Error in UMA initialization python routine! \n");
             exit(EXIT_FAILURE);
          } else {
             Py_DECREF(pResult);
@@ -146,7 +154,7 @@ void init_mace(char *mlip_file, char *coord_file, int mlip_len, int coord_len, b
 //     The energy and gradient calculation routine: give the structure and the 
 //     unit cell and the number of atoms, return the energy and gradient
 //
-void ase_mace(double *coords, double *unitcell, double *energy, double *gradient, int *natoms) {
+void ase_uma(double *coords, double *unitcell, double *energy, double *gradient, int *natoms) {
    PyObject *pName, *pFunc;
    PyObject *pArgs, *pCoordList, *pUnitcellList;
    PyObject *pResult, *pEnergy, *pGradList;
@@ -159,7 +167,7 @@ void ase_mace(double *coords, double *unitcell, double *energy, double *gradient
 //
 //     Obtain function definition from Python
 //
-      pFunc = PyObject_GetAttrString(pModule, "ase_mace");
+      pFunc = PyObject_GetAttrString(pModule, "ase_uma");
       if (pFunc && PyCallable_Check(pFunc)) {
 //
 //     Build list of coordinates for input
@@ -201,13 +209,13 @@ void ase_mace(double *coords, double *unitcell, double *energy, double *gradient
 //
          if (pResult == NULL) {
             PyErr_Print();
-            fprintf(stderr, "Error in MACE energy+gradient routine!\n");
+            fprintf(stderr, "Error in UMA energy+gradient routine!\n");
             exit(EXIT_FAILURE);
             return;
          }
 
          if (!PyTuple_Check(pResult) || PyTuple_Size(pResult) != 2) {
-            fprintf(stderr, "ase_mace did not return a 2-item tuple.\n");
+            fprintf(stderr, "ase_uma did not return a 2-item tuple.\n");
             Py_DECREF(pResult);
             return;
          }

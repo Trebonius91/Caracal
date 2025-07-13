@@ -358,6 +358,10 @@ integer,allocatable::at_type_ann(:)
 logical::mace_ase
 character(len=80)::ase_script   ! The filename of the Python ASE script
 !
+!     For extrnal call to UMA
+!
+logical::uma_ase
+!
 !     For certain structure analysis tools: if the program explore is used
 !
 logical::use_explore
