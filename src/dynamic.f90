@@ -108,6 +108,10 @@ integer::bias_mode,keylines_backup
 integer::round,constrain
 !   for addition of mirror planes to the system
 character(len=60)::mirror_file
+!   for addition of arbitrary bias forces to the system
+character(len=60)::bias_file
+!   activation of bias forces read from file
+logical::bias_list
 !   for eval_cutoff: determination of atomic environments (QMDFF)
 real(kind=8)::surr_vec_a(3),surr_vec_b(3),surr_vec_c(3)
 real(kind=8)::dtdump_cut
@@ -629,6 +633,12 @@ do i = 1, nkey_lines
             read(record,*) names,mirror_file
             mirrors=.true.
             add_force = .false. ! no usual force addition for mirror runs
+!
+!     If a number of arbitrary bias forces on positions and bond lengths shall be 
+!     applied, read in from a input file
+         else if (keyword(1:15) .eq. 'BIAS_LIST ') then
+            read(record,*) names,bias_file
+            bias_list=.true.
          end if
          if (keyword(1:13) .eq. '}') exit
          if (j .eq. nkey_lines-i) then
@@ -834,6 +844,63 @@ if (mirrors) then
       mirror_pos(i)=mirror_pos(i)/bohr
    end do
    close(46)
+end if
+
+!
+!    If bias potentials (harmonic) shall be read in from a file and applied 
+!    to the system
+!
+if (bias_list) then
+   open(unit=123,file=bias_file,status="old",iostat=readstat)
+   if (readstat .ne. 0) then
+      if (rank .eq. 0) then
+         write(*,*) "The file ",trim(bias_file)," was not found!"
+      end if
+      call fatal
+   end if
+   do
+      read(123,*,iostat=readstat)
+      if (readstat .ne. 0) exit
+      bias_num=bias_num+1
+   end do
+   close(123)
+!
+!    Allocate required arrays for the flexible definition of the bias 
+!    potentials
+!
+   allocate(bias_type(bias_num))
+   allocate(bias_pos(bias_num))
+   allocate(bias_atnum(bias_num))
+   allocate(bias_atlist(100,bias_num))
+   bias_atlist=0
+!
+!    Read in the list of bias potentials
+!
+   open(unit=123,file=bias_file,status="old")
+   do i=1,bias_num
+      read(123,*) string 
+      read(string,*) bias_type,bias_pos,bias_atlist
+      if ((bias_type(i) .ne. "x") .and. (bias_type(i) .ne. "y") .and. &
+              & (bias_type(i) .ne. "z") .and. (bias_type(i) .ne. "r")) then
+         if (rank .eq. 0) then
+            write(*,*) "The bias potential No.",i," has no valid type!"
+         end if
+      end if
+      do j=1,100
+         if (bias_atlist(j,i) .eq. 0) then
+            if (j .eq. 1) then
+               if (rank .eq. 0) then
+                  write(*,*) "The bias potential No.",i,"is not fully defined!"
+               end if
+               call fatal
+            else
+               bias_atnum(i)=j-1
+            end if
+         end if
+      end do
+   end do
+   close(123)
+
 end if
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

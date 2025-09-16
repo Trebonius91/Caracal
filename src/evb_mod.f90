@@ -227,6 +227,13 @@ integer::mirror_num
 integer,allocatable::mirror_ats(:)
 integer,allocatable::mirror_dims(:)
 real(kind=8),allocatable::mirror_pos(:)
+!   for lists of bias forces in the system
+integer::bias_num
+character(len=1),allocatable::bias_type(:)
+real(kind=8),allocatable::bias_pos(:)
+integer,allocatable::bias_atnum(:)
+integer,allocatable::bias_atlist(:,:)
+
 ! for the new RPMD program
 integer::nbeads   ! the number of ring polymer beads to be sampled
 integer::npaths  ! number of equivalent reaction paths
