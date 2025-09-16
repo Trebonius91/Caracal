@@ -405,6 +405,13 @@ if (bond_crit .lt. 1.d0) then
    end if
 end if
 !
+!     If write_trajs is false, set the writing frequency to an extremely 
+!      low value such that in reality, no frames are written
+!
+if (.not. write_trajs) then
+   iwrite=1000000
+end if        
+!
 !     Read in the potential energy surface 
 !
 call read_pes(rank)

@@ -59,7 +59,7 @@ calc=None
 #    The initialization routine: read in the MACE MLIP and define it for the 
 #      current geometry/system
 #
-def init_mace(mlip_file,coord_file,set_disp):
+def init_mace(mlip_file,coord_file,set_disp,calc_device):
 #
 #    Redefine global variables
 #
@@ -71,12 +71,12 @@ def init_mace(mlip_file,coord_file,set_disp):
 #    Returns a model with D3 dispersion correction
 #
    if set_disp:
-      macemp = mace_mp(model=mlip_file,dispersion=True)
+      macemp = mace_mp(model=mlip_file,dispersion=True,device=calc_device)
 #
 #    Returns a model without D3 dispersion correction
 #
    else:
-      macemp = mace_mp(model=mlip_file,dispersion=False) 
+      macemp = mace_mp(model=mlip_file,dispersion=False,device=calc_device) 
 
 #
 #    Read in the initial geometry from the POSCAR file and initialize the atoms object

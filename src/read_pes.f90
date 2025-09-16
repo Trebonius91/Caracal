@@ -59,6 +59,7 @@ character(len=70)::filets,filets2,names
 character(len=80)::coul_method,a80
 character(len=80)::mlip_file   ! the MACE/UMA etc. MLIP file
 character(len=80)::coord_file   ! the MACE/UMA etc. coordinate file
+character(len=80)::string_device,calc_device   ! if CPU or GPU shall be used
 logical::set_disp   ! if empirical dispersion shall be added to MACE
 character(len=80)::task_name  ! the task for UMA (system specification)
 character(len=80)::sys_com
@@ -1359,6 +1360,18 @@ if (mace_ase) then
 !
             else if (keyword(1:10) .eq. 'ADD_DISP ') then
                set_disp=.true.
+!
+!     The calculation device, if CPU or GPU
+!
+            else if (keyword(1:7) .eq. 'DEVICE ') then
+               call upcase (record)
+               read(record(8:120),'(a)',iostat=readstat) string_device
+               if (readstat .ne. 0) then
+                  if (rank .eq. 0) then
+                     write(*,*) "Correct format: DEVICE [CPU or GPU]"
+                  end if
+                  call fatal
+               end if
             end if
             if (keyword(1:11) .eq. '}') exit
             if (j .eq. nkey_lines-i) then
@@ -1404,9 +1417,26 @@ if (mace_ase) then
       call fatal
    end if
 !
+!    Check if the calculation shall be done on CPU or GPU
+!
+   if (trim(string_device) .eq. "none") then
+      if (rank .eq. 0) then
+         write(*,*) "Please give the DEVICE keyword in the MACE section!"
+      end if
+      call fatal
+   end if
+   if (trim(string_device) .eq. "CPU") then
+      calc_device="cpu"
+   else if (trim(string_device) .eq. "GPU") then
+      calc_device="cuda"
+   else
+      write(*,*) "Please give a valid DEVICE for MACE, either CPU or GPU!"
+      call fatal
+   end if   
+!
 !    New version: initialize MACE directly via Python/C Wrapper
 !
-   call mace_init(mlip_file,coord_file,set_disp)
+   call mace_init(mlip_file,coord_file,set_disp,calc_device)
 
    goto 678
 end if
@@ -1440,13 +1470,13 @@ if (uma_ase) then
             call upcase (keyword)
             record=adjustl(record)
 !
-!     The file name of the MACE MLIP
+!     The name of the UMA model (will be downloaded/installed automatically)
 !
-            if (keyword(1:10) .eq. 'MLIP_FILE ') then
-               read(record(11:120),'(a)',iostat=readstat) mlip_file
+            if (keyword(1:11) .eq. 'MLIP_MODEL ') then
+               read(record(12:120),'(a)',iostat=readstat) mlip_file
                if (readstat .ne. 0) then
                   if (rank .eq. 0) then
-                     write(*,*) "Correct format: MLIP_FILE [File name of MACE potential]"
+                     write(*,*) "Correct format: MLIP_MODEL [Name of the UMA model]"
                   end if
                   call fatal
                end if
@@ -1465,6 +1495,7 @@ if (uma_ase) then
 !     The task name, specialization of the UMA MLIP
 !
             else if (keyword(1:10) .eq. 'TASK_NAME ') then
+               call upcase (record)     
                read(record(11:120),'(a)',iostat=readstat) task_name
                if (readstat .ne. 0) then
                   if (rank .eq. 0) then
@@ -1472,6 +1503,19 @@ if (uma_ase) then
                   end if
                   call fatal
                end if
+!
+!     The calculation device, if CPU or GPU
+!
+            else if (keyword(1:7) .eq. 'DEVICE ') then
+               call upcase (record)
+               read(record(8:120),'(a)',iostat=readstat) string_device 
+               if (readstat .ne. 0) then
+                  if (rank .eq. 0) then
+                     write(*,*) "Correct format: DEVICE [CPU or GPU]"
+                  end if
+                  call fatal
+               end if
+               
             end if
             if (keyword(1:11) .eq. '}') exit
             if (j .eq. nkey_lines-i) then
@@ -1485,18 +1529,11 @@ if (uma_ase) then
       end if
    end do
 !
-!    Check if the MLIP_FILE command is given and if the file actually exists
+!    Check if the MLIP_FILE command is given (no check for existence)
 !
    if (trim(mlip_file) .eq. "none") then
       if (rank .eq. 0) then
-         write(*,*) "Please give the MLIP_FILE command in the UMA section!"
-      end if
-      call fatal
-   end if
-   inquire(file=trim(mlip_file),exist=mlip_exist)
-   if (.not. mlip_exist) then
-      if (rank .eq. 0) then
-         write(*,*) "The file ",trim(mlip_file)," is not there!"
+         write(*,*) "Please give the MLIP_MODEL command in the UMA section!"
       end if
       call fatal
    end if
@@ -1522,11 +1559,10 @@ if (uma_ase) then
 !
    if (trim(task_name) .eq. "none") then
       if (rank .eq. 0) then
-         write(*,*) "Please give the TASK_NAME command in the UMA section!"
+         write(*,*) "Please give the TASK_NAME keyword in the UMA section!"
       end if
       call fatal
    end if
-
    if (trim(task_name) .eq. "CATALYSIS") then
       task_name="oc20"
    else if (trim(task_name) .eq. "MATERIAL") then
@@ -1542,6 +1578,26 @@ if (uma_ase) then
       write(*,*) " CATALYSIS, MATERIAL, MOLECULAR, MOF, CRYSTAL"
       call fatal
    end if
+!
+!    Check if the calculation shall be done on CPU or GPU
+!
+   if (trim(string_device) .eq. "none") then
+      if (rank .eq. 0) then
+         write(*,*) "Please give the DEVICE keyword in the UMA section!"
+      end if
+      call fatal
+   end if
+   if (trim(string_device) .eq. "CPU") then
+      calc_device="cpu"
+   else if (trim(string_device) .eq. "GPU") then
+      calc_device="cuda"
+   else
+      write(*,*) "Please give a valid DEVICE for UMA, either CPU or GPU!"
+      call fatal
+   end if
+!
+!    Check if the coordinate file for the MLIP initialization is there
+!
 
    inquire(file=trim(coord_file),exist=mlip_exist)
    if (.not. mlip_exist) then
@@ -1552,9 +1608,9 @@ if (uma_ase) then
    end if
 
 !
-!    New version: initialize MACE directly via Python/C Wrapper
+!    Initialize UMA model
 !
-   call uma_init(mlip_file,coord_file,task_name)
+   call uma_init(mlip_file,coord_file,task_name,calc_device)
 
    goto 678
 
@@ -2865,6 +2921,11 @@ if (rank .eq. 0) then
       else if (trim(task_name) .eq. "omc") then
          write(*,*) "*  Type of system: molecular crystal"
       end if
+      if (calc_device .eq. "cpu") then
+         write(*,*) "*  The UMA MLIP will be evaluated on CPUs"
+      else if (calc_device .eq. "cuda") then
+         write(*,*) "*  The UMA MLIP will be evaluated on GPUs via CUDA"   
+      end if   
    else
 
       if (natoms .gt. 0) then

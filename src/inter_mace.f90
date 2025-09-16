@@ -40,12 +40,15 @@ interface
 !
 !     The initialization routine
 !
-   subroutine init_mace(mlip_file,coord_file,mlip_len,coord_len,set_disp) bind(C)
-      use iso_c_binding
+   subroutine init_mace(mlip_file,coord_file,calc_device,mlip_len,coord_len, &
+               & device_len,set_disp) bind(C)
+      use iso_c_binding 
       character(kind=c_char),dimension(*)::mlip_file
       character(kind=c_char),dimension(*)::coord_file
+      character(kind=c_char),dimension(*)::calc_device
       integer(c_int),value::mlip_len
       integer(c_int),value::coord_len
+      integer(c_int),value::device_len
       logical(kind=c_bool)::set_disp
 
    end subroutine init_mace

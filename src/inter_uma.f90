@@ -40,15 +40,17 @@ interface
 !
 !     The initialization routine
 !
-   subroutine init_uma(mlip_file,coord_file,task_name,mlip_len, &
-               & coord_len,task_len) bind(C)
+   subroutine init_uma(mlip_file,coord_file,task_name,calc_device, &
+               & mlip_len,coord_len,task_len,device_len) bind(C)
       use iso_c_binding
       character(kind=c_char),dimension(*)::mlip_file
       character(kind=c_char),dimension(*)::coord_file
       character(kind=c_char),dimension(*)::task_name
+      character(kind=c_char),dimension(*)::calc_device
       integer(c_int),value::mlip_len
       integer(c_int),value::coord_len
       integer(c_int),value::task_len
+      integer(c_int),value::device_len
 
    end subroutine init_uma
 

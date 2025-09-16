@@ -35,6 +35,7 @@ from ase import units
 from ase import build
 from ase.io import read, write
 from ase.io.trajectory import Trajectory
+import urllib3
 import numpy as np
 from fairchem.core import pretrained_mlip, FAIRChemCalculator
 import sys
@@ -50,16 +51,19 @@ calc=None
 #    The initialization routine: read in the UMA MLIP and define it for the 
 #      current geometry/system
 #
-def init_uma(mlip_file,coord_file,task):
+def init_uma(mlip_file,coord_file,task,calc_device):
 #
 #    Redefine global variables
 #
    global atoms, calc
 #
 #    Define the UMA model
+#    The UMA model file shall be given without file ending!
 #
-   predictor = pretrained_mlip.get_predict_unit(mlip_file, device="cuda")
-   
+#    Decide if calculations shall be done on CPU or GPU
+#
+   predictor = pretrained_mlip.get_predict_unit(mlip_file, device=calc_device)
+
    calc = FAIRChemCalculator(predictor, task_name=task)
 #
 #    Read in the initial geometry from the POSCAR file and initialize the atoms object
@@ -87,7 +91,6 @@ def ase_uma(coords,unitcell,natoms):
 
    if atoms is None or calc is None:
       raise RuntimeError("init_uma must be called before ase_uma")
-
 #
 #    Update coordinates in global atoms object
 #

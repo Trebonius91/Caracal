@@ -42,13 +42,14 @@ static PyObject *pModule = NULL;
 //     The initialization routine: Read in the force field and define the 
 //     structure of the system.
 //
-void init_mace(char *mlip_file, char *coord_file, int mlip_len, int coord_len, bool *set_disp) {
+void init_mace(char *mlip_file, char *coord_file, char *calc_device, int mlip_len, 
+		int coord_len, int device_len, bool *set_disp) {
    PyObject *pName, *pFunc, *pArgs;
 
-//   fprintf("init start part1");
 
    char mlip_buffer[256];
    char coord_buffer[256];
+   char device_buffer[256];
 
 //
 //     Initialize Python interpreter
@@ -78,6 +79,12 @@ void init_mace(char *mlip_file, char *coord_file, int mlip_len, int coord_len, b
    memcpy(coord_buffer, coord_file, coord_len);
    coord_buffer[coord_len] = '\0'; 
 
+   if (device_len >= sizeof(device_buffer))
+      device_len = sizeof(device_buffer) - 1;
+
+   memcpy(device_buffer, calc_device, device_len);
+   device_buffer[device_len] = '\0';
+
 //
 //     Now call the actual Python code, first define the function!
 //
@@ -104,7 +111,7 @@ void init_mace(char *mlip_file, char *coord_file, int mlip_len, int coord_len, b
 //
 //     The transferred object with all input information
 //         
-         PyObject *pArgs = PyTuple_New(3);
+         PyObject *pArgs = PyTuple_New(4);
 //
 //     Pack MLIP filename into Python string
 //
@@ -117,6 +124,11 @@ void init_mace(char *mlip_file, char *coord_file, int mlip_len, int coord_len, b
 //     Pack dispersion switch into Python string
 //
          PyTuple_SetItem(pArgs, 2, PyBool_FromLong(*set_disp ? 1 : 0));
+//
+//     Transfer the information about the used device (CPU or GPU/CUDA)
+//
+         PyTuple_SetItem(pArgs, 3, PyUnicode_FromString(device_buffer));
+	 
 //
 //     Call Python function
 //

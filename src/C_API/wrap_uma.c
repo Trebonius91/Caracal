@@ -42,8 +42,8 @@ static PyObject *pModule = NULL;
 //     The initialization routine: Read in the force field and define the 
 //     structure of the system.
 //
-void init_uma(char *mlip_file, char *coord_file, char *task_name, int mlip_len, 
-              int coord_len, int task_len) {
+void init_uma(char *mlip_file, char *coord_file, char *task_name, char *calc_device, 
+	      int mlip_len, int coord_len, int task_len, int device_len) {
    PyObject *pName, *pFunc, *pArgs;
 
 //   fprintf("init start part1");
@@ -51,6 +51,8 @@ void init_uma(char *mlip_file, char *coord_file, char *task_name, int mlip_len,
    char mlip_buffer[256];
    char coord_buffer[256];
    char task_buffer[256];
+   char device_buffer[256];
+
 
 //
 //     Initialize Python interpreter
@@ -86,6 +88,12 @@ void init_uma(char *mlip_file, char *coord_file, char *task_name, int mlip_len,
    memcpy(task_buffer, task_name, task_len);
    task_buffer[task_len] = '\0';
 
+   if (device_len >= sizeof(device_buffer))
+      device_len = sizeof(device_buffer) - 1;
+
+   memcpy(device_buffer, calc_device, device_len);
+   device_buffer[device_len] = '\0';
+   
 //
 //     Now call the actual Python code, first define the function!
 //
@@ -112,7 +120,7 @@ void init_uma(char *mlip_file, char *coord_file, char *task_name, int mlip_len,
 //
 //     The transferred object with all input information
 //         
-         PyObject *pArgs = PyTuple_New(3);
+         PyObject *pArgs = PyTuple_New(4);
 //
 //     Pack MLIP filename into Python string
 //
@@ -125,6 +133,10 @@ void init_uma(char *mlip_file, char *coord_file, char *task_name, int mlip_len,
 //     Pack the task (which sub-version of UMA to be used) into Python string
 //
          PyTuple_SetItem(pArgs, 2, PyUnicode_FromString(task_buffer));
+//
+//     Transfer the information about the used device (CPU or GPU/CUDA)
+//
+         PyTuple_SetItem(pArgs, 3, PyUnicode_FromString(device_buffer));	
 //
 //     Call Python function
 //

@@ -32,19 +32,19 @@
 !
 !     part of EVB
 ! 
-subroutine uma_init(mlip_file,coord_file,task_name) 
+subroutine uma_init(mlip_file,coord_file,task_name,calc_device) 
 use iso_c_binding
 use pbc_mod
 use inter_uma
 
 implicit none 
-character(len=80)::keywords,mlip_file,coord_file,task_name
-logical(1)::set_disp
+character(len=80)::keywords,mlip_file,coord_file,task_name,calc_device
 integer::ndim
 
 call init_uma(trim(mlip_file)//C_NULL_CHAR,trim(coord_file)//C_NULL_CHAR, &
-       & trim(task_name)//C_NULL_CHAR,len_trim(mlip_file),len_trim(coord_file),&
-       & len_trim(task_name))
+       & trim(task_name)//C_NULL_CHAR,trim(calc_device)//C_NULL_CHAR, &
+       & len_trim(mlip_file),len_trim(coord_file),&
+       & len_trim(task_name),len_trim(calc_device))
 
 return
 end subroutine
