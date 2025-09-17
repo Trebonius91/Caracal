@@ -924,6 +924,7 @@ if (use_calc_rate .or. use_stick_coeff .or. rank .eq. 0) then
          if (bias_type(i) .eq. "R") then
             bias_vec_act=(centroid(:,bias_atlist(1,i))-&
                    & centroid(:,bias_atlist(2,i)))
+            call box_image(bias_vec_act)
             dist_act=sqrt(dot_product(bias_vec_act,bias_vec_act))
             bias_vec_act=bias_vec_act*bias_forces(i)*(dist_act-bias_pos(i)- &
                       & bias_move(i)*dt*2.41888428E-2*real(istep))   
