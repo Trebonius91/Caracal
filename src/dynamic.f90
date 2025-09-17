@@ -919,6 +919,7 @@ if (bias_list) then
       end if
    end do
    bias_pos=bias_pos/bohr
+   bias_move=bias_move/bohr
    close(123)
 
 end if
