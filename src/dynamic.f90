@@ -110,8 +110,6 @@ integer::round,constrain
 character(len=60)::mirror_file
 !   for addition of arbitrary bias forces to the system
 character(len=60)::bias_file
-!   activation of bias forces read from file
-logical::bias_list
 !   for eval_cutoff: determination of atomic environments (QMDFF)
 real(kind=8)::surr_vec_a(3),surr_vec_b(3),surr_vec_c(3)
 real(kind=8)::dtdump_cut
@@ -589,6 +587,9 @@ dt = dt/2.41888428E-2
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 add_force=.false.
 mirrors=.false.
+bias_list=.false.
+afm_run=.false.
+add_force=.false.
 do i = 1, nkey_lines
    next = 1
    record = keyline(i)
@@ -637,7 +638,14 @@ do i = 1, nkey_lines
 !     If a number of arbitrary bias forces on positions and bond lengths shall be 
 !     applied, read in from a input file
          else if (keyword(1:15) .eq. 'BIAS_LIST ') then
-            read(record,*) names,bias_file
+            add_force = .false.
+            read(record,*,iostat=readstat) names,bias_file
+            if (readstat .ne. 0) then
+               if (rank .eq. 0) then
+                   write(*,*) "The keyword BIAS_LIST has the wrong formate!"
+               end if
+               call fatal
+            end if  
             bias_list=.true.
          end if
          if (keyword(1:13) .eq. '}') exit
@@ -870,6 +878,8 @@ if (bias_list) then
 !
    allocate(bias_type(bias_num))
    allocate(bias_pos(bias_num))
+   allocate(bias_move(bias_num))
+   allocate(bias_forces(bias_num))
    allocate(bias_atnum(bias_num))
    allocate(bias_atlist(100,bias_num))
    bias_atlist=0
@@ -878,10 +888,12 @@ if (bias_list) then
 !
    open(unit=123,file=bias_file,status="old")
    do i=1,bias_num
-      read(123,*) string 
-      read(string,*) bias_type,bias_pos,bias_atlist
-      if ((bias_type(i) .ne. "x") .and. (bias_type(i) .ne. "y") .and. &
-              & (bias_type(i) .ne. "z") .and. (bias_type(i) .ne. "r")) then
+      read(123,'(a)') string 
+      read(string,*,iostat=readstat) bias_type(i),bias_pos(i),bias_move(i),&
+                    & bias_forces(i),bias_atlist(:,i)
+      call upcase(bias_type(i))
+      if ((bias_type(i) .ne. "X") .and. (bias_type(i) .ne. "Y") .and. &
+              & (bias_type(i) .ne. "Z") .and. (bias_type(i) .ne. "R")) then
          if (rank .eq. 0) then
             write(*,*) "The bias potential No.",i," has no valid type!"
          end if
@@ -890,15 +902,23 @@ if (bias_list) then
          if (bias_atlist(j,i) .eq. 0) then
             if (j .eq. 1) then
                if (rank .eq. 0) then
-                  write(*,*) "The bias potential No.",i,"is not fully defined!"
+                  write(*,'(a,i5,a)') "The bias potential No.",i," is not fully defined!"
                end if
                call fatal
             else
                bias_atnum(i)=j-1
+               exit
             end if
          end if
       end do
+      if ((bias_type(i) .eq. "R") .and. (bias_atnum(i) .lt. 2)) then
+         if (rank .eq. 0) then
+            write(*,'(a,i5,a)') "The bias potential No.",i," is not fully defined!"
+         end if
+         call fatal
+      end if
    end do
+   bias_pos=bias_pos/bohr
    close(123)
 
 end if
@@ -1450,6 +1470,21 @@ if (rank .eq. 0) then
    end if
 end if
 !
+!     If bias forces are applied, print out ideal and real coordinates 
+!
+if (bias_list) then
+   if (rank .eq. 0) then
+      open(unit=128,file="bias_list_out.dat",status="replace")
+      write(128,*) "# This file contains the ideal and real values of coordinates"
+      write(128,*) "# being affected by harmonic bias potentials."
+      write(128,'(a)',advance="no") " #"
+      do i=1,bias_num
+         write(128,'(a,i3,a,i3,a)',advance="no") " ideal(coord.",i,")   real(coord.",i,")"
+      end do 
+      write(128,*)
+   end if
+end if
+!
 !     If the VASP format is used, write steps also to XDATCAR file
 !
 xdat_first=.false.
@@ -1771,6 +1806,9 @@ if (rank .eq. 0) then
    if (eval_cutoff) then
       close(293)
       close(295)
+   end if
+   if (bias_list) then
+      close(128)
    end if
 end if
 call mpi_barrier(mpi_comm_world,ierr)

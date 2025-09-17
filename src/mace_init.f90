@@ -32,18 +32,19 @@
 !
 !     part of EVB
 ! 
-subroutine mace_init(mlip_file,coord_file,set_disp) 
+subroutine mace_init(mlip_file,coord_file,set_disp,set_device) 
 use iso_c_binding
 use pbc_mod
 use inter_mace
 
 implicit none 
-character(len=80)::keywords,mlip_file,coord_file
+character(len=80)::keywords,mlip_file,coord_file,set_device
 logical(1)::set_disp
 integer::ndim
 
 call init_mace(trim(mlip_file)//C_NULL_CHAR,trim(coord_file)//C_NULL_CHAR, &
-       & len_trim(mlip_file),len_trim(coord_file),set_disp)
+       & trim(set_device)//C_NULL_CHAR, len_trim(mlip_file),len_trim(coord_file),&
+       & len_trim(set_device),set_disp)
 
 return
 end subroutine

@@ -228,9 +228,13 @@ integer,allocatable::mirror_ats(:)
 integer,allocatable::mirror_dims(:)
 real(kind=8),allocatable::mirror_pos(:)
 !   for lists of bias forces in the system
+!   activation of bias forces read from file
+logical::bias_list
 integer::bias_num
 character(len=1),allocatable::bias_type(:)
 real(kind=8),allocatable::bias_pos(:)
+real(kind=8),allocatable::bias_move(:)
+real(kind=8),allocatable::bias_forces(:)
 integer,allocatable::bias_atnum(:)
 integer,allocatable::bias_atlist(:,:)
 

@@ -2724,8 +2724,6 @@ end if
 !
 !     Finally, print out info concering the actual PES is usage 
 !
-
-
 if (rank .eq. 0) then
    write(*,*) "---------------------PES SETTINGS---------------------"
 !
@@ -2881,14 +2879,14 @@ if (rank .eq. 0) then
          write(*,*) "*  No empirical D3 dispersion will be added."
       end if
       if (natoms .gt. 0) then
-         write(*,'(a,i8)') " *  Number of atoms: ",natoms
+!         write(*,'(a,i8)') " *  Number of atoms: ",natoms
       end if
       if (periodic) then
          if (coord_vasp) then
-            write(*,'(a)') " *  The system is simulated in a periodic box given by POSCAR: "
-            write(*,'(a,3f13.7)') "     a = ",vasp_a_vec(:)
-            write(*,'(a,3f13.7)') "     b = ",vasp_b_vec(:)
-            write(*,'(a,3f13.7)') "     c = ",vasp_c_vec(:)
+!            write(*,'(a)') " *  The system is simulated in a periodic box given by POSCAR: "
+!            write(*,'(a,3f13.7)') "     a = ",vasp_a_vec(:)
+!            write(*,'(a,3f13.7)') "     b = ",vasp_b_vec(:)
+!            write(*,'(a,3f13.7)') "     c = ",vasp_c_vec(:)
          else
             write(*,'(a)') " *  The system is simulated in a cubix periodic box: "
             write(*,'(a,f13.7,a,f13.7,a,f13.7,a)') "        x=", boxlen_x*bohr," Ang.  ,y=",boxlen_y*bohr, &
