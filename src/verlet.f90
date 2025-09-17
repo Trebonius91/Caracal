@@ -143,6 +143,11 @@ real(kind=8)::press_avg  ! the average pressure for printout
 !   for printout of coordinate values 
 real(kind=8)::coord_act
 real(kind=8)::ang,dihed
+!   for list of bias forces
+real(kind=8)::bias_pos_act
+real(kind=8)::bias_vec_act(3)
+real(kind=8)::dist_act
+integer::dim_ind
 !parameter(pi=3.1415926535897932384626433832795029d0)
 
 
@@ -894,6 +899,7 @@ if (use_calc_rate .or. use_stick_coeff .or. rank .eq. 0) then
 !     bias force and its vector to be applied to the system (and in order 
 !     to calculate the effective AFM force)
 !
+  
    if (afm_run) then
       move_act=centroid(:,afm_move_at)
       move_shall=afm_move_first(:)+afm_move_v(:)*afm_move_dist*(real(istep)/real(afm_steps))
@@ -906,7 +912,51 @@ if (use_calc_rate .or. use_stick_coeff .or. rank .eq. 0) then
          derivs(:,afm_move_at,i)=derivs(:,afm_move_at,i)+afm_bias
       end do
       afm_force=afm_force/newton2au
-   end if 
+   end if
+!
+!     For the arbitrary list of bias potentials: go through all items 
+!     and apply the bias forces to the systems
+! 
+
+   if (bias_list) then
+      do i=1,bias_num
+         bias_pos_act=0.d0
+         if (bias_type(i) .eq. "R") then
+            bias_vec_act=(centroid(:,bias_atlist(1,i))-&
+                   & centroid(:,bias_atlist(2,i)))
+            dist_act=sqrt(dot_product(bias_vec_act,bias_vec_act))
+            bias_vec_act=bias_vec_act*bias_forces(i)*(dist_act-bias_pos(i)- &
+                      & bias_move(i)*dt*2.41888428E-2*real(istep))   
+            write(128,'(2f16.7)',advance="no") (bias_pos(i)+bias_move(i)*dt*&
+                      & 2.41888428E-2*real(istep))*bohr,dist_act*bohr
+            do j=1,nbeads
+               derivs(:,bias_atlist(1,i),j)=derivs(:,bias_atlist(1,i),j)+bias_vec_act(:)
+               derivs(:,bias_atlist(2,i),j)=derivs(:,bias_atlist(2,i),j)-bias_vec_act(:)
+            end do
+         else 
+            if (bias_type(i) .eq. "X") then
+               dim_ind=1
+            else if (bias_type(i) .eq. "Y") then
+               dim_ind=2
+            else if (bias_type(i) .eq. "Z") then
+               dim_ind=3
+            end if
+            do j=1,bias_atnum(i)
+               bias_pos_act=bias_pos_act+centroid(dim_ind,bias_atlist(j,i))
+            end do
+            bias_pos_act=bias_pos_act/bias_atnum(i)
+            do j=1,nbeads
+               derivs(dim_ind,bias_atlist(j,i),j)=derivs(dim_ind,bias_atlist(j,i),i)+ &
+                       & bias_forces(i)*(bias_pos_act-bias_pos(i)-bias_move(i)*dt*&
+                       & 2.41888428E-2*real(istep))
+            end do
+            write(128,'(2f16.7)',advance="no") (bias_pos(i)+bias_move(i)*dt*&
+                       & 2.41888428E-2*real(istep))*bohr,bias_pos_act*bohr
+         end if
+      end do
+      write(128,*)
+      flush(128)
+   end if
 !
 !     Add the bias potential for umbrella samplings!
 !
