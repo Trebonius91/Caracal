@@ -237,6 +237,7 @@ real(kind=8),allocatable::bias_move(:)
 real(kind=8),allocatable::bias_forces(:)
 integer,allocatable::bias_atnum(:)
 integer,allocatable::bias_atlist(:,:)
+real(kind=8),allocatable::bias_mass_tot(:)
 
 ! for the new RPMD program
 integer::nbeads   ! the number of ring polymer beads to be sampled

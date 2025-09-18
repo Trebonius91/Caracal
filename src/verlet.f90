@@ -946,10 +946,13 @@ if (use_calc_rate .or. use_stick_coeff .or. rank .eq. 0) then
                bias_pos_act=bias_pos_act+centroid(dim_ind,bias_atlist(j,i))
             end do
             bias_pos_act=bias_pos_act/bias_atnum(i)
-            do j=1,nbeads
-               derivs(dim_ind,bias_atlist(j,i),j)=derivs(dim_ind,bias_atlist(j,i),i)+ &
-                       & bias_forces(i)*(bias_pos_act-bias_pos(i)-bias_move(i)*dt*&
-                       & 2.41888428E-2*real(istep))
+            do j=1,bias_atnum(i)
+               do k=1,nbeads
+                  derivs(dim_ind,bias_atlist(j,i),k)=derivs(dim_ind,bias_atlist(j,i),k)+ &
+                          & bias_forces(i)*(mass(bias_atlist(j,i))/bias_mass_tot(i))* &
+                          & (bias_pos_act-bias_pos(i)-bias_move(i)*dt*&
+                          & 2.41888428E-2*real(istep))
+               end do
             end do
             write(128,'(2f16.7)',advance="no") (bias_pos(i)+bias_move(i)*dt*&
                        & 2.41888428E-2*real(istep))*bohr,bias_pos_act*bohr

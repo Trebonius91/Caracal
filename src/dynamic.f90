@@ -881,7 +881,9 @@ if (bias_list) then
    allocate(bias_move(bias_num))
    allocate(bias_forces(bias_num))
    allocate(bias_atnum(bias_num))
+   allocate(bias_mass_tot(bias_num))
    allocate(bias_atlist(100,bias_num))
+   bias_mass_tot=0.d0
    bias_atlist=0
 !
 !    Read in the list of bias potentials
@@ -911,6 +913,10 @@ if (bias_list) then
             end if
          end if
       end do
+      do j=1,bias_atnum(i)
+         bias_mass_tot(i)=bias_mass_tot(i)+mass(bias_atlist(j,i))
+      end do
+      write(*,*) "Mass",bias_mass_tot(i)
       if ((bias_type(i) .eq. "R") .and. (bias_atnum(i) .lt. 2)) then
          if (rank .eq. 0) then
             write(*,'(a,i5,a)') "The bias potential No.",i," is not fully defined!"
