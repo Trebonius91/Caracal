@@ -927,7 +927,7 @@ if (use_calc_rate .or. use_stick_coeff .or. rank .eq. 0) then
             call box_image(bias_vec_act)
             dist_act=sqrt(dot_product(bias_vec_act,bias_vec_act))
             bias_vec_act=bias_vec_act*bias_forces(i)*(dist_act-bias_pos(i)- &
-                      & bias_move(i)*dt*2.41888428E-2*real(istep))   
+                      & bias_move(i)*dt*2.41888428E-2*real(istep))/dist_act   
             write(128,'(2f16.7)',advance="no") (bias_pos(i)+bias_move(i)*dt*&
                       & 2.41888428E-2*real(istep))*bohr,dist_act*bohr
             do j=1,nbeads
