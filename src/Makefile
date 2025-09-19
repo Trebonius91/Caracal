@@ -274,7 +274,7 @@ OBJS = general.o evb_mod.o qmdff.o lm_module.o debug.o h2co_mod.o \
 EXES = qmdffgen.x dynamic.x evbopt.x explore.x calc_rate.x \
        black_box.x poly_qmdff.x stick_coeff.x
 
-all: $(OBJS)  $(EXES)
+all: 	$(OBJS)  $(EXES)
 
 #    compile all .f or .f90 files to .o files
 

@@ -130,7 +130,12 @@ if (use_calc_rate .or. use_stick_coeff .or. rank .eq. 0) then
    if (thermostat .eq. 2) then
       call andersen
 !   p_i=0.d0
-      nfree=3.d0*natoms
+      nfree=0
+      do i=1,natoms
+         if (at_move(i)) then
+            nfree=nfree+3
+         end if        
+      end do
       ekt = k_B * kelvin
       qterm = ekt * nose_q * nose_q
       do j = 1, maxnose

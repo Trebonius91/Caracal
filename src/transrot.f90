@@ -222,6 +222,16 @@ do i=1,natoms
 end do
 
 
+!
+!     set momentum to zero for fixed atoms
+!
+do i=1,natoms
+   if (.not. at_move(i)) then
+      p_i(:,i,:)=0.d0
+   end if
+end do
+
+
 
 
 end subroutine transrot

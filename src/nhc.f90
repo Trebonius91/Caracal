@@ -64,15 +64,19 @@ eksum=0.d0
 !
 if (use_stick_coeff) then
    do i=1,natoms-2
-      do j=1,nbeads
-         eksum=eksum+dot_product(p_i(:,i,j),p_i(:,i,j))/(2d0*mass(i))/nbeads/nbeads
-      end do
+      if (at_move(i)) then
+         do j=1,nbeads
+            eksum=eksum+dot_product(p_i(:,i,j),p_i(:,i,j))/(2d0*mass(i))/nbeads/nbeads
+         end do
+      end if
    end do
 else
    do i=1,natoms
-      do j=1,nbeads
-         eksum=eksum+dot_product(p_i(:,i,j),p_i(:,i,j))/(2d0*mass(i))/nbeads/nbeads
-      end do
+      if (at_move(i)) then
+         do j=1,nbeads
+            eksum=eksum+dot_product(p_i(:,i,j),p_i(:,i,j))/(2d0*mass(i))/nbeads/nbeads
+         end do
+      end if
    end do
 end if
 !
@@ -132,19 +136,35 @@ end do
 !
 if (use_stick_coeff) then
    do i = 1, natoms-2
-      do j=1,nbeads
-         do k = 1, 3
-            p_i(k,i,j) = scale * p_i(k,i,j)
+      if (at_move(i)) then
+         do j=1,nbeads
+            do k = 1, 3
+               p_i(k,i,j) = scale * p_i(k,i,j)
+            end do
          end do
-      end do
+      else
+         do j=1,nbeads
+            do k = 1, 3
+               p_i(k,i,j) = 0.d0
+            end do
+         end do
+      end if
    end do
 else
    do i = 1, natoms
-      do j=1,nbeads
-         do k = 1, 3
-            p_i(k,i,j) = scale * p_i(k,i,j)
+      if (at_move(i)) then
+         do j=1,nbeads
+            do k = 1, 3
+               p_i(k,i,j) = scale * p_i(k,i,j)
+            end do
          end do
-      end do
+      else
+         do j=1,nbeads
+            do k = 1, 3
+               p_i(k,i,j) = 0.d0
+            end do
+         end do
+      end if
    end do
 end if
 return

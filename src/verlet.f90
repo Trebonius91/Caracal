@@ -650,6 +650,17 @@ if (use_calc_rate .or. use_stick_coeff .or. rank .eq. 0) then
 end if
 
 !
+!     set momentum to zero for fixed atoms
+!
+if (use_calc_rate .or. use_stick_coeff .or. rank .eq. 0) then
+   do i=1,natoms
+      if (.not. at_move(i)) then
+         p_i(:,i,:)=0.d0
+      end if
+   end do
+end if
+
+!
 !     Write out the current trajectory frame, if iwrite
 !     Write updated position after Verlet position update step
 !
@@ -982,6 +993,18 @@ end if
 if (use_calc_rate .or. use_stick_coeff .or. rank .eq. 0) then
    p_i=p_i-0.5d0*dt*derivs
 end if
+
+!
+!     set momentum to zero for fixed atoms
+!
+if (use_calc_rate .or. use_stick_coeff .or. rank .eq. 0) then
+   do i=1,natoms
+      if (.not. at_move(i)) then
+         p_i(:,i,:)=0.d0
+      end if
+   end do
+end if
+
 
 !
 !     constrain the momentum (zero for dxi) if desired
