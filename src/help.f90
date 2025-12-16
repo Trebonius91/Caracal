@@ -598,6 +598,8 @@ if (trim(progname) .eq. "calc_rate") then
    write(*,*) " * RANDOM_SEED [value]: The random number generator is initialized"
    write(*,*) "    manually to the given value. For benchmarking and exact "
    write(*,*) "    reproduction of results."
+   write(*,*) " * PRINT_GEN [number]: Print out every N'th frame of the structure"
+   write(*,*) "    generation part, for example for MLIP fine-tunings."
    write(*,*) " * GEN_TEST: Only the structure generation part will be calculated"
    write(*,*) "    and structures and energies will be printed out."
    write(*,*) " * RPMD_EN_TOL [value]: Energy tolerance for the umbrella samplings."

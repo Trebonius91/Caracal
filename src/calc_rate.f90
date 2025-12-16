@@ -804,6 +804,17 @@ if (thermostat .eq. 1) then
    allocate(gle_np(3,natoms,nbeads,gle_ns+1))
 end if
 
+!
+!     If the structure generation shall be written to a trajectory file 
+!     (print_gen), open the file here
+!
+if (print_gen) then
+   if (coord_vasp) then
+      open(unit=51,file="XDATCAR_gen",status="replace")
+   else
+      open(unit=51,file="traj_gen.xyz",status="replace")
+   end if
+end if
 if ((.not. dont_equi) .and. (rank .eq. 0)) then
    write(*,*) 
    write(15,*) "-------------------PART   1-------------------"
@@ -1149,6 +1160,22 @@ if (gen_test) then
    write(*,*) "structures: gen_test_struc.xyz, energies,s-vals,z-vals: gen_test_ens.dat"
    close(295)
    close(296)
+   stop
+end if
+!
+!     If the print_gen option was activated, close the files now and set the 
+!     flag to false to avoid further printing
+!     TEMPORARILY: ALSO STOP THE CALCULATIOn TO AVOID IDLEING
+!
+if (print_gen) then
+   close(51)
+   print_gen=.false.
+   write(15,*) "The PRINT_GEN option is activated and structure generation is finished."
+   write(15,*) " The calculation will be stopped now. Remove the keyword to perform a "
+   write(15,*) " a full rate calculation!"
+   write(*,*) "The PRINT_GEN option is activated and structure generation is finished."
+   write(*,*) " The calculation will be stopped now. Remove the keyword to perform a "
+   write(*,*) " a full rate calculation!"
    stop
 end if
 !

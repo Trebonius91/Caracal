@@ -218,7 +218,11 @@ if (rank .eq. 0) then
    end if
    if (print_poly .gt. -1.d0) then
       write(*,'(a)') " * The 'PRINT_POLYMER' option was activated. Therefore one single umbrella sampling"
-
+   end if
+   if (print_gen) then
+      write(*,'(a,i6,a)') " * The PRINT_GEN option was activated. Every ",print_gen_freq," MD frame "
+      write(*,'(a)') "   during the structure generation part will be written to file."
+      write(*,'(a)') "   (XDATCAR_gen for periodic systems, traj_gen.xyz for nonperiodic systems)"
    end if
    if (gen_test) then
       write(*,'(a)') " * The 'GEN_TEST' option was activated! Therefore, only start structure generation will be"

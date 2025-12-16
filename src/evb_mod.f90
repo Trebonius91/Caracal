@@ -299,8 +299,10 @@ integer::gen_pr_frac,gen_pr_act   ! only each N'th structure, energy etc shall b
 real(kind=8)::gen_energies  ! total sum of energies during structure generation
 integer::box_fixed(1000)
 integer::num_fixed
-logical::print_equi ! if a trajectory with equilibration frames shall be written
-integer::print_equi_freq   ! the frequency of equilibration trajectory prints
+logical::print_gen ! if the structure generation phase shall be written
+integer::print_gen_freq   ! the frequency of structure generation trajectory prints
+logical::print_train
+character(len=10)::train_format
 ! For constant pressure npt simulations with a barostat
 logical::npt  ! NpT ensemble 
 logical::nve  ! NVE ensemble 

@@ -661,94 +661,6 @@ if (use_calc_rate .or. use_stick_coeff .or. rank .eq. 0) then
 end if
 
 !
-!     Write out the current trajectory frame, if iwrite
-!     Write updated position after Verlet position update step
-!
-if (constrain .lt. 0) then
-   if (use_calc_rate .or. use_stick_coeff .or. rank .eq. 0) then
-      if (mod(istep,iwrite) .eq. 0) then
-         if (.not. output_sparse .or. nbeads .eq. 1) then
-            write(28,*) natoms*nbeads
-            if (npt) then
-
-               write(28,*) boxlen_x*bohr,boxlen_y*bohr,boxlen_z*bohr
-            else
-               write(28,*)
-            end if
-            do k=1,nbeads
-               do i=1,natoms
-                  write(28,*) name(i),q_i(:,i,k)*bohr
-               end do
-            end do
-            flush(28)
-         end if
-!
-!     If the VASP formate is used for input, write new CONTCAR and new frame
-!       in XDATCAR files!
-!
-         if (coord_vasp  .and. nbeads .eq. 1) then
-            coord_mat(:,1)=vasp_a_vec(:)
-            coord_mat(:,2)=vasp_b_vec(:)
-            coord_mat(:,3)=vasp_c_vec(:)
-
-            call matinv3(coord_mat,coord_inv)
-
-            open(unit=50,file="CONTCAR",status="replace")
-            write(50,'(a,i9,a)') "CONTCAR (step ",istep,"), written by Caracal (dynamic.x)"
-            write(50,*) vasp_scale
-            write(50,*) vasp_a_vec
-            write(50,*) vasp_b_vec
-            write(50,*) vasp_c_vec
-            do i=1,nelems_vasp
-               write(50,'(a,a)',advance="no") " ",trim(vasp_names(i))
-            end do
-            write(50,*)
-            write(50,*) vasp_numbers(1:nelems_vasp)
-            if (vasp_selective) then
-               write(50,*) "Selective dynamics"
-            end if
-            write(50,*) "Direct"
-            if (xdat_first) then
-               write(51,'(a,i9,a)') "step ",istep,", written by Caracal (dynamic.x)"
-               write(51,*) vasp_scale
-               write(51,*) vasp_a_vec
-               write(51,*) vasp_b_vec
-               write(51,*) vasp_c_vec
-               do i=1,nelems_vasp
-                  write(51,'(a,a)',advance="no") " ",trim(vasp_names(i))
-               end do
-               write(51,*)
-               write(51,*) vasp_numbers(1:nelems_vasp)
-            xdat_first=.false.
-            end if
-            write(51,'(a,i9)') "Direct step ",istep
-!
-!     As in usual CONTCAR files, give the positions in direct coordinates!
-!     convert them back from cartesians, by using the inverse matrix
-!
-            do i=1,natoms
-               q_act_frac=matmul(coord_inv,q_i(:,i,1)*bohr)
-               if (vasp_selective) then
-
-                  if (at_move(i)) then
-                     write(50,*) q_act_frac(:),"   T   T   T "
-                     write(51,*) q_act_frac(:)!,"   F   F   F "
-                  else
-                     write(50,*) q_act_frac(:),"   F   F   F "
-                     write(51,*) q_act_frac(:)!,"   T   T   T "
-                  end if
-               else
-                  write(50,*) q_act_frac(:)
-                  write(51,*) q_act_frac(:)
-               end if
-            end do
-            close(50)
-            flush(51)
-         end if
-      end if
-   end if
-end if
-!
 !     Write out the current centroid trajectory frame for more than one bead, if iwrite 
 !
 if (constrain .lt. 0) then
@@ -863,6 +775,126 @@ do i=1,nbeads
    derivs(:,:,i)=derivs_1d
    epot=epot+epot1
 end do
+
+!
+!     Write out the current trajectory frame, if iwrite
+!     Write updated position after Verlet position update step
+!
+if (constrain .lt. 0 .or. print_gen) then
+   if (use_calc_rate .or. use_stick_coeff .or. rank .eq. 0) then
+      if ((mod(istep,iwrite) .eq. 0) .or. (print_gen .and. mod(istep,print_gen_freq) .eq. 0)) then
+!         if (.not. output_sparse .or. nbeads .eq. 1) then
+!            write(28,*) natoms*nbeads
+!            if (npt) then
+!
+!               write(28,*) boxlen_x*bohr,boxlen_y*bohr,boxlen_z*bohr
+!            else
+!               write(28,*)
+!            end if
+!            do k=1,nbeads
+!               do i=1,natoms
+!                  write(28,*) name(i),q_i(:,i,k)*bohr
+!               end do
+!            end do
+!            flush(28)
+!         end if
+!
+!     If the VASP formate is used for input, write new CONTCAR and new frame
+!       in XDATCAR files!
+!
+         if (coord_vasp  .and. nbeads .eq. 1) then
+            coord_mat(:,1)=vasp_a_vec(:)
+            coord_mat(:,2)=vasp_b_vec(:)
+            coord_mat(:,3)=vasp_c_vec(:)
+
+            call matinv3(coord_mat,coord_inv)
+
+            open(unit=50,file="CONTCAR",status="replace")
+            write(50,'(a,i9,a)') "CONTCAR (step ",istep,"), written by Caracal (dynamic.x)"
+            write(50,*) vasp_scale
+            write(50,*) vasp_a_vec
+            write(50,*) vasp_b_vec
+            write(50,*) vasp_c_vec
+            do i=1,nelems_vasp
+               write(50,'(a,a)',advance="no") " ",trim(vasp_names(i))
+            end do
+            write(50,*)
+            write(50,*) vasp_numbers(1:nelems_vasp)
+            if (vasp_selective) then
+               write(50,*) "Selective dynamics"
+            end if
+            write(50,*) "Direct"
+            if (xdat_first) then
+               if (print_gen) then
+                  write(51,'(a,i9,a)') "step ",istep,", written by Caracal (calc_rate.x)"
+               else
+                  write(51,'(a,i9,a)') "step ",istep,", written by Caracal (dynamic.x)"
+               end if
+               write(51,*) vasp_scale
+               write(51,*) vasp_a_vec
+               write(51,*) vasp_b_vec
+               write(51,*) vasp_c_vec
+               do i=1,nelems_vasp
+                  write(51,'(a,a)',advance="no") " ",trim(vasp_names(i))
+               end do
+               write(51,*)
+               write(51,*) vasp_numbers(1:nelems_vasp)
+               xdat_first=.false.
+            end if
+            write(51,'(a,i9)') "Direct step ",istep
+!
+!     As in usual CONTCAR files, give the positions in direct coordinates!
+!     convert them back from cartesians, by using the inverse matrix
+!
+            do i=1,natoms
+               q_act_frac=matmul(coord_inv,q_i(:,i,1)*bohr)
+               if (vasp_selective) then
+
+                  if (at_move(i)) then
+                     write(50,*) q_act_frac(:),"   T   T   T "
+                     write(51,*) q_act_frac(:)!,"   F   F   F "
+                  else
+                     write(50,*) q_act_frac(:),"   F   F   F "
+                     write(51,*) q_act_frac(:)!,"   T   T   T "
+                  end if
+               else
+                  write(50,*) q_act_frac(:)
+                  write(51,*) q_act_frac(:)
+               end if
+            end do
+            close(50)
+            flush(51)
+!
+!     If no VASP format, simply write a xyz trajectory frame
+!
+         else
+!
+!     If the MLIP training set format is activated, write the structures as 
+!     MACE training set
+!
+            if (print_train .and. (train_format .eq. "MACE")) then
+               write(51,*) natoms
+               write(51,'(a,f20.10,a)') 'Properties=species:S:1:pos:R:3:molID:I:1:REF_forces:R:3 Nmols=1 &
+                           &REF_energy=',epot*evolt,' pbc="F F F"'
+               do i=1,natoms
+                  write(51,'(a,a,3f14.8,a,3f14.8)') name(i),"  ",q_i(:,i,1)*bohr,"  0  ",derivs(:,i,1)*bohr*evolt
+               end do
+               flush(51)
+            else
+               write(51,*) natoms
+               write(51,*) "Generation step No.",istep
+               do i=1,natoms
+                  write(51,*) name(i),q_i(:,i,1)*bohr
+               end do
+               flush(51)
+            end if
+         end if
+      end if
+   end if
+end if
+
+
+
 !
 !   write out the gradients to file (verbose)
 !
@@ -938,7 +970,7 @@ if (use_calc_rate .or. use_stick_coeff .or. rank .eq. 0) then
             call box_image(bias_vec_act)
             dist_act=sqrt(dot_product(bias_vec_act,bias_vec_act))
             bias_vec_act=bias_vec_act*bias_forces(i)*(dist_act-bias_pos(i)- &
-                      & bias_move(i)*dt*2.41888428E-2*real(istep))/dist_act   
+                      & bias_move(i)*dt*2.41888428E-2*real(istep))/dist_act  
             write(128,'(2f16.7)',advance="no") (bias_pos(i)+bias_move(i)*dt*&
                       & 2.41888428E-2*real(istep))*bohr,dist_act*bohr
             do j=1,nbeads

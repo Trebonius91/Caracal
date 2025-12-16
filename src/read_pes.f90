@@ -1317,6 +1317,7 @@ if (mace_ase) then
    mlip_file="none" 
    coord_file="none"
    set_disp=.false.
+   qmdffnumber=0
    do i = 1, nkey_lines
       next = 1
       record = keyline(i)

@@ -183,10 +183,14 @@ fix_atoms=.false.
 nve = .false.
 !     No NpT ensemble will be used 
 npt = .false.
-!     If a trajectory of equilibration frames shall be written
-print_equi=.false.
-!     The frequency of print_equi frames (each N equilibration frame written)
-print_equi_freq=0
+!     If a trajectory of structure generation frames shall be written
+print_gen=.false.
+!     The frequency of print_gen frames (each N generation frame written)
+print_gen_freq=1
+!     If the structure generation frames shall be written as MLIP training set
+print_train=.false.
+!     The format of the MLIP training set to be written
+train_format="XXX"
 !     No periodic calculation
 periodic = .false.
 
@@ -238,6 +242,38 @@ do i = 1, nkey_lines
          write(*,*) "Correct format: DELTAT [MD time step (fs)]"
          call fatal
       end if
+!
+!     if structures during the structure generation phase shall be 
+!      printed to a trajectory (e.g., for MLIP trainings)
+!
+   else if (keyword(1:13) .eq. 'PRINT_GEN ') then
+      read(record,*,iostat=readstat) names,print_gen_freq
+      if (readstat .ne. 0) then
+         write(*,*) "Correct format: PRINT_GEN [Print frequency]"
+         call fatal
+      end if
+      print_gen=.true.
+      xdat_first=.true.  ! print header for first frame
+!
+!    if the printout of the structure generaiton phase shall be 
+!      made in the style of a MLIP training set (e.g. MACE)
+!
+   else if (keyword(1:15) .eq. 'PRINT_TRAIN ') then
+      read(record,*,iostat=readstat) names,train_format
+      if (readstat .ne. 0) then
+         write(*,*) "Correct format: PRINT_TRAIN [MLIP type]"
+         call fatal
+      end if
+      call upcase(train_format)
+      print_train=.true.
+      if (trim(train_format) .eq. "MACE") then
+         !  write(*,*) "MACE format is used!"
+      else
+         write(*,*) "Please give a valid MLIP for PRINT_TRAIN!"
+         write(*,*) "Currently, only MACE is supported."
+         call fatal
+      end if
+
    else if (keyword(1:16) .eq. 'PRINT_POLYMER ') then
       read(record,*,iostat=readstat) names,print_poly
       if (readstat .ne. 0) then
@@ -273,17 +309,6 @@ do i = 1, nkey_lines
          write(*,*) "Correct format: RPMD_XI_TOL [coordinate tolerance (a.u.)]"
          call fatal
       end if 
-!
-!     if structures during the equilibration phase shall be 
-!      printed to a trajectory (e.g., for MLIP trainings)
-!
-   else if (keyword(1:20) .eq. 'PRINT_EQUI ') then
-      print_equi=.true.
-      read(record,*,iostat=readstat) names,print_equi_freq
-      if (readstat .ne. 0) then
-         write(*,*) "Correct format: PRINT_EQUI [Write frequency]"
-         call fatal
-      end if     
    else if (keyword(1:20) .eq. 'GEN_TEST ') then
       gen_test = .true.
    else if (keyword(1:20) .eq. 'MAX_ERROR ') then
@@ -1504,6 +1529,7 @@ end if
 !      Read in the frequency of structure printouts for debug trajectory
 !      If no keyword given, take 1 fs interval as default
 !
+iwrite=100000000
 if (print_poly .ne. -5.d0) then
    do i = 1, nkey_lines
       next = 1
