@@ -1167,15 +1167,18 @@ end if
 !     flag to false to avoid further printing
 !     TEMPORARILY: ALSO STOP THE CALCULATIOn TO AVOID IDLEING
 !
+call mpi_barrier(mpi_comm_world,ierr)
 if (print_gen) then
    close(51)
    print_gen=.false.
-   write(15,*) "The PRINT_GEN option is activated and structure generation is finished."
-   write(15,*) " The calculation will be stopped now. Remove the keyword to perform a "
-   write(15,*) " a full rate calculation!"
-   write(*,*) "The PRINT_GEN option is activated and structure generation is finished."
-   write(*,*) " The calculation will be stopped now. Remove the keyword to perform a "
-   write(*,*) " a full rate calculation!"
+   if (rank .eq. 0) then
+      write(15,*) "The PRINT_GEN option is activated and structure generation is finished."
+      write(15,*) " The calculation will be stopped now. Remove the keyword to perform a "
+      write(15,*) " a full rate calculation!"
+      write(*,*) "The PRINT_GEN option is activated and structure generation is finished."
+      write(*,*) " The calculation will be stopped now. Remove the keyword to perform a "
+      write(*,*) " a full rate calculation!"
+   end if
    stop
 end if
 !
