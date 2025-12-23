@@ -468,8 +468,6 @@ if (trim(progname) .eq. "calc_rate") then
 !
    write(*,*) " * TS_STRUC [.xyz file with start structure (Angstrom)]: Input"
    write(*,*) "    structure for the calculations, should be the reactions' TS!."
-   write(*,*) " * REACTANTS_STRUC [.xyz file]: The reactions reactants structure,"
-   write(*,*) "    needed for unimolecular reactions (see * below)."
    write(*,*) " * RPMD_BEADS [number]: Number of ring polymer beads of the "
    write(*,*) "    system (def.: 1 == classical calculation)"
    write(*,*) " * DELTAT [value]: Lengh of a single MD timestep in fs."
@@ -504,6 +502,8 @@ if (trim(progname) .eq. "calc_rate") then
    write(*,*) "    - REACTANT[1,2,3,4] [list of numbers]: Depending on the type of "
    write(*,*) "       reaction, for each reactant, its atoms need to be specified"
    write(*,*) "       on a distinct line (e.g., REACTANT1 5 7 8 9)."   
+   write(*,*) "    - REACTANTS_STRUC [.xyz file]: The reactions reactants structure,"
+   write(*,*) "       needed for unimolecular reactions (see * above)."
    write(*,*) "    - DIST_INF [value]: Distance between reactants at Xi=0 where"
    write(*,*) "       no interactions are noticed, in Ang. (recommended: 8-15)."
    write(*,*) "    - BOND_FORM [list]: List of bonds that are going to be formed"

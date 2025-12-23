@@ -264,6 +264,7 @@ OBJS = general.o evb_mod.o qmdff.o lm_module.o debug.o h2co_mod.o \
        util_geh4oh.o egrad_c2h7.o egrad_clnh3.o util_clnh3.o \
        egrad_mueller.o egrad_o3.o egrad_ch4cn.o util_ch4cn.o  \
        egrad_nh3oh.o util_nh3oh.o main_h2co.o util_h2co.o \
+       egrad_malon.o \
        \
        C_API/python_calls.o \
        \

@@ -750,7 +750,6 @@ do i = 1, nkey_lines
             if (sum_reacs .eq. 1) then
               ! fix_atoms=.true.
                read(record,*) names,reactants_file
-
                open(unit=31,file=reactants_file,status="old",iostat=readstat)
                if (readstat .ne. 0) then
                   if (rank .eq. 0) then

@@ -75,7 +75,7 @@ LINKLIBS = -lgfortran
 #    - Other analytic PES
 #    - program files
 OBJS = general.o evb_mod.o qmdff.o lm_module.o debug.o h2co_mod.o \
-       pbc_mod.o fftw_mod.o xtb_mod.o inter_mace.o inter_uma.o \
+       pbc_mod.o fftw_mod.o xtb_mod.o inter_mace.o \
        \
        moment.o ff_e.o eabh0.o thermo.o axis.o thermocal.o heat.o \
        bonde.o gethirsh.o docm5.o cm5mod.o copyc6.o limit.o rsp.o \
@@ -135,7 +135,7 @@ OBJS = general.o evb_mod.o qmdff.o lm_module.o debug.o h2co_mod.o \
        bspline.o dftmod.o exp_switch.o nhc_npt.o opt_qmdff_ser.o \
        lm_qmdff.o water_init.o egrad_water.o ev_coord_init.o \
        external_grad.o custom_init.o custom_grad.o pgfn_init.o \
-       egrad_pgfn.o egrad_mace.o mace_init.o egrad_uma.o uma_init.o  \
+       egrad_pgfn.o egrad_mace.o mace_init.o  \
        \
        mctc/env/accuracy.o mctc/env/error.o mctc/env/system.o \
        mctc/env/testing.o mctc/env.o mctc/io/codata2018.o mctc/io/constants.o \
@@ -264,7 +264,7 @@ OBJS = general.o evb_mod.o qmdff.o lm_module.o debug.o h2co_mod.o \
        util_geh4oh.o egrad_c2h7.o egrad_clnh3.o util_clnh3.o \
        egrad_mueller.o egrad_o3.o egrad_ch4cn.o util_ch4cn.o  \
        egrad_nh3oh.o util_nh3oh.o main_h2co.o util_h2co.o \
-       egrad_c2h6cn.o \
+       egrad_malon.o \
        \
        C_API/wrap_mace.o C_API/wrap_uma.o \
        \
@@ -274,7 +274,7 @@ OBJS = general.o evb_mod.o qmdff.o lm_module.o debug.o h2co_mod.o \
 EXES = qmdffgen.x dynamic.x evbopt.x explore.x calc_rate.x \
        black_box.x poly_qmdff.x stick_coeff.x
 
-all: 	$(OBJS)  $(EXES)
+all: $(OBJS)  $(EXES)
 
 #    compile all .f or .f90 files to .o files
 

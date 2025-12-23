@@ -649,6 +649,26 @@ else if (method .eq. "ANA_C2H7") then
 !   (no initialization needed)
    natoms=9  ! store number of atoms..
    pot_ana=.true.
+else if (method .eq. "ANA_MALON") then
+   if (rank .eq. 0) then
+      if (rank .eq. 0) then
+         write(*,*) "----------"
+      end if
+      write(15,*) "The Malonaldehyde intermolecular proton transfer potential energy "
+      write(15,*) " surface is used."
+      write(15,*) "References:  Wataru Mizukami, Scott Habershon and David P. Tew"
+      write(15,*) "             J. Chem. Phys., 141, 144310 (2014)."
+      write(15,*)
+      write(*,*) "The Malonaldehyde intermolecular proton transfer potential energy "
+      write(*,*) " surface is used."
+      write(*,*) "References:  Wataru Mizukami, Scott Habershon and David P. Tew"
+      write(*,*) "             J. Chem. Phys., 141, 144310 (2014)."
+      write(*,*)
+   end if
+   pot_type="malon"
+!   (no initialization needed)
+   natoms=9  ! store number of atoms..
+   pot_ana=.true.
 else if (method .eq. "ANA_C2H6CN") then
    if (rank .eq. 0) then
       open(unit=16,file="pot_info.out",status="unknown")
@@ -710,7 +730,8 @@ if (pot_ana) then
       write(*,*) "10)   CH4 + CN  (CH4CN)   (7 atoms: H, C, H, H, H, C, N)"
       write(*,*) "11)   GeH4 + OH (GeH4OH)  (7 atoms: H, Ge, H, H, H, O, H)"
       write(*,*) "12)   C2H6 + H  (C2H7)    (9 atoms: C, H, H, H, C, H, H, H, H)"
-      write(*,*) "13)   C2H + CN (CH6CN)    (10 atoms: C, C, H, H, H, H, H, H, C, N)"
+      write(*,*) "13)   Malonaldehyde (malon) (9 atoms: C, C, O, C, O, H, H, H, H)"
+      write(*,*) "14)   C2H + CN (CH6CN)    (10 atoms: C, C, H, H, H, H, H, H, C, N)"
       write(*,*)
       write(15,*) "Infos about potential initialization written to file pot_info.out."
       write(15,*)

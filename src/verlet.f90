@@ -783,21 +783,21 @@ end do
 if (constrain .lt. 0 .or. print_gen) then
    if (use_calc_rate .or. use_stick_coeff .or. rank .eq. 0) then
       if ((mod(istep,iwrite) .eq. 0) .or. (print_gen .and. mod(istep,print_gen_freq) .eq. 0)) then
-!         if (.not. output_sparse .or. nbeads .eq. 1) then
-!            write(28,*) natoms*nbeads
-!            if (npt) then
-!
-!               write(28,*) boxlen_x*bohr,boxlen_y*bohr,boxlen_z*bohr
-!            else
-!               write(28,*)
-!            end if
-!            do k=1,nbeads
-!               do i=1,natoms
-!                  write(28,*) name(i),q_i(:,i,k)*bohr
-!               end do
-!            end do
-!            flush(28)
-!         end if
+         if ((.not. use_calc_rate) .and. (.not. output_sparse .or. nbeads .eq. 1)) then
+            write(28,*) natoms*nbeads
+            if (npt) then
+
+               write(28,*) boxlen_x*bohr,boxlen_y*bohr,boxlen_z*bohr
+            else
+               write(28,*)
+            end if
+            do k=1,nbeads
+               do i=1,natoms
+                  write(28,*) name(i),q_i(:,i,k)*bohr
+               end do
+            end do
+            flush(28)
+         end if
 !
 !     If the VASP formate is used for input, write new CONTCAR and new frame
 !       in XDATCAR files!

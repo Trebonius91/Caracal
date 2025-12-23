@@ -193,6 +193,8 @@ if (pot_ana) then
       call egrad_geh4oh(pot_geo,natoms,1,e_evb,pot_grad,info)
    else if (pot_type .eq. "c2h7") then
       call egrad_c2h7(pot_geo,natoms,1,e_evb,pot_grad,info)
+   else if (pot_type .eq. "malon") then
+      call egrad_malon(pot_geo,natoms,1,e_evb,pot_grad) 
    else if (pot_type .eq. "c2h6cn") then
       call egrad_c2h6cn(e_evb,pot_geo,pot_grad,3*natoms)
    end if
