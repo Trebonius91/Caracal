@@ -241,6 +241,7 @@ else if ((umbr_type .eq. "CYCLOREVER") .or. (umbr_type .eq. "REARRANGE") .or. &
    
    write(*,'(a,f15.8,a,f12.8)') "   * W(xi_TS) = ",pmf_max," kJ/mol at xi= ",xi_max
    write(*,'(a,f15.8,a,f12.8)') "   * W(xi_min) = ",pmf_min, " kJ/mol at xi= ",xi_min
+   write(*,'(a,f15.8,a)') "   * deltaW = ",(pmf_max-pmf_min)*hartree*joule, "kJ/mol"
 !
 !     calculate the rate constant in atomic units 
 !

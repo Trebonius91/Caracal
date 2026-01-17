@@ -2167,10 +2167,10 @@ if (.not. dont_del) then
       end if
 !
 !     Avoid strange values of the recrossing coefficient: If the value is too
-!     low (2% or less) , set it to 1.0 and print warning message
+!     low (0.2% or less) , set it to 1.0 and print warning message
 !
    if (rank .eq. 0) then
-      if (kappa .lt. 0.02d0) then
+      if (kappa .lt. 0.002d0) then
          write(15,*) 
          write(15,*) "Warning! The computed recrossing coefficient is very low!"
          write(15,*) "The value is just:",kappa
