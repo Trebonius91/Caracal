@@ -65,6 +65,7 @@ real(kind=8)::dt_info ! time in ps for information
 real(kind=8)::t_total,t_actual ! print out of elapsed parent times
 integer::andersen_save ! frequency for andersen thermostat (stored)
 integer::err_act,err_count,struc_reset,traj_error ! error handling variables
+logical::remember_write  ! temporary index for remembering print_cross
 !
 !     number of errors for trajectory checking
 !
@@ -105,6 +106,15 @@ write(*,'(a,f11.4,a,f11.4,a)') " Evolving parent trajectory at Xi= ",xi_ideal, &
            & " for",real(recr_equi)*dt_info," ps."
 call mdinit(derivs,xi_ideal,dxi_act,2,1)
 !
+!     If print_cross is activated, deactivate it until the parent trajectory 
+!      is finished
+!
+remember_write=.false.
+if (print_cross) then
+   remember_write=.true.
+   print_cross=.false.
+end if
+!
 !     do dynamics with the verlet subroutine, constrain is activated
 !
 do i=1,recr_equi
@@ -140,6 +150,9 @@ denom_total=0.d0
 !     this will be repeated until all child trajectories are started
 !     (this are child_times big cycles
 !  
+if (remember_write) then
+   print_cross=.true.
+end if
 do i=1,child_times 
    q_save=q_i   ! store the current position to recap it in each child
    k_save=k_force  ! store the force constant for the next parent time

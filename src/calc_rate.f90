@@ -77,6 +77,7 @@ use evb_mod
 use pbc_mod
 use debug
 use qmdff
+use iso_fortran_env, only: output_unit
 implicit none
 !
 !     include MPI library
@@ -809,6 +810,7 @@ end if
 !     (print_gen), open the file here
 !
 if (print_gen) then
+   open(unit=54,file="traj_gen_xi.dat",status="replace")
    if (coord_vasp) then
       open(unit=51,file="XDATCAR_gen",status="replace")
    else
@@ -872,6 +874,7 @@ if ((.not. dont_equi) .and. (rank .eq. 0)) then
             & " for",real(gen_step)*dt_info," ps."
       write(*,'(a,a,a,f11.4,a)') " Begin structure generation at Xi= ",trim(subfname), &
             & " for",real(gen_step)*dt_info," ps."
+      flush(output_unit)
 !      stop "Guogou"
 !
 !     In case that an error occured during dynamics, restart the trajectory
@@ -998,6 +1001,7 @@ if ((.not. dont_equi) .and. (rank .eq. 0)) then
          write(*,'(a,a,a,f11.4,a)') " Begin structure generation at Xi= ",trim(subfname), &
              & " for",real(gen_step)*dt_info," ps."
       end if
+      flush(output_unit)
 !
 !     In case that an error occured during dynamics, restart the trajectory
 !     with the geometry stored before
@@ -1170,12 +1174,15 @@ end if
 call mpi_barrier(mpi_comm_world,ierr)
 if (print_gen) then
    close(51)
+   close(54)
    print_gen=.false.
    if (rank .eq. 0) then
       write(15,*) "The PRINT_GEN option is activated and structure generation is finished."
+      write(15,*) " Structures written to traj_gen.xyz, xi-vals written to traj_gen_xi.dat"
       write(15,*) " The calculation will be stopped now. Remove the keyword to perform a "
       write(15,*) " a full rate calculation!"
       write(*,*) "The PRINT_GEN option is activated and structure generation is finished."
+      write(*,*) " Structures written to traj_gen.xyz, xi-vals written to traj_gen_xi.dat"
       write(*,*) " The calculation will be stopped now. Remove the keyword to perform a "
       write(*,*) " a full rate calculation!"
    end if
@@ -1186,6 +1193,19 @@ end if
 !
 if (do_debug) then
    close(debug_unit)
+end if
+!
+!     If the print_cross option is activated, skip the whole umbrella
+!     sampling part and directly go to the recrossing part
+!
+if (print_cross) then
+   write(15,*) "The PRINT_CROSS option is activated. We will skip the umbrella sampling"
+   write(15,*) " phase and directly continue with recrossing.  Remove the keyword to  "
+   write(15,*) " perform a full rate calculation!"
+   write(*,*) "The PRINT_CROSS option is activated. We will skip the umbrella sampling"
+   write(*,*) " phase and directly continue with recrossing.  Remove the keyword to  "
+   write(*,*) " perform a full rate calculation!"
+   goto 867
 end if
 !
 ! --------------------------------------------------------!
@@ -1986,6 +2006,8 @@ if (rank .eq. 0) then
 end if
 
 call mpi_barrier(mpi_comm_world,ierr)
+
+
 if (int_coord_plot) close(191)
 ! --------------------------------------------------------!
 !     CALCULATE THE RECROSSING FACTOR
@@ -2067,6 +2089,16 @@ if (skip_recross) then
    kappa=1.0
    goto 333
 end if
+867 continue   ! if print_cross is activated, continue here with recrossing
+!
+!    Since no PMF profile is available, set the Xi of parent trajectory either 
+!     to 1 (ideal TS) or to a manually chosen value (xi_pos_manual)
+!
+if (print_cross) then
+   if (xi_pos_manual .lt. -10.d0 .or. xi_pos_manual .gt. 10.d0) then
+      xi_pos_manual = 1.d0
+   end if
+end if
 if (rank .eq. 0) then
    write(15,*)
    write(15,*) "-------------------PART   4-------------------"
@@ -2087,6 +2119,7 @@ if (rank .eq. 0) then
       write(*,*) "For this calculation, the position of the recrossing plane "
       write(*,*) " (usually at the PMF maximum) has been altered manually"
       write(*,'(a,f12.6,a)') "  to ",xi_pos_manual,"!"
+      xi_barrier=xi_pos_manual
    end if
 
 
@@ -2153,6 +2186,20 @@ end do
 !
 !     check if the calculation has been done already before
 !
+!
+!     If the recrossing trajectories shall be written to a trajectory file 
+!     (print_cross), open the file here
+!
+if (print_cross) then
+   open(unit=54,file="traj_cross_xi.dat",status="replace")
+   if (coord_vasp) then
+      open(unit=51,file="XDATCAR_cross",status="replace")
+   else
+      open(unit=51,file="traj_cross.xyz",status="replace")
+   end if
+end if
+
+
 call mpi_barrier(mpi_comm_world,ierr)
 recross_calc=.true.
 inquire(file="recross_finished", exist=dont_del)
@@ -2237,6 +2284,27 @@ end if
 333 continue
 recross_calc=.false.
 call mpi_barrier(mpi_comm_world,ierr)
+!
+!     If the recrossing trajectories shall be written to a trajectory file 
+!     (print_cross), stop the calculation here
+!
+if (print_cross) then
+   close(54)
+   close(51)
+   print_cross=.false.
+   if (rank .eq. 0) then
+      write(15,*) "The PRINT_CROSS option is activated and recrossing is finished."
+      write(15,*) " Structures written to traj_cross.xyz, xi-vals written to traj_cross_xi.dat"
+      write(15,*) " The calculation will be stopped now. Remove the keyword to perform a "
+      write(15,*) " a full rate calculation!"
+      write(*,*) "The PRINT_GEN option is activated and recrossing is finished."
+      write(*,*) " Structures written to traj_cross.xyz, xi-vals written to traj_cross_xi.dat"
+      write(*,*) " The calculation will be stopped now. Remove the keyword to perform a "
+      write(*,*) " a full rate calculation!"
+   end if
+   stop
+end if
+
 ! --------------------------------------------------------!
 !     CALCULATE THE RATE CONSTANT FOR THE REACTION
 ! --------------------------------------------------------!

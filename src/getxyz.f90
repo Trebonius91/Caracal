@@ -54,7 +54,7 @@ integer::rank   ! the MPI rank
 integer::tag2(1000) ! local array for atom numbering
 logical::reorder
 
-!
+!i
 !     ask for the user specified input structure filename
 !
 exist= .false.

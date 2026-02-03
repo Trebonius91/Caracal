@@ -185,6 +185,8 @@ nve = .false.
 npt = .false.
 !     If a trajectory of structure generation frames shall be written
 print_gen=.false.
+!     If recrossing trajectory frames shall be written
+print_cross=.false.
 !     The frequency of print_gen frames (each N generation frame written)
 print_gen_freq=1
 !     If the structure generation frames shall be written as MLIP training set
@@ -253,6 +255,19 @@ do i = 1, nkey_lines
          call fatal
       end if
       print_gen=.true.
+      xdat_first=.true.  ! print header for first frame
+
+!
+!     if structures during the recrossing phase shall be 
+!      printed to a trajectory (e.g., for MLIP trainings)
+!
+   else if (keyword(1:16) .eq. 'PRINT_CROSS ') then
+      read(record,*,iostat=readstat) names,print_cross_freq
+      if (readstat .ne. 0) then
+         write(*,*) "Correct format: PRINT_GEN [Print frequency]"
+         call fatal
+      end if
+      print_cross=.true.
       xdat_first=.true.  ! print header for first frame
 !
 !    if the printout of the structure generaiton phase shall be 
@@ -1122,6 +1137,18 @@ call mpi_comm_size(mpi_comm_world,psize,ierr)
 if (psize .gt. 1) then
    recross_mpi = .true.
 else
+   recross_mpi = .false.
+end if
+
+!
+!    If the print_cross option is activated, automatically switch to serial
+!    recrossing to enable the printout of recrossing trajectories.
+!
+if (print_cross) then
+   write(*,*) "The PRINT_CROSS option is activated, recrossing will therefore be "
+   write(*,*) " done serial!"
+   write(15,*) "The PRINT_CROSS option is activated, recrossing will therefore be "
+   write(15,*) " done serial!"
    recross_mpi = .false.
 end if
 

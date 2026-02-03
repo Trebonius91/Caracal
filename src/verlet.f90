@@ -780,10 +780,12 @@ end do
 !     Write out the current trajectory frame, if iwrite
 !     Write updated position after Verlet position update step
 !
-if (constrain .lt. 0 .or. print_gen) then
+if (constrain .lt. 0 .or. print_gen .or. print_cross) then
    if (use_calc_rate .or. use_stick_coeff .or. rank .eq. 0) then
-      if ((mod(istep,iwrite) .eq. 0) .or. (print_gen .and. mod(istep,print_gen_freq) .eq. 0)) then
+      if ((mod(istep,iwrite) .eq. 0) .or. (print_gen .and. mod(istep,print_gen_freq) .eq. 0) &
+          & .or. (print_cross .and. mod(istep,print_cross_freq) .eq. 0)) then
          if ((.not. use_calc_rate) .and. (.not. output_sparse .or. nbeads .eq. 1)) then
+
             write(28,*) natoms*nbeads
             if (npt) then
 
@@ -830,6 +832,11 @@ if (constrain .lt. 0 .or. print_gen) then
                else
                   write(51,'(a,i9,a)') "step ",istep,", written by Caracal (dynamic.x)"
                end if
+!
+!     Write the current xi value and ideal xi value to a separate file
+!    
+               write(54,*) xi_real,xi_ideal
+               flush(54)
                write(51,*) vasp_scale
                write(51,*) vasp_a_vec
                write(51,*) vasp_b_vec
@@ -874,12 +881,18 @@ if (constrain .lt. 0 .or. print_gen) then
 !
             if (print_train .and. (train_format .eq. "MACE")) then
                write(51,*) natoms
-               write(51,'(a,f20.10,a)') 'Properties=species:S:1:pos:R:3:molID:I:1:REF_forces:R:3 Nmols=1 &
+               write(51,'(a,f20.10,a)') 'Properties=species:S:1:pos:R:3:REF_forces:R:3 &
                            &REF_energy=',epot*evolt,' pbc="F F F"'
                do i=1,natoms
-                  write(51,'(a,a,3f14.8,a,3f14.8)') name(i),"  ",q_i(:,i,1)*bohr,"  0  ",derivs(:,i,1)*bohr*evolt
+                  write(51,'(a,a,3f14.8,a,3f14.8)') name(i),"  ",q_i(:,i,1)*bohr," ",-derivs(:,i,1)/bohr*evolt
                end do
                flush(51)
+!
+!     Write the current xi value and ideal xi value to a separate file
+!    
+               write(54,*) xi_real,xi_ideal
+               flush(54)
+
             else
                write(51,*) natoms
                write(51,*) "Generation step No.",istep
@@ -887,6 +900,11 @@ if (constrain .lt. 0 .or. print_gen) then
                   write(51,*) name(i),q_i(:,i,1)*bohr
                end do
                flush(51)
+!
+!     Write the current xi value and ideal xi value to a separate file
+!    
+               write(54,*) xi_real,xi_ideal
+               flush(54)
             end if
          end if
       end if
