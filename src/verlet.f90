@@ -854,7 +854,7 @@ if (constrain .lt. 0 .or. print_gen .or. print_cross) then
 !     Coordinates still direct, but no selective markers anymore
 !
             if (print_train .and. (train_format .eq. "MACE")) then
-               write(51,'(a,i9,a,f12.9)') "Direct step ",istep," energy: ",epot*evolt
+               write(51,'(a,i9,a,f21.9)') "Direct step ",istep," energy: ",epot*evolt
                do i=1,natoms
                   q_act_frac=matmul(coord_inv,q_i(:,i,1)*bohr)
                   write(50,*) q_act_frac(:),-derivs(:,i,1)/bohr*evolt
