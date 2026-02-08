@@ -848,27 +848,41 @@ if (constrain .lt. 0 .or. print_gen .or. print_cross) then
                write(51,*) vasp_numbers(1:nelems_vasp)
                xdat_first=.false.
             end if
-            write(51,'(a,i9)') "Direct step ",istep
+!
+!     Write the XDATCAR file, either with or without energy/gradient information
+!      written as additional columns (not a real training set format!)
+!     Coordinates still direct, but no selective markers anymore
+!
+            if (print_train .and. (train_format .eq. "MACE")) then
+               write(51,'(a,i9,a,f12.9)') "Direct step ",istep," energy: ",epot*evolt
+               do i=1,natoms
+                  q_act_frac=matmul(coord_inv,q_i(:,i,1)*bohr)
+                  write(50,*) q_act_frac(:),-derivs(:,i,1)/bohr*evolt
+                  write(51,*) q_act_frac(:),-derivs(:,i,1)/bohr*evolt
+               end do
+            else
+               write(51,'(a,i9)') "Direct step ",istep
 !
 !     As in usual CONTCAR files, give the positions in direct coordinates!
 !     convert them back from cartesians, by using the inverse matrix
 !
-            do i=1,natoms
-               q_act_frac=matmul(coord_inv,q_i(:,i,1)*bohr)
-               if (vasp_selective) then
+               do i=1,natoms
+                  q_act_frac=matmul(coord_inv,q_i(:,i,1)*bohr)
+                  if (vasp_selective) then
 
-                  if (at_move(i)) then
-                     write(50,*) q_act_frac(:),"   T   T   T "
-                     write(51,*) q_act_frac(:)!,"   F   F   F "
+                     if (at_move(i)) then
+                        write(50,*) q_act_frac(:),"   T   T   T "
+                        write(51,*) q_act_frac(:)!,"   F   F   F "
+                     else
+                        write(50,*) q_act_frac(:),"   F   F   F "
+                        write(51,*) q_act_frac(:)!,"   T   T   T "
+                     end if
                   else
-                     write(50,*) q_act_frac(:),"   F   F   F "
-                     write(51,*) q_act_frac(:)!,"   T   T   T "
+                     write(50,*) q_act_frac(:)
+                     write(51,*) q_act_frac(:)
                   end if
-               else
-                  write(50,*) q_act_frac(:)
-                  write(51,*) q_act_frac(:)
-               end if
-            end do
+               end do
+            end if
             close(50)
             flush(51)
 !
