@@ -48,6 +48,10 @@ implicit none
 !     - 5: evb_qmdff
 !
 integer::whichprog
+!     
+!     If a short or long help shall be printed
+!
+logical::help_detail
 !
 !     from tinker module "files"
 !     --> filenames etc.
