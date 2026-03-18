@@ -9,7 +9,7 @@
 </p>
 
 # Caracal
-Ring polymer molecular dynamics and rate constant calculations on black-box potential energy surfaces
+Ring polymer molecular dynamics and rate constant calculations on black-box and machine-learning potential energy surfaces
 
 ## About Caracal
 
@@ -18,17 +18,14 @@ Unbiased and biased molecular dynamics trajectories can be sampled, unperiodic a
 
 Classical (Newtonian) as well as ring polymer molecular dynamics (RPMD) can be used.
 A central feature is the automized setup of potential energy surfaces for gas phase reactions using the EVB-QMDFF methodology.
+Further, numerous different machine-learning interatomic potentials (MLIPs) can be utilized for all tasks.
 
 Quantum mechanical derived force fields (QMDFFs) can be generated in black box fashion for arbitrary chemical systems, two QMDFFs can be coupled by
 different EVB (Empirical Valence Bond) coupling methods.
 
-Simple energy difference coupling methods as well as more sophisticated methods like distributed gaussian (DG)-EVB or transition region corrected reaction path EVB-QMDFF (TREQ) are availabe for that purpose.
-
-Especially the TREQ method allows for black-box generation of high quality PES descriptions, the whole process of PES setup and rate constant calculation with RPMD is realized in the black-box program within Caracal.
+A growing number of MLIPs is included or plugged into Caracal: Behler-Parrinello neural networks via the Aenet program, message-passing atomic cluster expansion (MACE) and the universal model for atoms (UMA). Caracal supports the self-consistent fine tuning of MACE MLIPs for biased and unbiased samplings.
 
 The well-known class of semiempirical GFN-xTB methods is implemented now as well, enabling the black-box simulation of arbitrary chemical systems.
-
-QMDFFs of single molecules can be polymerized to describe complex multicomponent mixtures or solutions, containing molecules like transition metal complexes for which it is hard to get force field parametrizations but are easy to setup with QMDFF.
 
 Further, a steadily growing number of analytical PES representations of gas phase reaction systems from the literature is integrated into Caracal, mainly for the calculation of rate constants. Alternatively, you can couple your own
 PES routine to the program (either by defining a syscall or directly integrating the subroutine into the Caracal code) and perform biased or unbiased RPMD with it.
@@ -49,6 +46,8 @@ multicharge: [https://github.com/grimme-lab/multicharge](https://github.com/grim
 toml-f: [https://github.com/toml-f/toml-f](https://github.com/toml-f/toml-f)
 
 tblite: [https://github.com/tblite/tblite](https://github.com/tblite/tblite)
+
+aenet: [http://ann.atomistic.net/](http://ann.atomistic.net/)
 
 ## License
 
@@ -96,6 +95,10 @@ For compilation, the following dependencies are required:
 - FFTW
 - MPI
 
+If MACE and UMA shall be used, the respective Python libraries as well the 
+atomic simulation environment (ASE) libraries need to be installed.
+Missing li6raries have no impact on the general functionality of Caracal.
+
 ## Compiling from Source
 
 The Makefile, which is located in the main directory, should be modified to meet your system requirements, choosing a suitable set of compiler and required libraries
@@ -140,12 +143,16 @@ Here, literature referring to the different methods included into Caracal are gi
 - GFN1-xTB: S. Grimme et al.; J. Chem. Theory Comput. 2017, 13, 1989-2009 (DOI: [10.1021/acs.jctc.7b00118](https://doi.org/10.1021/acs.jctc.7b00118)) 
 - GFN2-xTB: C. Bannwarth et al.; J. Chem. Theory Comput. 2019, 15, 1652-1671 (DOI: [10.1021/acs.jctc.8b01176](https://doi.org/10.1021/acs.jctc.8b01176))
 - ALPB solvation: S. Ehlert et al.; J. Chem. Theory Comput. 2021, 17, 4250-4261 (DOI: [10.1021/acs.jctc.1c00471](https://doi.org/10.1021/acs.jctc.1c00471))
+- Behler-Parrinello NNs via aenet: N. Artrith et al.: Comput. Mater. Sci. 2016, 114, 135-150 (DOI: [10.1016/j.commatsci.2015.11.047](https://doi.org/10.1016/j.commatsci.2015.11.047))
+- MACE via ASE: I. Batatia et al.: arXiv:2206.07697, 2022 (DOI: [10.48550/arXiv.2206.07697](https://doi.org/10.48550/arXiv.2206.07697))
+- UMA via ASE: B. M. Wood et al.: arXiv:2506.23971, 2025 (DOI: [10.48550/arXiv.2506.23971](https://doi.org/10.48550/arXiv.2506.23971)) 
 
 ## Future improvements
 
-- Development of local versions of TREQ, enabling the calculation of larger systems without complicated and error-prone sets of internal coordinates
-- Exact unimolecular rate constants: implementing theoretically stringent prefactors for the different unimolecular mechanisms
-- Reactions in solvents: Implementing a "QM/MM" scheme, with the reactive part described by TREQ and sampled with RPMD and the solvent described by GFN-FF and classical dynamics
+- Inclusion of additional MLIPs for their easy applications in unbiased and biased RPMD simulations
+- Development of more targeted fine-tuning methodologies for an effective black-box fine-tuning of MLIPs 
+- A full rate theory of RPMD rate constant calculations, for arbitrary unimolecular and bimolcular reactions
+- Development of multiscale approaches including MLIPs, such as ML/MM approaches, with MLIP as inner and, e.g., GFN-FF as outer method.
 
 ## Latest changes
 
@@ -165,3 +172,4 @@ Here, literature referring to the different methods included into Caracal are gi
 - 08/10/2024: Behler-Parrinello neural networks (2nd generation) are now included via the aenet program source code (accessible via the aenet_ann command).
 - 06/04/2025: A new program stick_coeff.x enabling the automated calculation of molecular sticking coefficients on surfaces has been added.
 - 07/09/2025: The inclusion of several modern machine-learned interatomic potential (MLIP) distributions like MACE has been made possible by a C-wrapper to the ASE program.
+- 02/10/2026: The targeted printout of training set information for MLIP traininings or fine-tunings during calc_rate.x calculations as been added.
