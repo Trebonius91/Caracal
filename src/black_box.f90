@@ -202,13 +202,18 @@ call system_clock(time_int(1))
 if (rank .eq. 0) then
    call get_command_argument(1, commarg)
    if (trim(commarg) .eq. "-help" .or. trim(commarg) .eq. "-h") then
+      help_detail=.false.
+      call help("black_box")
+      stop
+   else if (trim(commarg) .eq. "-help_long") then
+      help_detail=.true.
       call help("black_box")
       stop
    else
-      write(*,*) 
       write(*,*) "To show some basic infos about the program and a list of all"
       write(*,*) "used keywords in it, type 'black_box.x -help' or 'black_box.x -h'."
-      write(*,*) 
+      write(*,*) "For a more detailed help, type 'black_box.x -help_long'."
+      write(*,*)
    end if
 end if
 

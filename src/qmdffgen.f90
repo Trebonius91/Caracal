@@ -106,17 +106,19 @@ call promo
 if (rank .eq. 0) then
    call get_command_argument(1, commarg)
    if (trim(commarg) .eq. "-help" .or. trim(commarg) .eq. "-h") then
+      help_detail=.false.
       call help("qmdffgen")
       stop
-   else 
+   else if (trim(commarg) .eq. "-help_long") then
+      help_detail=.true.
+      call help("qmdffgen")
+      stop
+   else
       write(*,*) "To show some basic infos about the program and a list of all"
       write(*,*) "used keywords in it, type 'qmdffgen.x -help' or 'qmdffgen.x -h'."
+      write(*,*) "For a more detailed help, type 'qmdffgen.x -help_long'."
+      write(*,*)
    end if
-   details=.false.
-   if (trim(commarg) .eq. "-details") then
-      details=.true.
-   end if
-
 end if
 
 !

@@ -157,11 +157,18 @@ call prog_initial(rank)
 if (rank .eq. 0) then
    call get_command_argument(1, commarg)
    if (trim(commarg) .eq. "-help" .or. trim(commarg) .eq. "-h") then
+      help_detail=.false.
+      call help("explore")
+      stop
+   else if (trim(commarg) .eq. "-help_long") then
+      help_detail=.true.
       call help("explore")
       stop
    else
       write(*,*) "To show some basic infos about the program and a list of all"
       write(*,*) "used keywords in it, type 'explore.x -help' or 'explore.x -h'."
+      write(*,*) "For a more detailed help, type 'explore.x -help_long'."
+      write(*,*)
    end if
 end if
 !

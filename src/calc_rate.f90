@@ -266,11 +266,18 @@ call prog_initial(rank)
 if (rank .eq. 0) then
    call get_command_argument(1, commarg)
    if (trim(commarg) .eq. "-help" .or. trim(commarg) .eq. "-h") then
+      help_detail=.false.
+      call help("calc_rate")
+      stop
+   else if (trim(commarg) .eq. "-help_long") then
+      help_detail=.true.
       call help("calc_rate")
       stop
    else
       write(*,*) "To show some basic infos about the program and a list of all"
-      write(*,*) "used keywords in it, type 'rpmd.x -help' or 'rpmd.x -h'."
+      write(*,*) "used keywords in it, type 'calc_rate.x -help' or 'calc_rate.x -h'."
+      write(*,*) "For a more detailed help, type 'calc_rate.x -help_long'."
+      write(*,*)
    end if
 end if
 !

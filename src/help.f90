@@ -456,8 +456,9 @@ if (trim(progname) .eq. "calc_rate") then
    write(*,*) "least for very accurate calculations). If the calculation is "
    write(*,*) "aborted at some stage, the restart can be initiated from the "
    write(*,*) "end of the last fulfilled step." 
-   write(*,*) "Currently, only bimolecular reactions can be calculated, such as"
-   write(*,*) "substitutions, additions, cycloadditions and solvent assisted"
+   write(*,*) "Currently, uni- and bimolecular reactions can be calculated, "
+   write(*,*) "such as substitutions, additions, cycloadditions, bond-brekings,"
+   write(*,*) "eliminations, cycloreversions, 1D transports and solvent assisted"
    write(*,*) "additions (with 2 to 3 single molecules as second reactant)."
 !
 !     General EVB infos (same for all programs)
