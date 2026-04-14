@@ -847,6 +847,9 @@ if (constrain .lt. 0 .or. print_gen .or. print_cross) then
                write(51,*)
                write(51,*) vasp_numbers(1:nelems_vasp)
                xdat_first=.false.
+            else
+               write(54,*) xi_real,xi_ideal
+               flush(54)
             end if
 !
 !     Write the XDATCAR file, either with or without energy/gradient information
@@ -1294,7 +1297,7 @@ end if
 !     Remove total translation and rotation of the system during the dynamics 
 !      (especially needed for Nose-Hoover thermostat!)
 !
-if (constrain .lt. 0) then
+if (constrain .le. 0) then
 !   if (.not. coord_vasp) then
       if (use_calc_rate .or. use_stick_coeff .or. rank .eq. 0) then
          call transrot(centroid)
