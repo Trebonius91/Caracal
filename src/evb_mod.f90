@@ -303,6 +303,7 @@ logical::print_gen ! if the structure generation phase shall be written
 integer::print_gen_freq   ! the frequency of structure generation trajectory prints
 logical::print_cross ! the recrossing phase shall be written
 integer::print_cross_freq  ! the frequency of recrossing trajectory prints
+integer::print_both  !  structure generation and recrossing is written
 logical::print_train
 character(len=10)::train_format
 ! For constant pressure npt simulations with a barostat

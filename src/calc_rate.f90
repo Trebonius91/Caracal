@@ -1176,7 +1176,7 @@ end if
 !
 !     If the print_gen option was activated, close the files now and set the 
 !     flag to false to avoid further printing
-!     TEMPORARILY: ALSO STOP THE CALCULATIOn TO AVOID IDLEING
+!     If no PRINT_CROSS is activated, the calculation will be stopped.
 !
 call mpi_barrier(mpi_comm_world,ierr)
 if (print_gen) then
@@ -1186,14 +1186,24 @@ if (print_gen) then
    if (rank .eq. 0) then
       write(15,*) "The PRINT_GEN option is activated and structure generation is finished."
       write(15,*) " Structures written to traj_gen.xyz, xi-vals written to traj_gen_xi.dat"
-      write(15,*) " The calculation will be stopped now. Remove the keyword to perform a "
-      write(15,*) " a full rate calculation!"
+      if (print_cross) then
+         write(15,*) " We will now jump directly to the recrossing phase"
+      else
+         write(15,*) " The calculation will be stopped now. Remove the keyword to perform a "
+         write(15,*) " a full rate calculation!"
+      end if
       write(*,*) "The PRINT_GEN option is activated and structure generation is finished."
       write(*,*) " Structures written to traj_gen.xyz, xi-vals written to traj_gen_xi.dat"
-      write(*,*) " The calculation will be stopped now. Remove the keyword to perform a "
-      write(*,*) " a full rate calculation!"
+      if (print_cross) then
+         write(*,*) " We will now jump directly to the recrossing phase"
+      else
+         write(*,*) " The calculation will be stopped now. Remove the keyword to perform a "
+         write(*,*) " a full rate calculation!"
+      end if
    end if
-   stop
+   if (.not. print_cross) then
+      stop
+   end if
 end if
 !
 !     close debug unit if opened
