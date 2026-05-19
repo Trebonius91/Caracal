@@ -189,6 +189,8 @@ print_gen=.false.
 print_cross=.false.
 !     The frequency of print_gen frames (each N generation frame written)
 print_gen_freq=1
+!     The frequency of print_cross frames (each N generation frame written)
+print_cross_freq=1
 !     If the structure generation frames shall be written as MLIP training set
 print_train=.false.
 !     The format of the MLIP training set to be written

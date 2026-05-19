@@ -224,6 +224,11 @@ if (rank .eq. 0) then
       write(*,'(a)') "   during the structure generation part will be written to file."
       write(*,'(a)') "   (XDATCAR_gen for periodic systems, traj_gen.xyz for nonperiodic systems)"
    end if
+   if (print_cross) then
+      write(*,'(a,i6,a)') " * The PRINT_CROSS option was activated. Every ",print_cross_freq," MD frame "
+      write(*,'(a)') "   during the recrossing part (child trajectories) will be written to file."
+      write(*,'(a)') "   (XDATCAR_cross for periodic systems, traj_cross.xyz for nonperiodic systems)"
+   end if
    if (gen_test) then
       write(*,'(a)') " * The 'GEN_TEST' option was activated! Therefore, only start structure generation will be"
       write(*,'(a,i8,a)') "   done, and each ",gen_pr_frac,"'th structure will be written out."

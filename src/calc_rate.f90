@@ -824,6 +824,7 @@ if (print_gen) then
       open(unit=51,file="traj_gen.xyz",status="replace")
    end if
 end if
+
 if ((.not. dont_equi) .and. (rank .eq. 0)) then
    write(*,*) 
    write(15,*) "-------------------PART   1-------------------"
