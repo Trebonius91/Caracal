@@ -780,12 +780,12 @@ end do
 !     Write out the current trajectory frame, if iwrite
 !     Write updated position after Verlet position update step
 !
-if (constrain .lt. 0 .or. print_gen .or. print_cross) then
+if (constrain .lt. 0 .or. print_gen .or. print_samp .or. print_cross) then
    if (use_calc_rate .or. use_stick_coeff .or. rank .eq. 0) then
       if ((mod(istep,iwrite) .eq. 0) .or. (print_gen .and. mod(istep,print_gen_freq) .eq. 0) &
-          & .or. (print_cross .and. mod(istep,print_cross_freq) .eq. 0)) then
+          & .or. (print_cross .and. mod(istep,print_cross_freq) .eq. 0) .or. (print_samp .and. &
+          &  mod(istep,print_samp_freq) .eq. 0 .and. samp_umbrella)) then
          if ((.not. use_calc_rate) .and. (.not. output_sparse .or. nbeads .eq. 1)) then
-
             write(28,*) natoms*nbeads
             if (npt) then
 
@@ -832,6 +832,7 @@ if (constrain .lt. 0 .or. print_gen .or. print_cross) then
                else
                   write(51,'(a,i9,a)') "step ",istep,", written by Caracal (dynamic.x)"
                end if
+
 !
 !     Write the current xi value and ideal xi value to a separate file
 !    
@@ -856,7 +857,7 @@ if (constrain .lt. 0 .or. print_gen .or. print_cross) then
 !      written as additional columns (not a real training set format!)
 !     Coordinates still direct, but no selective markers anymore
 !
-            if (print_train .and. (train_format .eq. "MACE")) then
+            if (train_format .eq. "MACE") then
                write(51,'(a,i9,a,f21.9)') "Direct step ",istep," energy: ",epot*evolt
                do i=1,natoms
                   q_act_frac=matmul(coord_inv,q_i(:,i,1)*bohr)
@@ -896,7 +897,7 @@ if (constrain .lt. 0 .or. print_gen .or. print_cross) then
 !     If the MLIP training set format is activated, write the structures as 
 !     MACE training set
 !
-            if (print_train .and. (train_format .eq. "MACE")) then
+            if (train_format .eq. "MACE") then
                write(51,*) natoms
                write(51,'(a,f20.10,a)') 'Properties=species:S:1:pos:R:3:REF_forces:R:3 &
                            &REF_energy=',epot*evolt,' pbc="F F F"'
@@ -909,6 +910,7 @@ if (constrain .lt. 0 .or. print_gen .or. print_cross) then
 !    
                write(54,*) xi_real,xi_ideal
                flush(54)
+
 
             else
                write(51,*) natoms

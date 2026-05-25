@@ -303,8 +303,10 @@ logical::print_gen ! if the structure generation phase shall be written
 integer::print_gen_freq   ! the frequency of structure generation trajectory prints
 logical::print_cross ! the recrossing phase shall be written
 integer::print_cross_freq  ! the frequency of recrossing trajectory prints
-integer::print_both  !  structure generation and recrossing is written
-logical::print_train
+logical::print_samp  ! the RPMD umbrella sampling phase shall be written
+integer::print_samp_freq  ! the frequency of RPMD umbrella trajectory prints
+logical::samp_umbrella  ! check if an umbrella sampling (not equilibration) is done
+logical::print_train   ! if MLIP training set files shall be written
 character(len=10)::train_format
 ! For constant pressure npt simulations with a barostat
 logical::npt  ! NpT ensemble 

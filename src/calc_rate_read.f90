@@ -185,10 +185,14 @@ nve = .false.
 npt = .false.
 !     If a trajectory of structure generation frames shall be written
 print_gen=.false.
+!     If a trajectory of RPMD umbrella sampling frames shall be written
+print_samp=.false.
 !     If recrossing trajectory frames shall be written
 print_cross=.false.
 !     The frequency of print_gen frames (each N generation frame written)
 print_gen_freq=1
+!     The frequency of print_samp frames (each N generation frame written)
+print_samp_freq=1
 !     The frequency of print_cross frames (each N generation frame written)
 print_cross_freq=1
 !     If the structure generation frames shall be written as MLIP training set
@@ -258,7 +262,18 @@ do i = 1, nkey_lines
       end if
       print_gen=.true.
       xdat_first=.true.  ! print header for first frame
-
+!
+!     if structures during the umbrella sampling phase shall be 
+!      printed to a trajectory (e.g., for MLIP trainings)
+!
+   else if (keyword(1:15) .eq. 'PRINT_SAMP ') then
+      read(record,*,iostat=readstat) names,print_samp_freq
+      if (readstat .ne. 0) then
+         write(*,*) "Correct format: PRINT_SAMP [Print frequency]"
+         call fatal
+      end if
+      print_samp=.true.
+      xdat_first=.true.  ! print header for first frame
 !
 !     if structures during the recrossing phase shall be 
 !      printed to a trajectory (e.g., for MLIP trainings)
@@ -271,6 +286,7 @@ do i = 1, nkey_lines
       end if
       print_cross=.true.
       xdat_first=.true.  ! print header for first frame
+
 !
 !    if the printout of the structure generaiton phase shall be 
 !      made in the style of a MLIP training set (e.g. MACE)

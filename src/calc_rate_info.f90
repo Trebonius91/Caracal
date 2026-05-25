@@ -224,6 +224,11 @@ if (rank .eq. 0) then
       write(*,'(a)') "   during the structure generation part will be written to file."
       write(*,'(a)') "   (XDATCAR_gen for periodic systems, traj_gen.xyz for nonperiodic systems)"
    end if
+   if (print_samp) then
+      write(*,'(a,i6,a)') " * The PRINT_SAMP option was activated. Every ",print_samp_freq," MD frame "
+      write(*,'(a)') "   during the RPMD umbrella sampling part (bead No. 1) will be written to file."
+      write(*,'(a)') "   (XDATCAR_samp for periodic systems, traj_samp.xyz for nonperiodic systems)"
+   end if
    if (print_cross) then
       write(*,'(a,i6,a)') " * The PRINT_CROSS option was activated. Every ",print_cross_freq," MD frame "
       write(*,'(a)') "   during the recrossing part (child trajectories) will be written to file."

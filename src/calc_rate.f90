@@ -189,6 +189,7 @@ real(kind=8)::average_store,variance_store ! backup values for averages,variance
 character(len=4)::rank_char  ! for separate folders of MPI ranks (call external)
 !     for debug reasons
 integer::gnu_xi_unit  ! for optional plot of Xi distributions
+logical::print_gen_backup,print_samp_backup,print_cross_backup
 integer::xi_real_unit  ! for print of real Xi values for umbrella start structures
 real(kind=8),dimension(:,:),allocatable::coord
 real(kind=8),dimension(:),allocatable::int_act
@@ -816,7 +817,13 @@ end if
 !     If the structure generation shall be written to a trajectory file 
 !     (print_gen), open the file here
 !
+print_gen_backup=print_gen
+print_samp_backup=print_samp
+print_cross_backup=print_cross
+
 if (print_gen) then
+   print_samp=.false.
+   print_cross=.false.
    open(unit=54,file="traj_gen_xi.dat",status="replace")
    if (coord_vasp) then
       open(unit=51,file="XDATCAR_gen",status="replace")
@@ -1177,13 +1184,15 @@ end if
 !
 !     If the print_gen option was activated, close the files now and set the 
 !     flag to false to avoid further printing
-!     If no PRINT_CROSS is activated, the calculation will be stopped.
+!     If no PRINT_CROSS or PRINT_SAMP is activated, the calculation will be stopped.
 !
 call mpi_barrier(mpi_comm_world,ierr)
 if (print_gen) then
    close(51)
    close(54)
    print_gen=.false.
+   print_cross=print_cross_backup
+   print_samp=print_samp_backup
    if (rank .eq. 0) then
       write(15,*) "The PRINT_GEN option is activated and structure generation is finished."
       write(15,*) " Structures written to traj_gen.xyz, xi-vals written to traj_gen_xi.dat"
@@ -1195,14 +1204,16 @@ if (print_gen) then
       end if
       write(*,*) "The PRINT_GEN option is activated and structure generation is finished."
       write(*,*) " Structures written to traj_gen.xyz, xi-vals written to traj_gen_xi.dat"
-      if (print_cross) then
+      if (print_cross .and. .not. print_samp) then
          write(*,*) " We will now jump directly to the recrossing phase"
+      else if (print_samp) then
+         write(*,*) " We will continue with the umbrella sampling phase"
       else
          write(*,*) " The calculation will be stopped now. Remove the keyword to perform a "
          write(*,*) " a full rate calculation!"
       end if
    end if
-   if (.not. print_cross) then
+   if (.not. print_cross .and. .not. print_samp) then
       stop
    end if
 end if
@@ -1216,7 +1227,7 @@ end if
 !     If the print_cross option is activated, skip the whole umbrella
 !     sampling part and directly go to the recrossing part
 !
-if (print_cross) then
+if (print_cross .and. .not. print_samp) then
    write(15,*) "The PRINT_CROSS option is activated. We will skip the umbrella sampling"
    write(15,*) " phase and directly continue with recrossing.  Remove the keyword to  "
    write(15,*) " perform a full rate calculation!"
@@ -1225,6 +1236,8 @@ if (print_cross) then
    write(*,*) " perform a full rate calculation!"
    goto 867
 end if
+
+
 !
 ! --------------------------------------------------------!
 !     BEGIN THE UMBRELLA SAMPLINGS
@@ -1260,6 +1273,23 @@ inquire(file="sampling_finished", exist=dont_umbr)
 !     calculated parallelized
 if (allocated(p_i)) deallocate(p_i)
 allocate(p_i(3,natoms,nbeads))
+
+
+!     If the sampling trajectories shall be written to a trajectory file 
+!     (print_samp), open the file here
+!
+if (print_samp) then
+   print_cross=.false.
+   print_gen=.false.
+   xdat_first=.true.
+   open(unit=54,file="traj_samp_xi.dat",status="replace")
+   if (coord_vasp) then
+      open(unit=51,file="XDATCAR_samp",status="replace")
+   else
+      open(unit=51,file="traj_samp.xyz",status="replace")
+   end if
+end if
+
 !
 !     Initialize the random number generator!
 ! 
@@ -1566,6 +1596,7 @@ if (.not. dont_umbr) then
          !      else if (thermostat .eq. 1) then
          !         stop "No GLE implemented!"
          !      end if
+               samp_umbrella=.false.  ! for print_samp option (print only samplings) 
                do istep = 1, equi_step
                   call verlet(istep,dt,derivs,energy_act,0d0,0d0,xi_val,xi_real,dxi_act,j,0,.false.,rank)
                !   call verlet_bias (istep,dt,xi_val,xi_real,dxi_act,energy_act,derivs,j,0)
@@ -1622,6 +1653,7 @@ if (.not. dont_umbr) then
                   call gradient (q_1b,epot,derivs_1d,i,rank)
                   derivs(:,:,i)=derivs_1d
                end do
+               samp_umbrella=.true.  ! for print_samp option (print only samplings)
                do istep = 1, umbr_step
 
                   call verlet(istep,dt,derivs,energy_act,0d0,0d0,xi_val,xi_real,dxi_act,k,0,.false.,rank)
@@ -1750,6 +1782,37 @@ else
 end if
 !stop "HGouguogoug"
 call mpi_barrier(mpi_comm_world,ierr)
+
+!
+!     If the sampling trajectories shall be written to a trajectory file 
+!     (print_samp), stop the calculation here
+!
+if (print_samp) then
+   close(54)
+   close(51)
+   print_samp=.false.
+   print_cross=print_cross_backup
+   if (rank .eq. 0) then
+      write(15,*) "The PRINT_SAMP option is activated and the sampling is finished."
+      write(15,*) " Structures written to traj_samp.xyz, xi-vals written to traj_samp_xi.dat"
+      if (.not. print_cross) then
+         write(15,*) " The calculation will be stopped now. Remove the keyword to perform a "
+         write(15,*) " a full rate calculation!"
+      end if
+      write(*,*) "The PRINT_SAMP option is activated and the sampling is finished."
+      write(*,*) " Structures written to traj_samp.xyz, xi-vals written to traj_samp_xi.dat"
+      if (.not. print_cross) then
+         write(*,*) " The calculation will be stopped now. Remove the keyword to perform a "
+         write(*,*) " a full rate calculation!"
+      end if
+   end if
+   if (.not. print_cross) then
+      stop
+   else
+      goto 867
+   end if
+end if
+
 
 !
 ! --------------------------------------------------------!
@@ -2112,7 +2175,11 @@ end if
 !    Since no PMF profile is available, set the Xi of parent trajectory either 
 !     to 1 (ideal TS) or to a manually chosen value (xi_pos_manual)
 !
+print_cross=print_cross_backup
 if (print_cross) then
+   print_gen=.false.
+   print_samp=.false.
+   xdat_first=.true.
    if (xi_pos_manual .lt. -10.d0 .or. xi_pos_manual .gt. 10.d0) then
       xi_pos_manual = 1.d0
    end if
@@ -2207,7 +2274,8 @@ end do
 !
 !     If the recrossing trajectories shall be written to a trajectory file 
 !     (print_cross), open the file here
-!
+!     Use the same Fortran unit for the files to ease the implementation!
+! 
 if (print_cross) then
    open(unit=54,file="traj_cross_xi.dat",status="replace")
    if (coord_vasp) then
