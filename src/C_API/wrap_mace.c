@@ -43,7 +43,7 @@ static PyObject *pModule = NULL;
 //     structure of the system.
 //
 void init_mace(char *mlip_file, char *coord_file, char *calc_device, int mlip_len, 
-		int coord_len, int device_len, bool *set_disp) {
+		int coord_len, int device_len, bool *set_disp, bool *mace_polar) {
    PyObject *pName, *pFunc, *pArgs;
 
 
@@ -111,7 +111,7 @@ void init_mace(char *mlip_file, char *coord_file, char *calc_device, int mlip_le
 //
 //     The transferred object with all input information
 //         
-         PyObject *pArgs = PyTuple_New(4);
+         PyObject *pArgs = PyTuple_New(5);
 //
 //     Pack MLIP filename into Python string
 //
@@ -125,9 +125,14 @@ void init_mace(char *mlip_file, char *coord_file, char *calc_device, int mlip_le
 //
          PyTuple_SetItem(pArgs, 2, PyBool_FromLong(*set_disp ? 1 : 0));
 //
+//     Pack MACE-Polar switch into Python string
+//
+         PyTuple_SetItem(pArgs, 3, PyBool_FromLong(*mace_polar ? 1 : 0));
+
+//
 //     Transfer the information about the used device (CPU or GPU/CUDA)
 //
-         PyTuple_SetItem(pArgs, 3, PyUnicode_FromString(device_buffer));
+         PyTuple_SetItem(pArgs, 4, PyUnicode_FromString(device_buffer));
 	 
 //
 //     Call Python function

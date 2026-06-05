@@ -45,7 +45,6 @@ import datetime
 from datetime import timedelta
 import os.path
 import os
-from mace.calculators import mace_mp
 import sys
 
 #
@@ -59,7 +58,7 @@ calc=None
 #    The initialization routine: read in the MACE MLIP and define it for the 
 #      current geometry/system
 #
-def init_mace(mlip_file,coord_file,set_disp,calc_device):
+def init_mace(mlip_file,coord_file,set_disp,mace_polar,calc_device):
 #
 #    Redefine global variables
 #
@@ -67,16 +66,24 @@ def init_mace(mlip_file,coord_file,set_disp,calc_device):
 #
 #    Define the MACE model
 #
+#    If a MACE Polar-1 foundation model for fine-tuned MLIP shall be used
+#
+   if mace_polar:
+      from mace.calculators import mace_polar
+      macemp = mace_polar(model=mlip_file,device=calc_device)
+   else:
+      from mace.calculators import mace_mp
 #
 #    Returns a model with D3 dispersion correction
 #
-   if set_disp:
-      macemp = mace_mp(model=mlip_file,dispersion=True,device=calc_device)
+      
+      if set_disp:
+         macemp = mace_mp(model=mlip_file,dispersion=True,device=calc_device)
 #
 #    Returns a model without D3 dispersion correction
 #
-   else:
-      macemp = mace_mp(model=mlip_file,dispersion=False,device=calc_device) 
+      else:
+         macemp = mace_mp(model=mlip_file,dispersion=False,device=calc_device) 
 
 #
 #    Read in the initial geometry from the POSCAR file and initialize the atoms object
@@ -88,7 +95,7 @@ def init_mace(mlip_file,coord_file,set_disp,calc_device):
 #    Setup the MACE foundation model
 #
    calc = macemp
-
+   
    if atoms is None or calc is None:
       raise RuntimeError("init_mace must be called before ase_mace")
 

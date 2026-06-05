@@ -1282,12 +1282,12 @@ if (print_samp) then
    print_cross=.false.
    print_gen=.false.
    xdat_first=.true.
-   open(unit=54,file="traj_samp_xi.dat",status="replace")
-   if (coord_vasp) then
-      open(unit=51,file="XDATCAR_samp",status="replace")
-   else
-      open(unit=51,file="traj_samp.xyz",status="replace")
-   end if
+!   open(unit=54,file="traj_samp_xi.dat",status="replace")
+!   if (coord_vasp) then
+!      open(unit=51,file="XDATCAR_samp",status="replace")
+!   else
+!      open(unit=51,file="traj_samp.xyz",status="replace")
+!   end if
 end if
 
 !
@@ -1303,6 +1303,14 @@ if (.not. dont_umbr) then
 !     already existing
 !  
    if (rank .eq. 0) then
+!
+!     If sampling trajectories shall be written to files, generate a folder 
+!     for the files
+!
+      if (print_samp) then
+         inquire(file="traj_samp",exist=exist)
+         if (.not. exist) call system("mkdir traj_samp")
+      end if
       inquire(file="statistics", exist=exist) 
    !   if (exist) call system("rm -r statistics")
       if (.not. exist) call system("mkdir statistics")
@@ -1442,6 +1450,31 @@ if (.not. dont_umbr) then
 !
          average(k)=0.d0
          variance(k)=0.d0
+!
+!     If sampling trajectories shall be written to files, open the file for the 
+!     current worker
+!
+        if (print_samp) then
+           if (xi_val .lt. 0.0d0) then
+              open(unit=54,file="traj_samp/traj_samp_xi_-"//subfname,status="replace")
+           else
+              open(unit=54,file="traj_samp/traj_samp_xi_"//subfname,status="replace")
+           end if
+
+           if (coord_vasp) then
+              if (xi_val .lt. 0.0d0) then
+                 open(unit=51,file="traj_samp/XDATCAR_samp_-"//subfname,status="replace")
+              else
+                 open(unit=51,file="traj_samp/XDATCAR_samp_"//subfname,status="replace")
+              end if
+           else
+              if (xi_val .lt. 0.0d0) then
+                 open(unit=51,file="traj_samp/traj_samp_-"//subfname,status="replace")
+              else
+                 open(unit=51,file="traj_samp/traj_samp_"//subfname,status="replace")
+              end if
+           end if
+        end if
 !
 !     Check if statistics file is already present for current bias position!
 !     If existent, open file and check if enough lines are in it 
@@ -1793,6 +1826,47 @@ if (print_samp) then
    print_samp=.false.
    print_cross=print_cross_backup
    if (rank .eq. 0) then
+!
+!     Concatenate all single print_samp and print_samp_xi files into the usual 
+!      global files for all umbrella windows
+!  
+      call system("touch traj_samp_xi.dat")
+      if (coord_vasp) then
+         call system("touch XDATCAR_samp")
+      else
+         call system("touch traj_samp.xyz")
+      end if
+      call system("rm traj_samp_xi.dat")
+      if (coord_vasp) then
+         call system("rm traj_samp.xyz")
+      else 
+         call system("rm XDATCAR_samp")
+      end if
+
+      do i=1,n_all-1
+         xi_val=xi_wins(i)
+         if (xi_val .lt. 0.0d0) then
+            write(subfname,"(f6.4)") abs(xi_val)
+         else
+            write(subfname,"(f6.4)") xi_val
+         end if
+         if (xi_val .lt. 0.0d0) then
+            call system("cat traj_samp/traj_samp_xi_-"//subfname//" >> traj_samp_xi.dat")
+            if (coord_vasp) then
+               call system("cat traj_samp/XDATCAR_samp_-"//subfname//" >> XDATCAR_samp")
+            else
+               call system("cat traj_samp/traj_samp_-"//subfname//" >> traj_samp.xyz")
+            end if
+         else
+            call system("cat traj_samp/traj_samp_xi_"//subfname//" >> traj_samp_xi.dat")
+            if (coord_vasp) then
+               call system("cat traj_samp/XDATCAR_samp_"//subfname//" >> XDATCAR_samp")
+            else
+               call system("cat traj_samp/traj_samp_"//subfname//" >> traj_samp.xyz")
+            end if
+         end if
+      end do
+
       write(15,*) "The PRINT_SAMP option is activated and the sampling is finished."
       write(15,*) " Structures written to traj_samp.xyz, xi-vals written to traj_samp_xi.dat"
       if (.not. print_cross) then
@@ -1806,6 +1880,7 @@ if (print_samp) then
          write(*,*) " a full rate calculation!"
       end if
    end if
+   call mpi_barrier(mpi_comm_world,ierr)
    if (.not. print_cross) then
       stop
    else
@@ -2273,15 +2348,17 @@ end do
 !
 !
 !     If the recrossing trajectories shall be written to a trajectory file 
-!     (print_cross), open the file here
+!     (print_cross), open the file here (for MPI it is done in recross)
 !     Use the same Fortran unit for the files to ease the implementation!
 ! 
 if (print_cross) then
-   open(unit=54,file="traj_cross_xi.dat",status="replace")
-   if (coord_vasp) then
-      open(unit=51,file="XDATCAR_cross",status="replace")
-   else
-      open(unit=51,file="traj_cross.xyz",status="replace")
+   if (.not. recross_mpi) then
+      open(unit=54,file="traj_cross_xi.dat",status="replace")
+      if (coord_vasp) then
+         open(unit=51,file="XDATCAR_cross",status="replace")
+      else
+         open(unit=51,file="traj_cross.xyz",status="replace")
+      end if
    end if
 end if
 
@@ -2375,8 +2452,10 @@ call mpi_barrier(mpi_comm_world,ierr)
 !     (print_cross), stop the calculation here
 !
 if (print_cross) then
-   close(54)
-   close(51)
+   if (.not. recross_mpi) then
+      close(54)
+      close(51)
+   end if
    print_cross=.false.
    if (rank .eq. 0) then
       write(15,*) "The PRINT_CROSS option is activated and recrossing is finished."

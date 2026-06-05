@@ -360,6 +360,7 @@ integer,allocatable::at_type_ann(:)
 !     For external call to MACE
 !
 logical::mace_ase
+logical::mace_polar ! for the Polar-1 models
 character(len=80)::ase_script   ! The filename of the Python ASE script
 !
 !     For extrnal call to UMA

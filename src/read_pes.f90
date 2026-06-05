@@ -1338,6 +1338,7 @@ if (mace_ase) then
    mlip_file="none" 
    coord_file="none"
    set_disp=.false.
+   mace_polar=.false.
    qmdffnumber=0
    do i = 1, nkey_lines
       next = 1
@@ -1382,6 +1383,12 @@ if (mace_ase) then
 !
             else if (keyword(1:10) .eq. 'ADD_DISP ') then
                set_disp=.true.
+!
+!     If one of the novel (June 2026) MACE-Polar-1 models shall be used
+!
+            else if (keyword(1:10) .eq. 'POLAR ') then
+               mace_polar=.true.
+
 !
 !     The calculation device, if CPU or GPU
 !

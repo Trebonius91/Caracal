@@ -1163,11 +1163,11 @@ end if
 !    recrossing to enable the printout of recrossing trajectories.
 !
 if (print_cross) then
-   write(*,*) "The PRINT_CROSS option is activated, recrossing will therefore be "
-   write(*,*) " done serial!"
-   write(15,*) "The PRINT_CROSS option is activated, recrossing will therefore be "
-   write(15,*) " done serial!"
-   recross_mpi = .false.
+  ! write(*,*) "The PRINT_CROSS option is activated, recrossing will therefore be "
+  ! write(*,*) " done serial!"
+  ! write(15,*) "The PRINT_CROSS option is activated, recrossing will therefore be "
+  ! write(15,*) " done serial!"
+  ! recross_mpi = .false.
 end if
 
 write(15,*) "... done!"

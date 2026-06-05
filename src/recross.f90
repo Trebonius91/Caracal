@@ -64,6 +64,7 @@
 subroutine recross(rank,psize,dt,xi_ideal,energy_ts,kappa)
 use general
 use evb_mod
+use pbc_mod
 implicit none
 !
 !     include MPI library
@@ -101,6 +102,7 @@ real(kind=8)::energy_ts  ! energy of the transition state
 integer::andersen_save ! frequency for andersen thermostat (stored)
 integer::recross_status  ! if the recrossing continues a previous calculation
 integer::readstat  ! for restart file io
+character(len=50)::subfname
 integer::steps
 !     for MPI parallelization
 integer::ierr,ID
@@ -108,6 +110,7 @@ integer::psize,source,status(MPI_STATUS_SIZE)
 integer::count,tag_mpi,dest
 real(kind=8)::message(child_evol+2)
 integer::maxwork,numwork
+logical::exist
 integer::loop_large   ! number of loops over all slaves
 integer::loop_rest    ! number of loops over remaining tasks
 integer::schedule   ! info message for process
@@ -225,6 +228,14 @@ if (recross_status .ne. 0) then
       end if
       close(78)
    end if   
+end if
+!
+!     open print_cross trajectories for MLIP training set data, one folder where
+!     each rank will have its own files
+!
+if (print_cross) then
+   inquire(file="traj_cross",exist=exist)
+   if (.not. exist) call system("mkdir traj_cross")
 end if
 !
 !     store the start structure 
@@ -512,6 +523,25 @@ if (rank .eq. 0) then
 else 
    source=0
    message=rank
+!
+!     Open output files for each rank (>0), in which MLIP trajectories are written
+!    
+   if (print_cross) then
+      if (rank .lt. 10) then
+         write(subfname,'(i1)') rank
+      else if (rank .lt. 100) then
+         write(subfname,'(i2)') rank
+      else 
+         write(subfname,'(i3)') rank
+      end if
+      open(unit=54,file="traj_cross/traj_cross_xi_rank"//subfname,status="replace")
+      if (coord_vasp) then
+         open(unit=51,file="traj_cross/XDATCAR_cross_rank"//subfname,status="replace")
+      else
+         open(unit=51,file="traj_cross/traj_cross_rank"//subfname,status="replace")
+      end if
+   end if
+
    do 
       call mpi_recv(numwork, count, MPI_DOUBLE_PRECISION, 0,tag_mpi,MPI_COMM_WORLD,status,ierr)
       call mpi_recv(q_i,natoms*3*nbeads, MPI_DOUBLE_PRECISION, 0,tag_mpi,MPI_COMM_WORLD,status,ierr)
@@ -630,6 +660,45 @@ else
 end if
 166 continue
 call mpi_barrier(mpi_comm_world,ierr)
+if (print_cross) then
+   close(54)
+   close(51)
+!
+!     Concatenate all single print_cross and print_cross_xi files into the usual 
+!      global files for all recrossing trajectories
+! 
+   if (rank .eq. 0) then
+      call system("touch traj_cross_xi.dat")
+      if (coord_vasp) then
+         call system("touch XDATCAR_cross")
+      else
+         call system("touch traj_cross.xyz")
+      end if
+      call system("rm traj_cross_xi.dat")
+      if (coord_vasp) then
+         call system("rm XDATCAR_cross")
+      else
+         call system("rm traj_cross.xyz")
+      end if
+
+      do i=1,psize-1
+         if (i .lt. 10) then
+            write(subfname,'(i1)') i
+         else if (i .lt. 100) then
+            write(subfname,'(i2)') i
+         else
+            write(subfname,'(i3)') i
+         end if
+
+         call system("cat traj_cross/traj_cross_xi_rank"//subfname//" >> traj_cross_xi.dat")
+         if (coord_vasp) then
+            call system("cat traj_cross/XDATCAR_cross_rank"//subfname//" >> XDATCAR_cross")
+         else 
+            call system("cat traj_cross/traj_cross_rank"//subfname//" >> traj_cross.xyz") 
+         end if
+      end do
+   end if
+end if
 !
 !     Write out the success message with the final recrossing factor
 !     Only for the master process
