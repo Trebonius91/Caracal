@@ -858,7 +858,7 @@ if (constrain .lt. 0 .or. print_gen .or. print_samp .or. print_cross) then
 !     Coordinates still direct, but no selective markers anymore
 !
             if (train_format .eq. "MACE") then
-               write(51,'(a,i9,a,f21.9)') "Direct step ",istep," energy: ",epot*evolt
+               write(51,'(a,i9,a,f21.9)') "Direct step ",istep," energy: ",epot*evolt/nbeads
                do i=1,natoms
                   q_act_frac=matmul(coord_inv,q_i(:,i,1)*bohr)
                   write(50,*) q_act_frac(:),-derivs(:,i,1)/bohr*evolt
@@ -900,7 +900,7 @@ if (constrain .lt. 0 .or. print_gen .or. print_samp .or. print_cross) then
             if (train_format .eq. "MACE") then
                write(51,*) natoms
                write(51,'(a,f20.10,a)') 'Properties=species:S:1:pos:R:3:REF_forces:R:3 &
-                           &REF_energy=',epot*evolt,' pbc="F F F"'
+                           &REF_energy=',epot*evolt/nbeads,' pbc="F F F"'
                do i=1,natoms
                   write(51,'(a,a,3f14.8,a,3f14.8)') name(i),"  ",q_i(:,i,1)*bohr," ",-derivs(:,i,1)/bohr*evolt
                end do

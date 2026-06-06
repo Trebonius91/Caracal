@@ -118,9 +118,9 @@ do
 end do
 close(17)
 
-open(unit=18,file="traj_gen.xyz",status="old",iostat=readstat)
+open(unit=18,file="trajectory.xyz",status="old",iostat=readstat)
 if (readstat .ne. 0) then
-   write(*,*) "The file 'traj_gen.xyz' does not exist!"
+   write(*,*) "The file 'trajectory.xyz' does not exist!"
    stop
 end if
 read(18,*) natoms
@@ -136,7 +136,7 @@ allocate(histo_grad_2d(nhisto_2d_abs,nhisto_2d_angle))
 !
 !    Then, read in the MACE reference energies and gradients
 !
-open(unit=18,file="traj_gen.xyz",status="old")
+open(unit=18,file="trajectory.xyz",status="old")
 do i=1,nframes
    read(18,*) 
    read(18,*) cdum,cdum,ener_mace(i)
