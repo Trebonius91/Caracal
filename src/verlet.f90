@@ -77,7 +77,7 @@ include 'mpif.h'
 integer::i,j,k,l,istep   ! loop indices and actual step number
 integer::rank   ! the current MPI rank
 real(kind=8)::dt,dt_2
-real(kind=8)::etot,epot,ekin,epot1
+real(kind=8)::etot,epot,ekin,epot1,e_bead1
 real(kind=8)::eksum
 logical::analyze  ! if temperature etc shall be calculated
 real(kind=8)::temp,pres
@@ -773,6 +773,9 @@ do i=1,nbeads
    q_1b=q_i(:,:,i)
    call gradient (q_1b,epot1,derivs_1d,i,rank)
    derivs(:,:,i)=derivs_1d
+   if (i .eq. 1) then
+      e_bead1=epot1
+   end if
    epot=epot+epot1
 end do
 
@@ -858,7 +861,7 @@ if (constrain .lt. 0 .or. print_gen .or. print_samp .or. print_cross) then
 !     Coordinates still direct, but no selective markers anymore
 !
             if (train_format .eq. "MACE") then
-               write(51,'(a,i9,a,f21.9)') "Direct step ",istep," energy: ",epot*evolt/nbeads
+               write(51,'(a,i9,a,f21.9)') "Direct step ",istep," energy: ",e_bead1*evolt
                do i=1,natoms
                   q_act_frac=matmul(coord_inv,q_i(:,i,1)*bohr)
                   write(50,*) q_act_frac(:),-derivs(:,i,1)/bohr*evolt
@@ -900,7 +903,7 @@ if (constrain .lt. 0 .or. print_gen .or. print_samp .or. print_cross) then
             if (train_format .eq. "MACE") then
                write(51,*) natoms
                write(51,'(a,f20.10,a)') 'Properties=species:S:1:pos:R:3:REF_forces:R:3 &
-                           &REF_energy=',epot*evolt/nbeads,' pbc="F F F"'
+                           &REF_energy=',e_bead1*evolt,' pbc="F F F"'
                do i=1,natoms
                   write(51,'(a,a,3f14.8,a,3f14.8)') name(i),"  ",q_i(:,i,1)*bohr," ",-derivs(:,i,1)/bohr*evolt
                end do

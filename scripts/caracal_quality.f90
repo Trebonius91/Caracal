@@ -297,6 +297,7 @@ open(unit=28,file="xi_ener.dat",status="replace")
 write(28,*) "# xi value    ref. energy (eV)    energy diff. (meV)"
 do i=1,nframes
    write(28,*) xi_vals(i),ener_ref(i)-ener_min,abs(ener_ref(i)-ener_mace(i))*1000.d0
+   write(*,*) ener_ref(i),ener_mace(i)
 end do
 close(28)
 !

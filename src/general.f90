@@ -361,6 +361,8 @@ integer,allocatable::at_type_ann(:)
 !
 logical::mace_ase
 logical::mace_polar ! for the Polar-1 models
+integer::mace_charge ! total charge for MACE Polar
+integer::mace_spin ! total spin for MACE Polar
 character(len=80)::ase_script   ! The filename of the Python ASE script
 !
 !     For extrnal call to UMA

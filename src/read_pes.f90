@@ -1339,6 +1339,8 @@ if (mace_ase) then
    coord_file="none"
    set_disp=.false.
    mace_polar=.false.
+   mace_charge=100
+   mace_spin=100
    qmdffnumber=0
    do i = 1, nkey_lines
       next = 1
@@ -1388,7 +1390,30 @@ if (mace_ase) then
 !
             else if (keyword(1:10) .eq. 'POLAR ') then
                mace_polar=.true.
-
+!
+!     The total charge of the system (if MACE Polar is used)
+!
+            else if (keyword(1:7) .eq. 'CHARGE ') then
+               call upcase (record)
+               read(record(8:120),*,iostat=readstat) mace_charge
+               if (readstat .ne. 0) then
+                  if (rank .eq. 0) then
+                     write(*,*) "Correct format: CHARGE [total charge]"
+                  end if
+                  call fatal
+               end if
+!
+!     The total spin of the system (if MACE Polar is used)
+!
+            else if (keyword(1:5) .eq. 'SPIN ') then
+               call upcase (record)
+               read(record(6:120),*,iostat=readstat) mace_spin
+               if (readstat .ne. 0) then
+                  if (rank .eq. 0) then
+                     write(*,*) "Correct format: SPIN [total spin]"
+                  end if
+                  call fatal
+               end if
 !
 !     The calculation device, if CPU or GPU
 !
@@ -1463,9 +1488,24 @@ if (mace_ase) then
       call fatal
    end if   
 !
+!    If MACE Polar is activated, demand that total charge and spin are given!
+!
+   if (mace_polar) then
+      if (mace_charge .eq. 100) then
+         write(*,*) "Please give the total charge of the system for a "
+         write(*,*) "  MACE Polar calculation!"
+         call fatal
+      end if
+      if (mace_spin .eq. 100) then
+         write(*,*) "Please give the total spin of the system for a " 
+         write(*,*) "  MACE Polar calculation!"
+         call fatal
+      end if
+   end if
+!
 !    New version: initialize MACE directly via Python/C Wrapper
 !
-   call mace_init(mlip_file,coord_file,set_disp,calc_device)
+   call mace_init(mlip_file,coord_file,set_disp,calc_device,mace_polar,mace_charge,mace_spin)
 
    goto 678
 end if
@@ -2907,6 +2947,12 @@ if (rank .eq. 0) then
       else
          write(*,*) "*  No empirical D3 dispersion will be added."
       end if
+      if (mace_polar) then
+         write(*,*) "* A MACE Polar type MLIP is used!"
+         write(*,'(a,i3)') "  - Total charge of the system: ",mace_charge
+         write(*,'(a,i3)') "  - Total spin of the system: ",mace_spin
+      end if
+
       if (natoms .gt. 0) then
 !         write(*,'(a,i8)') " *  Number of atoms: ",natoms
       end if
