@@ -74,6 +74,9 @@ integer::i,j,k,l,p,m
 character(len=20) keyword
 character(len=60)::names,names2
 character(len=140) record
+character(len=500)::line
+integer::first_atom,last_atom,atom,dash_pos,ios,pos,start_pos
+character(len=50)::token
 character(len=140) string
 !     local arrays for breaking/forming bonds 
 character(len=20),dimension(:),allocatable::input_form,input_break
@@ -589,88 +592,185 @@ do i = 1, nkey_lines
 !     Now read in all other informaton of the MECHA section
 !
          if (keyword(1:20) .eq. 'REACTANT1 ') then
-            read(record,*) names
-            k=1
+            pos=1
 !
-!     Read in the atom indices of each single reactant: quite complicated in fortran..
+!     Skip leading spaces
 !
-            act_number=" "
-            do l=1,120
-               at_index(l)=record(l:l)
-               if (at_index(l) .ne. " ") then
-                  if (len(trim(act_number)) .lt. 1) then
-                     act_number=at_index(l)
-                  else
-                     act_number=trim(act_number) // at_index(l)
+
+            do while (pos <= len_trim(record) .and. record(pos:pos) == ' ')
+               pos = pos + 1
+            end do
+!
+!     First skip the keyword
+!
+            do while (pos <= len_trim(record) .and. record(pos:pos) /= ' ')
+               pos = pos + 1
+            end do
+!
+!     Skip space after keyword
+!
+            do while (pos <= len_trim(record) .and. record(pos:pos) == ' ')
+               pos = pos + 1
+            end do
+!
+!     Read in atom numbers/ranges
+!
+            k = 1
+            do while (pos <= len_trim(record))
+!
+!     Look for next token
+!
+               start_pos = pos
+               do while (pos <= len_trim(record) .and. record(pos:pos) /= ' ')
+                  pos = pos + 1
+               end do
+               token = record(start_pos:pos-1)
+!
+!      Check if token contains hyphen
+!
+               dash_pos = index(trim(token), '-')
+               if (dash_pos > 0) then
+!      Range, e.g., "1-90"
+                  read(token(1:dash_pos-1), *, iostat=ios) first_atom
+                  if (ios /= 0) then
+                     write(*,*) "Error reading start of range: ", trim(token)
+                     stop
                   end if
+                  read(token(dash_pos+1:), *, iostat=ios) last_atom
+                  if (ios /= 0) then
+                     write(*,*) "Error reading end of range: ", trim(token)
+                     stop
+                  end if
+!      All atoms in the range
+                  do atom = first_atom, last_atom
+                     at_reac(1,k) = atom
+                     k = k + 1
+                  end do
                else
-                  if (len(trim(act_number)) .ge. 1) then
-                     read(act_number,*,iostat=istat) at_reac(1,k)
-                     if (istat .eq. 0) then
-                        k=k+1
-                     else
-                        at_reac(1,k)=0
-                     end if
+!      single Atom, e.g., "93"
+                  read(token, *, iostat=ios) atom
+                  if (ios /= 0) then
+                     write(*,*) "Error reading atom number: ", trim(token)
+                     stop
                   end if
-                  act_number=" "
+
+                  at_reac(1,k) = atom
+                  
+                  k = k + 1
                end if
+
+!      Skip until next token...
+               do while (pos <= len_trim(record) .and. record(pos:pos) == ' ')
+                  pos = pos + 1
+               end do
             end do
          else if (keyword(1:20) .eq. 'REACTANT2 ') then
-            read(record,*) names
-            k=1
-!
+!     
 !     Do the same for the second reactant..
 !
-            act_number=" "
-            do l=1,120
-               at_index(l)=record(l:l)
-               if (at_index(l) .ne. " ") then
-                  if (len(trim(act_number)) .lt. 1) then
-                     act_number=at_index(l)
-                  else
-                     act_number=trim(act_number) // at_index(l)
+
+            pos=1
+            do while (pos <= len_trim(record) .and. record(pos:pos) == ' ')
+               pos = pos + 1
+            end do
+            do while (pos <= len_trim(record) .and. record(pos:pos) /= ' ')
+               pos = pos + 1
+            end do
+            do while (pos <= len_trim(record) .and. record(pos:pos) == ' ')
+               pos = pos + 1
+            end do
+            k = 1
+            do while (pos <= len_trim(record))
+               start_pos = pos
+               do while (pos <= len_trim(record) .and. record(pos:pos) /= ' ')
+                  pos = pos + 1
+               end do
+               token = record(start_pos:pos-1)
+               dash_pos = index(trim(token), '-')
+               if (dash_pos > 0) then
+                  read(token(1:dash_pos-1), *, iostat=ios) first_atom
+                  if (ios /= 0) then
+                     write(*,*) "Error reading start of range: ", trim(token)
+                     stop
                   end if
+                  read(token(dash_pos+1:), *, iostat=ios) last_atom
+                  if (ios /= 0) then
+                     write(*,*) "Error reading end of range: ", trim(token)
+                     stop
+                  end if
+                  do atom = first_atom, last_atom
+                     at_reac(2,k) = atom
+                     k = k + 1
+                  end do
                else
-                  if (len(trim(act_number)) .ge. 1) then
-                     read(act_number,*,iostat=istat) at_reac(2,k)
-                     if (istat .eq. 0) then
-                        k=k+1
-                     else
-                        at_reac(2,k)=0
-                     end if
+                  read(token, *, iostat=ios) atom
+                  if (ios /= 0) then
+                     write(*,*) "Error reading atom number: ", trim(token)
+                     stop
                   end if
-                  act_number=" "
+
+                  at_reac(2,k) = atom
+
+                  k = k + 1
                end if
+
+               do while (pos <= len_trim(record) .and. record(pos:pos) == ' ')
+                  pos = pos + 1
+               end do
             end do
          else if (keyword(1:20) .eq. 'REACTANT3 ') then
-            if (sum_reacs .gt. 2) then
-               read(record,*) names
-               k=1
-!
+!     
 !     Do the same for the third reactant..
 !
-               act_number=" "
-               do l=1,120
-                  at_index(l)=record(l:l)
-                  if (at_index(l) .ne. " ") then
-                     if (len(trim(act_number)) .lt. 1) then
-                        act_number=at_index(l)
-                     else
-                        act_number=trim(act_number) // at_index(l)
-                     end if
-                  else
-                     if (len(trim(act_number)) .ge. 1) then
-                        read(act_number,*,iostat=istat) at_reac(3,k)
-                        if (istat .eq. 0) then
-                           k=k+1
-                        else
-                           at_reac(3,k)=0
-                        end if
-                     end if
-                     act_number=" "
-                  end if
+
+            pos=1
+            do while (pos <= len_trim(record) .and. record(pos:pos) == ' ')
+               pos = pos + 1
+            end do
+            do while (pos <= len_trim(record) .and. record(pos:pos) /= ' ')
+               pos = pos + 1
+            end do
+            do while (pos <= len_trim(record) .and. record(pos:pos) == ' ')
+               pos = pos + 1
+            end do
+            k = 1
+            do while (pos <= len_trim(record))
+               start_pos = pos
+               do while (pos <= len_trim(record) .and. record(pos:pos) /= ' ')
+                  pos = pos + 1
                end do
-            end if
+               token = record(start_pos:pos-1)
+               dash_pos = index(trim(token), '-')
+               if (dash_pos > 0) then
+                  read(token(1:dash_pos-1), *, iostat=ios) first_atom
+                  if (ios /= 0) then
+                     write(*,*) "Error reading start of range: ", trim(token)
+                     stop
+                  end if
+                  read(token(dash_pos+1:), *, iostat=ios) last_atom
+                  if (ios /= 0) then
+                     write(*,*) "Error reading end of range: ", trim(token)
+                     stop
+                  end if
+                  do atom = first_atom, last_atom
+                     at_reac(3,k) = atom
+                     k = k + 1
+                  end do
+               else
+                  read(token, *, iostat=ios) atom
+                  if (ios /= 0) then
+                     write(*,*) "Error reading atom number: ", trim(token)
+                     stop
+                  end if
+
+                  at_reac(3,k) = atom
+
+                  k = k + 1
+               end if
+               do while (pos <= len_trim(record) .and. record(pos:pos) == ' ')
+                  pos = pos + 1
+               end do
+            end do
          else if (keyword(1:20) .eq. 'REACTANT4 ') then
             if (sum_reacs .eq. 4) then
                read(record,*) names
@@ -1635,7 +1735,7 @@ do i = 1, nkey_lines
        if (rank .eq. 0) then
           write(*,*) "The keyword ADD_FORCE was found!"
           write(*,*) "Therefore a mechanochemistry trajectory will be"
-          write(*,*) "calculated, until a rupture event is monitored and"
+         write(*,*) "calculated, until a rupture event is monitored and"
           write(*,*) "the user will be informed."
           write(*,*) "The keywords VEC1 and VEC2 must be present, which the formate:"
           write(*,*) "FORCE1/2 [atom index] [force constant (N)] [vector (x,y,z)]"

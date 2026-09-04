@@ -503,7 +503,7 @@ if (trim(progname) .eq. "calc_rate") then
    write(*,*) "       -- ADD4_SOLV: One single and three pre-clustered reactants."
    write(*,*) "    - REACTANT[1,2,3,4] [list of numbers]: Depending on the type of "
    write(*,*) "       reaction, for each reactant, its atoms need to be specified"
-   write(*,*) "       on a distinct line (e.g., REACTANT1 5 7 8 9)."   
+   write(*,*) "       on a distinct line (e.g., REACTANT1 5 7-12 23)."   
    write(*,*) "    - REACTANTS_STRUC [.xyz file]: The reactions reactants structure,"
    write(*,*) "       needed for unimolecular reactions (see * above)."
    write(*,*) "    - DIST_INF [value]: Distance between reactants at Xi=0 where"
