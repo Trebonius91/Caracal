@@ -44,7 +44,7 @@ static PyObject *pModule = NULL;
 //
 void init_mace(char *mlip_file, char *coord_file, char *calc_device, int mlip_len, 
 		int coord_len, int device_len, bool *set_disp, bool *mace_polar, 
-                int mace_charge, int mace_spin) {
+                bool *mace_omol, int mace_charge, int mace_spin) {
    PyObject *pName, *pFunc, *pArgs;
 
 
@@ -112,7 +112,7 @@ void init_mace(char *mlip_file, char *coord_file, char *calc_device, int mlip_le
 //
 //     The transferred object with all input information
 //         
-         PyObject *pArgs = PyTuple_New(7);
+         PyObject *pArgs = PyTuple_New(8);
 //
 //     Pack MLIP filename into Python string
 //
@@ -130,17 +130,21 @@ void init_mace(char *mlip_file, char *coord_file, char *calc_device, int mlip_le
 //
          PyTuple_SetItem(pArgs, 3, PyBool_FromLong(*mace_polar ? 1 : 0));
 //
+//     Pack MACE-OMOL switch into Python string
+//
+         PyTuple_SetItem(pArgs, 4, PyBool_FromLong(*mace_omol ? 1 : 0));
+//
 //     Pack total charge (for MACE Polar) into Python long
 //
-         PyTuple_SetItem(pArgs, 4, PyLong_FromLong(mace_charge));
+         PyTuple_SetItem(pArgs, 5, PyLong_FromLong(mace_charge));
 //
 //     Pack total spin (for MACE Polar) into Python long
 //
-         PyTuple_SetItem(pArgs, 5, PyLong_FromLong(mace_spin));
+         PyTuple_SetItem(pArgs, 6, PyLong_FromLong(mace_spin));
 //
 //     Transfer the information about the used device (CPU or GPU/CUDA)
 //
-         PyTuple_SetItem(pArgs, 6, PyUnicode_FromString(device_buffer));
+         PyTuple_SetItem(pArgs, 7, PyUnicode_FromString(device_buffer));
 //
 //     Call Python function
 //

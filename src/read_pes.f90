@@ -1339,6 +1339,7 @@ if (mace_ase) then
    coord_file="none"
    set_disp=.false.
    mace_polar=.false.
+   mace_omol=.false.
    mace_charge=100
    mace_spin=100
    qmdffnumber=0
@@ -1390,6 +1391,11 @@ if (mace_ase) then
 !
             else if (keyword(1:10) .eq. 'POLAR ') then
                mace_polar=.true.
+!
+!     If one of the MACE OMOL models shall be used
+!
+            else if (keyword(1:10) .eq. 'OMOL ') then
+               mace_omol=.true.
 !
 !     The total charge of the system (if MACE Polar is used)
 !
@@ -1488,24 +1494,25 @@ if (mace_ase) then
       call fatal
    end if   
 !
-!    If MACE Polar is activated, demand that total charge and spin are given!
+!    If MACE Polar/OMOL is activated, demand that total charge and spin are given!
 !
-   if (mace_polar) then
+   if (mace_polar .or. mace_omol) then
       if (mace_charge .eq. 100) then
          write(*,*) "Please give the total charge of the system for a "
-         write(*,*) "  MACE Polar calculation!"
+         write(*,*) "  MACE OMOL/Polar calculation!"
          call fatal
       end if
       if (mace_spin .eq. 100) then
          write(*,*) "Please give the total spin of the system for a " 
-         write(*,*) "  MACE Polar calculation!"
+         write(*,*) "  MACE OMOL/Polar calculation!"
          call fatal
       end if
    end if
 !
 !    New version: initialize MACE directly via Python/C Wrapper
 !
-   call mace_init(mlip_file,coord_file,set_disp,calc_device,mace_polar,mace_charge,mace_spin)
+   call mace_init(mlip_file,coord_file,set_disp,calc_device,mace_polar,mace_omol,&
+          & mace_charge,mace_spin)
 
    goto 678
 end if
@@ -2952,6 +2959,14 @@ if (rank .eq. 0) then
          write(*,'(a,i3)') "  - Total charge of the system: ",mace_charge
          write(*,'(a,i3)') "  - Total spin of the system: ",mace_spin
       end if
+      if (mace_omol) then
+         write(*,*) "* A MACE OMOL type MLIP is used!"
+         write(*,'(a,i3)') "  - Total charge of the system: ",mace_charge
+         write(*,'(a,i3)') "  - Total spin of the system: ",mace_spin
+      end if
+
+
+
 
       if (natoms .gt. 0) then
 !         write(*,'(a,i8)') " *  Number of atoms: ",natoms

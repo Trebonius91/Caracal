@@ -41,7 +41,8 @@ interface
 !     The initialization routine
 !
    subroutine init_mace(mlip_file,coord_file,calc_device,mlip_len,coord_len, &
-               & device_len,set_disp,mace_polar,mace_charge,mace_spin) bind(C)
+               & device_len,set_disp,mace_polar,mace_omol,mace_charge,&
+               & mace_spin) bind(C)
       use iso_c_binding 
       character(kind=c_char),dimension(*)::mlip_file
       character(kind=c_char),dimension(*)::coord_file
@@ -51,6 +52,7 @@ interface
       integer(c_int),value::device_len
       logical(kind=c_bool)::set_disp
       logical(kind=c_bool)::mace_polar
+      logical(kind=c_bool)::mace_omol
       integer(c_int),value::mace_charge
       integer(c_int),value::mace_spin
 

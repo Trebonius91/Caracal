@@ -58,7 +58,7 @@ calc=None
 #    The initialization routine: read in the MACE MLIP and define it for the 
 #      current geometry/system
 #
-def init_mace(mlip_file,coord_file,set_disp,mace_polar,mace_charge,mace_spin,calc_device):
+def init_mace(mlip_file,coord_file,set_disp,mace_polar,mace_omol,mace_charge,mace_spin,calc_device):
 #
 #    Redefine global variables
 #
@@ -71,6 +71,9 @@ def init_mace(mlip_file,coord_file,set_disp,mace_polar,mace_charge,mace_spin,cal
    if mace_polar:
       from mace.calculators import mace_polar
       macemp = mace_polar(model=mlip_file,device=calc_device)
+   elif mace_omol:
+      from mace.calculators import mace_omol 
+      macemp = mace_omol(model=mlip_file,device=calc_device)
    else:
       from mace.calculators import mace_mp
 #
@@ -92,9 +95,12 @@ def init_mace(mlip_file,coord_file,set_disp,mace_polar,mace_charge,mace_spin,cal
 
    natoms = len(atoms)
 #
-#    Define the charge and spin, if a MACE Polar MLIP is used
+#    Define the charge and spin, if a MACE OMOL/Polar MLIP is used
 #
    if mace_polar:
+      atoms.info["charge"] = mace_charge
+      atoms.info["spin"] = mace_spin
+   if mace_omol:
       atoms.info["charge"] = mace_charge
       atoms.info["spin"] = mace_spin
 
