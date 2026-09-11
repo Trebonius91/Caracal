@@ -79,9 +79,13 @@ do i=1,nframes
       write(*,*) "The file ",folder,"/ener.engrad is missing!"
       stop
    end if
-   do j=1,11
+   do j=1,7
       read(29,*) 
    end do
+   read(29,*) energies(i)
+   read(29,*)
+   read(29,*)
+   read(29,*)
    do j=1,natoms
       do k=1,3
          read(29,*) grad(k,j,i)
