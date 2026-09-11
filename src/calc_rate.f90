@@ -2496,7 +2496,7 @@ if (rank .eq. 0) then
    pmf_int=0.d0
    if ((umbr_type .eq. "ATOM_SHIFT") .or. (umbr_type .eq. "CYCLOREVER") .or. &
        & (umbr_type .eq. "REARRANGE") .or. (umbr_type .eq. "DECOM_1BOND") .or.&
-       & (umbr_type .eq. "ELIMINATION")) then
+       & (umbr_type .eq. "ELIMINATION") .or. (umbr_type .eq. "CUSTOM")) then
       pmf_int=0.d0
       do i=minlocate,maxlocate
          pmf_int=pmf_int+exp(-beta*pmf(i))

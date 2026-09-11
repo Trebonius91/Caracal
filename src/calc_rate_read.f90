@@ -546,6 +546,69 @@ else if (umbr_type .eq. "DECOM_1BOND") then
    form_num=0
    break_num=1
    sum_reacs=1
+!
+!    The CUSTOM type: read in arbitrary numbers of formed 
+!         and broken bonds!
+!
+else if (umbr_type .eq. "CUSTOM") then
+   form_num=-1
+   break_num=-1
+   sum_reacs=-1
+
+   do i = 1, nkey_lines
+      next = 1
+      record = keyline(i)
+      call gettext (record,keyword,next)
+      call upcase (keyword)
+      call upcase (record)
+      string = record(next:120)
+      if (trim(adjustl(record(1:11))) .eq. 'MECHA {' .or. trim(adjustl(record(1:11))) &
+              &  .eq. 'MECHA{') then
+         do j=1,nkey_lines-i+1
+            next=1
+            record = keyline(i+j)
+            call gettext (record,keyword,next)
+            call upcase (keyword)
+!
+!    Read in number of reactants, as well as formed and broken bonds
+!
+            if (keyword(1:20) .eq. 'NBOND_FORM ') then
+               read(record,*,iostat=readstat) names,form_num
+               if (readstat .ne. 0) then
+                  write(*,*) "Correct format: NBOND_FORM [No. of bonds]"
+                  call fatal
+               end if
+            else if (keyword(1:20) .eq. 'NBOND_BREAK ') then
+               read(record,*,iostat=readstat) names,break_num
+               if (readstat .ne. 0) then
+                  write(*,*) "Correct format: NBOND_BREAK [No. of bonds]"
+                  call fatal
+               end if
+            else if (keyword(1:20) .eq. 'NREACTANTS ') then
+               read(record,*,iostat=readstat) names,sum_reacs
+               if (readstat .ne. 0) then
+                  write(*,*) "Correct format: NREACTANTS [No. of reactants]"
+                  call fatal
+               end if
+            end if
+            if (keyword(1:13) .eq. '}') exit
+            if (j .eq. nkey_lines-i) then
+               write(*,*) "The MECHA section has no second delimiter! (})"
+               call fatal
+            end if
+         end do
+      end if
+   end do
+   if (form_num .lt. 0) then
+      write(*,*) "Please give the number of formed bonds via NBOND_FORM!"
+      call fatal
+   else if (break_num .lt. 0) then
+      write(*,*) "Please give the number of broken bonds via NBOND_BREAK!"
+      call fatal
+   else if (sum_reacs .lt. 0) then
+      write(*,*) "Please give the number of reactants via NREACTANTS!"
+      call fatal
+   end if
 else if (umbr_type .eq. "ATOM_SHIFT") then
 else
    if (rank .eq. 0) then
@@ -1441,6 +1504,7 @@ if (rank .eq. 0) then
       write(*,*) "           reactants are clustered before the reaction (bimol. k(T))."
       write(*,*) "ATOM_SHIFT: A single atom is transported a certain distance, e.g. on a metal surface."
       write(*,*) "CYCLOREV: A cycloreversion: two bonds are broken simultaneously."
+      write(*,*) "CUSTOM: A custom reaction with individual formed/broken bonds and reactants."
       call fatal
    end if
 !
