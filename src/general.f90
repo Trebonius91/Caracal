@@ -338,6 +338,7 @@ character(len=20)::geoopt_algo
 !     from subroutine getkey: to define it globally
 !
 character(len=120)::keyfile
+character(len=50)::react_save
 !
 !     If an analytical potential energy surface from the 
 !     literature shall be used 

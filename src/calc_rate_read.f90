@@ -364,7 +364,7 @@ end do
 !    Determine the number of atoms from the TS file
 !    If a VASP POSCAR file is there, sum up the element atom numbers
 !
-if (trim(ts_file) .eq. "POSCAR") then
+if (trim(ts_file(1:6)) .eq. "POSCAR") then
    open(unit=67,file=ts_file,status="old")
    do i=1,6
       read(67,*) 
@@ -944,22 +944,44 @@ do i = 1, nkey_lines
 !
          else if (keyword(1:20) .eq. 'REACTANTS_STRUC ') then
             if (sum_reacs .eq. 1) then
-              ! fix_atoms=.true.
                read(record,*) names,reactants_file
-               open(unit=31,file=reactants_file,status="old",iostat=readstat)
-               if (readstat .ne. 0) then
-                  if (rank .eq. 0) then
-                     write(*,*) "The file ",reactants_file," with the reactants structure &
+               if (trim(reactants_file(1:6)) .eq. "POSCAR") then
+                  open(unit=67,file=reactants_file,status="old",iostat=readstat)
+                  if (readstat .ne. 0) then
+                     if (rank .eq. 0) then
+                        write(*,*) "The file ",reactants_file," with the reactants structure &
                                        &  could not been found!"
-                     call fatal
+                        call fatal
+                     end if
                   end if
-               end if
-               allocate(reac_ref(3,natoms))
-               read(31,*) ; read(31,*)
-               do l=1,natoms
-                  read(31,*) names,reac_ref(:,l)
+                  react_save=reactants_file
+                  do l=1,6
+                     read(67,*)
                   end do
-               close(31)
+                  read(67,'(a)') a120
+                  natoms_list=0
+                  read(a120,*,iostat=readstat) natoms_list
+                  natoms=sum(natoms_list)
+                  close(67)
+               else
+                  open(unit=67,file=reactants_file,status="old",iostat=readstat)
+                  if (readstat .ne. 0) then
+                     if (rank .eq. 0) then
+                        write(*,*) "The file ",reactants_file," with the reactants structure &
+                                       &  could not been found!"
+                        call fatal
+                     end if
+                  end if
+                  react_save=reactants_file
+                  allocate(reac_ref(3,natoms))
+                  read(67,*) ; read(67,*)
+                  do l=1,natoms
+                     read(67,*) names,reac_ref(:,l)
+                  end do
+                  close(67)
+               end if
+
+              ! fix_atoms=.true.
 !
 !     convert reactants structure to bohr
 !

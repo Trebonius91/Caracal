@@ -470,6 +470,8 @@ if (trim(progname) .eq. "calc_rate") then
 !
    write(*,*) " * TS_STRUC [.xyz file with start structure (Angstrom)]: Input"
    write(*,*) "    structure for the calculations, should be the reactions' TS!."
+   write(*,*) "    If the filename starts with POSCAR (e.g., POSCAR_TS), the "
+   write(*,*) "    the VASP periodic unit cell format is assumed."
    write(*,*) " * RPMD_BEADS [number]: Number of ring polymer beads of the "
    write(*,*) "    system (def.: 1 == classical calculation)"
    write(*,*) " * DELTAT [value]: Lengh of a single MD timestep in fs."
@@ -507,6 +509,8 @@ if (trim(progname) .eq. "calc_rate") then
    write(*,*) "       on a distinct line (e.g., REACTANT1 5 7-12 23)."   
    write(*,*) "    - REACTANTS_STRUC [.xyz file]: The reactions reactants structure,"
    write(*,*) "       needed for unimolecular reactions (see * above)."
+   write(*,*) "       If the filename starts with POSCAR (e.g., POSCAR_reac), the "
+   write(*,*) "       the VASP periodic unit cell format is assumed."
    write(*,*) "    - DIST_INF [value]: Distance between reactants at Xi=0 where"
    write(*,*) "       no interactions are noticed, in Ang. (recommended: 8-15)."
    write(*,*) "    - BOND_FORM [list]: List of bonds that are going to be formed"

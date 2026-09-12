@@ -290,7 +290,6 @@ if (irc_method .eq. "euler") then
 !
 !     Check if any of the convergene criteria is fulfilled!
 ! 
-        ! write(15,*) epot,e_last,abs(epot-e_last)
          if (abs(epot-e_last) .lt. irc_ethr) then
             write(15,*) "-------------------------------------------------------"
             write(15,*) "Energy change fulfills convergence criterion!"
@@ -311,7 +310,7 @@ if (irc_method .eq. "euler") then
             end do
          end do
          dist_next=sqrt(dist_next)
-         if ((dist_next .le. dist_act) .and. (i .gt. 4)) then
+         if ((dist_next .le. dist_act) .and. (i .gt. 20)) then
             write(15,*) "-------------------------------------------------------"
             write(15,*) "It seems that the optimization has reached a minimum and"
             write(15,*) "is now oscillating in it! Therefore this branch will be"

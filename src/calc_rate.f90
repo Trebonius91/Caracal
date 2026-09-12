@@ -316,7 +316,7 @@ call calc_rate_read(rank,dt,dtdump,dt_info,gen_step,equi_step,umbr_step,xi_min,&
 !       whole calculation!
 !     If the filename is POSCAR, assume a VASP POSCAR file as input
 !
-if (trim(ts_file) .eq. "POSCAR") then
+if (trim(ts_file(1:6)) .eq. "POSCAR") then
 !   write(*,*)
 !   if (rank .eq. 0) then
 !      write(*,*) "The geometry is given in file POSCAR. VASP format will be assumed!"
@@ -440,6 +440,42 @@ else
       call atommass(i)
    end do
    close(31)
+end if
+!
+!     Read in the reactants file if it has POSCAR format!
+!
+!     Assume the same format as for the TS structure!
+!
+if (trim(react_save(1:6)) .eq. "POSCAR") then
+   open (unit=31,file=react_save,status='old')
+   do i=1,7
+      read(31,*)
+   end do
+   if (vasp_selective) read(31,*)
+   read(31,*)
+   ind=0
+   allocate(reac_ref(3,natoms))
+   do i=1,natoms
+      read(31,*) reac_ref(:,i)
+!
+!     If direct coordinates are given, transform the coordinates to Angstrom!
+!
+      if (vasp_direct) then
+         x_tmp=reac_ref(1,i)
+         y_tmp=reac_ref(2,i)
+         z_tmp=reac_ref(3,i)
+         reac_ref(1,i)=(x_tmp*vasp_a_vec(1)+y_tmp*vasp_b_vec(1)+z_tmp*vasp_c_vec(1))*vasp_scale
+         reac_ref(2,i)=(x_tmp*vasp_a_vec(2)+y_tmp*vasp_b_vec(2)+z_tmp*vasp_c_vec(2))*vasp_scale
+         reac_ref(3,i)=(x_tmp*vasp_a_vec(3)+y_tmp*vasp_b_vec(3)+z_tmp*vasp_c_vec(3))*vasp_scale
+      end if
+   end do
+!
+!     convert reactants structure to bohr
+!
+   reac_ref=reac_ref/bohr
+
+   close(31)
+
 end if
 !
 !     Determine all fixed atoms for the dynamics
