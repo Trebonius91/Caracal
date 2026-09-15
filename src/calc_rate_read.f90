@@ -973,19 +973,19 @@ do i = 1, nkey_lines
                      end if
                   end if
                   react_save=reactants_file
-                  allocate(reac_ref(3,natoms))
+                  if (.not. allocated(reac_ref)) allocate(reac_ref(3,natoms))
                   read(67,*) ; read(67,*)
                   do l=1,natoms
                      read(67,*) names,reac_ref(:,l)
                   end do
                   close(67)
+                  reac_ref=reac_ref/bohr 
                end if
-
+             
               ! fix_atoms=.true.
 !
 !     convert reactants structure to bohr
 !
-               reac_ref=reac_ref/bohr
             end if
 
 !
